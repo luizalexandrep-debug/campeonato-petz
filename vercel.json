@@ -3,7 +3,8 @@
   "buildCommand": "pip install -r requirements.txt",
   "env": {
     "FLASK_ENV": "production",
-    "PYTHONUNBUFFERED": "1"
+    "PYTHONUNBUFFERED": "1",
+    "VERCEL": "1"
   },
   "functions": {
     "api/index.py": {

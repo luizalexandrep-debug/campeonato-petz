@@ -19,7 +19,12 @@ app = Flask(__name__)
 CORS(app)
 
 # Configuração de banco de dados e autenticação
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///campeonato.db'
+# Em Vercel o filesystem é somente-leitura, exceto /tmp
+if os.environ.get('VERCEL') or not os.access(str(Path(__file__).parent), os.W_OK):
+    db_path = '/tmp/campeonato.db'
+else:
+    db_path = str(Path(__file__).parent / 'campeonato.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SECRET_KEY'] = 'sua-chave-secreta-mude-isso-em-producao'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False  # Mude para True em produção (HTTPS)
@@ -949,15 +954,17 @@ def delete_usuario(usuario_id):
 # SERVIR ARQUIVOS ESTÁTICOS
 # ============================================================
 
+STATIC_DIR = str(Path(__file__).parent)
+
 @app.route('/')
 def index():
     """Serve a página principal do dashboard"""
-    return send_from_directory('.', 'dashboard-v3.html')
+    return send_from_directory(STATIC_DIR, 'dashboard-v3.html')
 
 @app.route('/<path:filename>')
 def serve_static(filename):
     """Serve arquivos estáticos (CSS, JS, etc)"""
-    return send_from_directory('.', filename)
+    return send_from_directory(STATIC_DIR, filename)
 
 # ============================================================
 # Main
