@@ -108,7 +108,10 @@ def carregar_tudo(semana_anterior, semana_atual):
 
 
 def _placar(memoria, team1, team2, hoje_idx=None):
+    """Retorna (score1, score2, gols) onde gols é {arquivo: 1|2|0}:
+    1 = team1 venceu o indicador, 2 = team2, 0 = empate."""
     score1 = score2 = 0
+    gols = {}
     dias_a_contar = DIAS_ORDENADOS[:hoje_idx + 1] if hoje_idx is not None else DIAS_ORDENADOS
     for arquivo, semanas in memoria.items():
         ant = semanas["anterior"]
@@ -126,24 +129,31 @@ def _placar(memoria, team1, team2, hoje_idx=None):
         ev2 = t2_atu - t2_ant
         if ev1 > ev2:
             score1 += 1
+            gols[arquivo] = 1
         elif ev2 > ev1:
             score2 += 1
-    return score1, score2
+            gols[arquivo] = 2
+        else:
+            gols[arquivo] = 0
+    return score1, score2, gols
 
 
 def calcular_todos_jogos(confrontos, memoria, hoje_idx):
-    """Calcula projetado + acumulado de todos os confrontos usando memória."""
+    """Calcula projetado + acumulado de todos os confrontos usando memória.
+    Inclui 'golsProjetados' e 'golsAcumulados' (quem venceu cada indicador)."""
     jogos = []
     for conf in confrontos:
         t1, t2 = conf["team1"], conf["team2"]
-        s1p, s2p = _placar(memoria, t1, t2, None)
-        s1a, s2a = _placar(memoria, t1, t2, hoje_idx)
+        s1p, s2p, gols_proj = _placar(memoria, t1, t2, None)
+        s1a, s2a, gols_acum = _placar(memoria, t1, t2, hoje_idx)
         jogos.append({
             "team1": t1,
             "team2": t2,
             "scoreProjected": f"{s1p} x {s2p}",
             "scoreAccumulated": f"{s1a} x {s2a}",
             "hojeIdx": hoje_idx,
+            "golsProjetados": gols_proj,
+            "golsAcumulados": gols_acum,
         })
     return jogos
 

@@ -867,28 +867,25 @@ function loadGamesFromSummaryForDistrito(regional, distrito, lojas) {
         aproveitamento: totalLojas > 0 ? ((vitórias * 3 + empates * 1) / (totalLojas * 3)) * 100 : 0
     };
 
-    // Calcular análise por gol a partir do resumo
+    // Calcular análise por gol a partir do resumo, usando o vencedor REAL de
+    // cada indicador (golsProjetados: {arquivo: 1=team1, 2=team2, 0=empate}).
     const analise = {};
-    const indicadores = ['VENDAS', 'PREMIER', 'ELANCO', 'CAMAS ROUPAS COBERTORES', 'LIMPEZA PERFUMARIA'];
-    indicadores.forEach(ind => {
-        analise[ind] = { vitórias: 0, derrotas: 0, empates: 0, total: 0 };
-    });
 
     jogosFiltrados.forEach(gameData => {
         const lojaDoDistrito = lojas.includes(gameData.team1) ? gameData.team1 : gameData.team2;
         const isTeam1 = lojaDoDistrito === gameData.team1;
-        const [score1, score2] = gameData.scoreProjected.split('x').map(s => parseInt(s.trim()));
-        const scoreDistrito = isTeam1 ? score1 : score2;
-        const scoreAdversário = isTeam1 ? score2 : score1;
+        const gols = gameData.golsProjetados || {};
 
-        indicadores.forEach(ind => {
-            if (scoreDistrito > scoreAdversário) {
-                analise[ind].vitórias++;
-            } else if (scoreDistrito < scoreAdversário) {
-                analise[ind].derrotas++;
-            } else {
-                analise[ind].empates++;
+        Object.entries(gols).forEach(([ind, vencedor]) => {
+            if (!analise[ind]) {
+                analise[ind] = { vitórias: 0, derrotas: 0, empates: 0, total: 0 };
             }
+            const distritoVenceu = isTeam1 ? vencedor === 1 : vencedor === 2;
+            const distritoPerdeu = isTeam1 ? vencedor === 2 : vencedor === 1;
+
+            if (distritoVenceu) analise[ind].vitórias++;
+            else if (distritoPerdeu) analise[ind].derrotas++;
+            else analise[ind].empates++;
             analise[ind].total++;
         });
     });
