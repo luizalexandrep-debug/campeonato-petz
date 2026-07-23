@@ -6,19 +6,14 @@
     "PYTHONUNBUFFERED": "1"
   },
   "functions": {
-    "backend.py": {
-      "memory": 1024,
+    "api/index.py": {
       "maxDuration": 30
     }
   },
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "/backend.py"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/backend.py"
+      "dest": "/api/index.py"
     }
   ]
 }
