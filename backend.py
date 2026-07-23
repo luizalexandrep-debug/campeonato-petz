@@ -758,20 +758,37 @@ def get_games_summary(semana):
         import json
         import os
 
-        # Verificar cache: primeiro /tmp (reprocessado), depois o empacotado
-        for cache_dir in (TMP_BASE / "cache", BUNDLED_BASE / "cache"):
-            try:
-                cache_file = str(cache_dir / f'games-summary-w{semana}.json')
-                if os.path.exists(cache_file):
-                    print(f"📦 Carregando resumo de cache: {cache_file}")
-                    with open(cache_file, 'r') as f:
-                        data = json.load(f)
-                    return jsonify(data)
-            except:
-                pass
+        # 1) Cache em /tmp (reprocessado nesta instância) — mais fresco e rápido
+        try:
+            tmp_cache = str(TMP_BASE / "cache" / f'games-summary-w{semana}.json')
+            if os.path.exists(tmp_cache):
+                print(f"📦 Cache /tmp: {tmp_cache}")
+                with open(tmp_cache, 'r') as f:
+                    return jsonify(json.load(f))
+        except Exception:
+            pass
 
-        # Se não existe cache, calcular agora
-        print(f"⚠️ Cache não encontrado! Calculando agora...")
+        # 2) Sem cache local (ex.: cold start): buscar do SharePoint AO VIVO.
+        #    Isso garante que os dados nunca "revertam" para o empacotado antigo.
+        try:
+            print("🔄 Sem cache local — buscando do SharePoint ao vivo...")
+            r = _baixar_e_recalcular(semana)
+            return jsonify(r["data"])
+        except Exception as e:
+            print(f"⚠️ Auto-fetch do SharePoint falhou ({e}). Usando fallback empacotado.")
+
+        # 3) Fallback: cache empacotado no repositório
+        try:
+            b_cache = str(BUNDLED_BASE / "cache" / f'games-summary-w{semana}.json')
+            if os.path.exists(b_cache):
+                print(f"📦 Cache empacotado: {b_cache}")
+                with open(b_cache, 'r') as f:
+                    return jsonify(json.load(f))
+        except Exception:
+            pass
+
+        # 4) Último recurso: calcular a partir do empacotado (lento)
+        print(f"⚠️ Cache não encontrado! Calculando a partir do empacotado...")
 
         confrontos_path = BASE_PATH / "Confrontos" / f"Semana {semana}.xlsx"
         if not confrontos_path.exists():
@@ -832,67 +849,74 @@ def get_games_summary(semana):
 # REPROCESSAR (baixa dados do SharePoint e recalcula)
 # ============================================================
 
+def _baixar_e_recalcular(semana):
+    """Baixa as pastas do SharePoint, recalcula todos os jogos e grava o cache
+    em /tmp. Retorna dict com 'data' (resumo), 'baixados' e 'dias_atual'.
+    Lança exceção em falha."""
+    import json
+    import sharepoint
+    import calculo_rapido as cr
+
+    # 1) Baixar as pastas do SharePoint para /tmp
+    print(f"⏳ Semana {semana}: baixando do SharePoint...")
+    baixados = sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40)
+    total_arqs = sum(len(v) for v in baixados.values())
+    if total_arqs == 0:
+        raise RuntimeError("Nenhum arquivo baixado do SharePoint. "
+                           "Verifique os links de compartilhamento.")
+    print(f"✅ Baixados: {baixados}")
+
+    # 2) Confrontos vêm da base empacotada (não mudam no dia a dia)
+    confrontos_path = BUNDLED_BASE / "Confrontos" / f"Semana {semana}.xlsx"
+    if not confrontos_path.exists():
+        raise FileNotFoundError(f"Confrontos da semana {semana} não encontrados")
+    confrontos = cr.ler_confrontos(confrontos_path)
+
+    # 3) Cálculo rápido em memória (lê os dados frescos de /tmp)
+    memoria = cr.carregar_tudo(TMP_BASE / "SEMANA ANTERIOR", TMP_BASE / "SEMANA ATUAL")
+    hoje_idx = (datetime.now().weekday() + 1) % 7
+    jogos = cr.calcular_todos_jogos(confrontos, memoria, hoje_idx)
+
+    # 4) Salvar cache em /tmp
+    cache_dir = TMP_BASE / "cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    data = {
+        "week": semana,
+        "lastUpdated": datetime.now().isoformat(),
+        "total": len(jogos),
+        "games": jogos,
+    }
+    with open(cache_dir / f'games-summary-w{semana}.json', 'w') as f:
+        json.dump(data, f, ensure_ascii=False)
+
+    # Dias disponíveis na semana atual (para informar o usuário)
+    dias_atual = []
+    for arq, sem in memoria.items():
+        for loja, dias in sem.get("atual", {}).items():
+            dias_atual = list(dias.keys())
+            break
+        if dias_atual:
+            break
+
+    print(f"✅ Reprocessamento concluído: {len(jogos)} jogos.")
+    return {"data": data, "baixados": baixados, "dias_atual": dias_atual}
+
+
 @app.route('/api/reprocessar/<int:semana>', methods=['POST'])
 @login_required
 def reprocessar(semana):
     """Baixa as pastas SEMANA ANTERIOR/ATUAL do SharePoint, recalcula todos os
     jogos e atualiza o cache. Retorna o resumo recalculado."""
-    import json
-    import sharepoint
-    import calculo_rapido as cr
-
     try:
-        # 1) Baixar as pastas do SharePoint para /tmp
-        print(f"⏳ Reprocessar semana {semana}: baixando do SharePoint...")
-        baixados = sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40)
-        total_arqs = sum(len(v) for v in baixados.values())
-        if total_arqs == 0:
-            return jsonify({"error": "Nenhum arquivo baixado do SharePoint. "
-                                     "Verifique os links de compartilhamento."}), 502
-        print(f"✅ Baixados: {baixados}")
-
-        # 2) Confrontos vêm da base empacotada (não mudam no dia a dia)
-        confrontos_path = BUNDLED_BASE / "Confrontos" / f"Semana {semana}.xlsx"
-        if not confrontos_path.exists():
-            return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
-        confrontos = cr.ler_confrontos(confrontos_path)
-
-        # 3) Cálculo rápido em memória (lê os dados frescos de /tmp)
-        memoria = cr.carregar_tudo(TMP_BASE / "SEMANA ANTERIOR", TMP_BASE / "SEMANA ATUAL")
-        hoje_idx = (datetime.now().weekday() + 1) % 7
-        jogos = cr.calcular_todos_jogos(confrontos, memoria, hoje_idx)
-
-        # 4) Salvar cache em /tmp
-        cache_dir = TMP_BASE / "cache"
-        cache_dir.mkdir(parents=True, exist_ok=True)
-        data = {
-            "week": semana,
-            "lastUpdated": datetime.now().isoformat(),
-            "total": len(jogos),
-            "games": jogos,
-        }
-        with open(cache_dir / f'games-summary-w{semana}.json', 'w') as f:
-            json.dump(data, f, ensure_ascii=False)
-
-        # Dias disponíveis na semana atual (para informar o usuário)
-        dias_atual = []
-        for arq, sem in memoria.items():
-            for loja, dias in sem.get("atual", {}).items():
-                dias_atual = list(dias.keys())
-                break
-            if dias_atual:
-                break
-
-        print(f"✅ Reprocessamento concluído: {len(jogos)} jogos.")
+        r = _baixar_e_recalcular(semana)
         return jsonify({
             "message": "Reprocessamento concluído com sucesso",
             "week": semana,
-            "total": len(jogos),
-            "arquivos_baixados": baixados,
-            "dias_semana_atual": dias_atual,
-            "lastUpdated": data["lastUpdated"],
+            "total": r["data"]["total"],
+            "arquivos_baixados": r["baixados"],
+            "dias_semana_atual": r["dias_atual"],
+            "lastUpdated": r["data"]["lastUpdated"],
         })
-
     except Exception as e:
         print(f"❌ Erro no reprocessamento: {e}")
         import traceback
