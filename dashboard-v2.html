@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campeonato Petz - Dashboard com Dados Reais</title>
+    <link rel="stylesheet" href="dashboard-styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>⚽ Campeonato Petz 2026</h1>
+                <p class="subtitle">Dashboard de Resultados com Dados do SharePoint</p>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <label for="team1Select">Time A:</label>
+                <select id="team1Select">
+                    <option value="">Selecione o Time A...</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="team2Select">Time B:</label>
+                <select id="team2Select">
+                    <option value="">Selecione o Time B...</option>
+                </select>
+            </div>
+
+            <button id="compararBtn" class="btn btn-primary">Comparar</button>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingBar" class="info-bar hidden">
+            <span>⏳ Carregando dados...</span>
+        </div>
+
+        <!-- Error Indicator -->
+        <div id="errorBar" class="info-bar hidden" style="background: #ffebee; color: #c62828; border-color: #c62828;">
+            <span id="errorText"></span>
+        </div>
+
+        <!-- Success Indicator -->
+        <div id="successBar" class="info-bar hidden" style="background: #e8f5e9; color: #2e7d32; border-color: #2e7d32;">
+            <span id="successText"></span>
+        </div>
+
+        <!-- Result Display -->
+        <div id="resultContainer" class="result-container hidden">
+            <div class="result-header">
+                <h2>Resultado da Comparação</h2>
+            </div>
+
+            <div class="result-content">
+                <!-- Score -->
+                <div class="score-section">
+                    <div class="team-column">
+                        <h3 id="team1Name"></h3>
+                        <div class="team-score" id="team1Score">0</div>
+                    </div>
+                    <div class="vs-column">vs</div>
+                    <div class="team-column">
+                        <h3 id="team2Name"></h3>
+                        <div class="team-score" id="team2Score">0</div>
+                    </div>
+                </div>
+
+                <div class="result-status" id="resultStatus"></div>
+
+                <!-- Indicators Grid -->
+                <div class="indicators-result">
+                    <h3>Indicadores por Semana</h3>
+                    <div class="indicators-cards" id="indicatorsCards">
+                        <!-- Cards serão inseridos aqui -->
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="result-summary">
+                    <div class="summary-box">
+                        <h4>Resumo Geral</h4>
+                        <p id="resultSummary"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state">
+            Selecione dois times para comparar e visualizar os resultados baseados em dados reais do SharePoint
+        </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script src="dashboard-v2.js"></script>
+</body>
+</html>

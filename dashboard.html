@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campeonato Petz - Dashboard Regional</title>
+    <link rel="stylesheet" href="dashboard-styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>⚽ Campeonato Petz 2026</h1>
+                <p class="subtitle">Dashboard de Resultados por Regional/Distrito</p>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <label for="filterRegional">Regional:</label>
+                <select id="filterRegional">
+                    <option value="">Selecione uma Regional...</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="filterDistrito">Distrito:</label>
+                <select id="filterDistrito" disabled>
+                    <option value="">Selecione um Distrito...</option>
+                </select>
+            </div>
+
+            <button id="loadResultsBtn" class="btn btn-primary">Carregar Resultados</button>
+        </div>
+
+        <!-- Info Bar -->
+        <div id="infoBar" class="info-bar hidden">
+            <span id="infoText"></span>
+        </div>
+
+        <!-- Games Grid -->
+        <div id="gamesGrid" class="games-grid">
+            <p class="empty-state">Selecione uma Regional e Distrito para visualizar os jogos</p>
+        </div>
+
+        <!-- Add Result Modal -->
+        <div id="resultModal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Adicionar Resultado</h3>
+                    <button class="close-btn">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="game-info">
+                        <h4 id="gameTeams"></h4>
+                        <p id="gameDistrict"></p>
+                    </div>
+
+                    <div class="indicators-form" id="indicatorsForm">
+                        <!-- Indicadores serão inseridos aqui -->
+                    </div>
+
+                    <div class="modal-actions">
+                        <button id="calculateResultBtn" class="btn btn-primary">Calcular Resultado</button>
+                        <button id="closeModalBtn" class="btn btn-secondary">Cancelar</button>
+                    </div>
+
+                    <div id="resultDisplay" class="result-display hidden">
+                        <h4>Resultado</h4>
+                        <div class="score-large">
+                            <span id="resultTeamA">0</span>
+                            <span class="vs">vs</span>
+                            <span id="resultTeamB">0</span>
+                        </div>
+                        <p id="resultStatus"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="estrutura.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>

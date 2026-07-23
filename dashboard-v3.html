@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campeonato Petz - Dashboard Regional</title>
+    <link rel="stylesheet" href="dashboard-v3-styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>⚽ Campeonato Petz 2026 - Semana 4</h1>
+                <p class="subtitle">Acompanhamento de Resultados por Regional/Distrito</p>
+            </div>
+            <div class="header-actions">
+                <span id="userInfo" style="color: white; font-size: 14px; margin-right: 15px;">Usuário</span>
+                <a href="/admin.html" id="adminLink" class="btn-header" style="display: none;">⚙️ Admin</a>
+                <button id="logoutBtn" class="btn-header">Sair</button>
+            </div>
+        </header>
+
+        <!-- Filters -->
+        <div class="filters-section">
+            <div class="filter-group">
+                <label for="filterRegional">Regional:</label>
+                <select id="filterRegional">
+                    <option value="">Selecione uma Regional...</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="filterDistrito">Distrito:</label>
+                <select id="filterDistrito" disabled>
+                    <option value="">Selecione um Distrito...</option>
+                </select>
+            </div>
+
+            <button id="calcularTodosBtn" class="btn btn-calc">
+                ⚡ Calcular Todos os Placares
+            </button>
+        </div>
+
+        <!-- Info Bar -->
+        <div id="infoBar" class="info-bar">
+            <span id="infoText">Selecione uma Regional e Distrito para visualizar os jogos</span>
+        </div>
+
+        <!-- Stats Section -->
+        <div id="statsSection" class="stats-section" style="display: none;">
+            <div class="stats-grid">
+                <div class="stats-box">
+                    <h3>Resultados</h3>
+                    <div class="stats-content">
+                        <div class="stat-item clickable" id="statVitorias">
+                            <span class="stat-label">Vitórias:</span>
+                            <span class="stat-value" id="vitoriasCount">0</span>
+                        </div>
+                        <div class="stat-item clickable" id="statEmpates">
+                            <span class="stat-label">Empates:</span>
+                            <span class="stat-value" id="empatesCount">0</span>
+                        </div>
+                        <div class="stat-item clickable" id="statDerrotas">
+                            <span class="stat-label">Derrotas:</span>
+                            <span class="stat-value" id="derrotasCount">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-box">
+                    <h3>Desempenho</h3>
+                    <div class="stats-content">
+                        <div class="stat-item">
+                            <span class="stat-label">Total de jogos:</span>
+                            <span class="stat-value" id="totalJogos">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Pontuação total:</span>
+                            <span class="stat-value" id="pontuacaoTotal">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Média por jogo:</span>
+                            <span class="stat-value" id="mediaJogos">0,00</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Aproveitamento:</span>
+                            <span class="stat-value" id="aproveitamento">0,00%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-box">
+                    <h3>Análise por Gol</h3>
+                    <div class="stats-content" id="golAnalysis">
+                        <!-- Será preenchido dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Games Container -->
+        <div id="gamesContainer" class="games-container">
+            <!-- Jogos serão inseridos aqui -->
+        </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script src="dashboard-v3.js"></script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campeonato Petz - Acompanhamento de Resultados</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>⚽ Campeonato Petz 2026</h1>
+                <p class="subtitle">Acompanhamento de Resultados de Vendas</p>
+            </div>
+        </header>
+
+        <!-- Nav Tabs -->
+        <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="entrada">📊 Entrada de Dados</button>
+            <button class="nav-tab" data-tab="resultados">🏆 Resultados</button>
+            <button class="nav-tab" data-tab="classificacao">📈 Classificação</button>
+        </nav>
+
+        <!-- Tab: Entrada de Dados -->
+        <section id="entrada" class="tab-content active">
+            <div class="section-header">
+                <h2>Entrada de Dados de Vendas</h2>
+                <p>Insira os dados de vendas da semana anterior e atual para calcular os placares</p>
+            </div>
+
+            <div class="form-container">
+                <div class="form-group">
+                    <label for="rodada">Rodada:</label>
+                    <select id="rodada">
+                        <option value="">Selecione a rodada...</option>
+                        <option value="1">Rodada 1 (29/jun a 05/jul)</option>
+                        <option value="2">Rodada 2 (06/jul a 12/jul)</option>
+                        <option value="3">Rodada 3 (13/jul a 19/jul)</option>
+                        <option value="4">Rodada 4 (20/jul a 26/jul)</option>
+                        <option value="5">Rodada 5 (27/jul a 02/ago)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="grupo">Grupo:</label>
+                    <select id="grupo">
+                        <option value="">Selecione o grupo...</option>
+                        <option value="1">Grupo 1 - Série A</option>
+                        <option value="2">Grupo 2 - Série A</option>
+                        <option value="3">Grupo 3 - Série A</option>
+                        <option value="4">Grupo 4 - Série B</option>
+                        <option value="5">Grupo 5 - Série B</option>
+                        <option value="6">Grupo 6 - Série B</option>
+                        <option value="7">Grupo 7 - Série C</option>
+                        <option value="8">Grupo 8 - Série C</option>
+                        <option value="9">Grupo 9 - Série C</option>
+                        <option value="10">Grupo 10 - Série D</option>
+                        <option value="11">Grupo 11 - Série D</option>
+                        <option value="12">Grupo 12 - Série D</option>
+                        <option value="13">Grupo 13 - Série D</option>
+                        <option value="14">Grupo 14 - Série D</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="jogo">Jogo:</label>
+                    <select id="jogo">
+                        <option value="">Selecione o jogo...</option>
+                    </select>
+                </div>
+
+                <button class="btn btn-primary" id="loadGameBtn">Carregar Dados do SharePoint</button>
+                <button class="btn btn-secondary" id="loadManualBtn">Ou Inserir Manualmente</button>
+            </div>
+
+            <!-- Game Data Input -->
+            <div id="gameDataContainer" class="game-data-container hidden">
+                <div class="game-header">
+                    <h3 id="gameTitle">Jogo: Time A vs Time B</h3>
+                    <p id="gameDate">Rodada X - 20/07 a 26/07</p>
+                </div>
+
+                <div class="indicators-grid" id="indicatorsGrid">
+                    <!-- Indicadores serão inseridos aqui dinamicamente -->
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn btn-primary" id="calculateBtn">Calcular Resultado</button>
+                    <button class="btn btn-secondary" id="cancelBtn">Cancelar</button>
+                </div>
+            </div>
+
+            <!-- Result Display -->
+            <div id="resultContainer" class="result-container hidden">
+                <div class="result-card">
+                    <h3>Resultado do Jogo</h3>
+                    <div class="score-display">
+                        <div class="team">
+                            <span id="resultTeam1" class="team-name">Time A</span>
+                            <span id="resultScore1" class="score">0</span>
+                        </div>
+                        <span class="vs">vs</span>
+                        <div class="team">
+                            <span id="resultScore2" class="score">0</span>
+                            <span id="resultTeam2" class="team-name">Time B</span>
+                        </div>
+                    </div>
+                    <div class="result-details">
+                        <p id="resultStatus" class="result-status"></p>
+                        <p id="resultPoints" class="result-points"></p>
+                    </div>
+                    <button class="btn btn-primary" id="saveResultBtn">Salvar Resultado</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Resultados -->
+        <section id="resultados" class="tab-content">
+            <div class="section-header">
+                <h2>Histórico de Resultados</h2>
+                <p>Visualize todos os resultados das rodadas</p>
+            </div>
+
+            <div class="filters">
+                <select id="filterRodada">
+                    <option value="">Todas as rodadas</option>
+                    <option value="1">Rodada 1</option>
+                    <option value="2">Rodada 2</option>
+                    <option value="3">Rodada 3</option>
+                    <option value="4">Rodada 4</option>
+                    <option value="5">Rodada 5</option>
+                </select>
+
+                <select id="filterGrupo">
+                    <option value="">Todos os grupos</option>
+                    <option value="1">Grupo 1</option>
+                    <option value="2">Grupo 2</option>
+                    <option value="3">Grupo 3</option>
+                    <option value="4">Grupo 4</option>
+                    <option value="5">Grupo 5</option>
+                    <option value="6">Grupo 6</option>
+                    <option value="7">Grupo 7</option>
+                    <option value="8">Grupo 8</option>
+                    <option value="9">Grupo 9</option>
+                    <option value="10">Grupo 10</option>
+                    <option value="11">Grupo 11</option>
+                    <option value="12">Grupo 12</option>
+                    <option value="13">Grupo 13</option>
+                    <option value="14">Grupo 14</option>
+                </select>
+            </div>
+
+            <div id="resultadosList" class="resultados-list">
+                <p class="empty-state">Nenhum resultado registrado</p>
+            </div>
+        </section>
+
+        <!-- Tab: Classificação -->
+        <section id="classificacao" class="tab-content">
+            <div class="section-header">
+                <h2>Classificação dos Grupos</h2>
+                <p>Acompanhe a posição de cada time</p>
+            </div>
+
+            <div class="filters">
+                <select id="filterGrupoClass">
+                    <option value="">Selecione um grupo</option>
+                    <option value="1">Grupo 1 - Série A</option>
+                    <option value="2">Grupo 2 - Série A</option>
+                    <option value="3">Grupo 3 - Série A</option>
+                    <option value="4">Grupo 4 - Série B</option>
+                    <option value="5">Grupo 5 - Série B</option>
+                    <option value="6">Grupo 6 - Série B</option>
+                    <option value="7">Grupo 7 - Série C</option>
+                    <option value="8">Grupo 8 - Série C</option>
+                    <option value="9">Grupo 9 - Série C</option>
+                    <option value="10">Grupo 10 - Série D</option>
+                    <option value="11">Grupo 11 - Série D</option>
+                    <option value="12">Grupo 12 - Série D</option>
+                    <option value="13">Grupo 13 - Série D</option>
+                    <option value="14">Grupo 14 - Série D</option>
+                </select>
+            </div>
+
+            <div id="classificacaoContainer" class="classificacao-container">
+                <p class="empty-state">Selecione um grupo para ver a classificação</p>
+            </div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
