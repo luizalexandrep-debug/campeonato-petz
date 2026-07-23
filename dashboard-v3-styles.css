@@ -154,6 +154,28 @@ body {
     transform: none;
 }
 
+.btn-reprocess {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    color: white;
+    padding: 12px 20px;
+    align-self: flex-end;
+}
+
+.btn-reprocess:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(17, 153, 142, 0.4);
+}
+
+.btn-reprocess:active {
+    transform: translateY(0);
+}
+
+.btn-reprocess:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* Info Bar */
 .info-bar {
     background: #e3f2fd;

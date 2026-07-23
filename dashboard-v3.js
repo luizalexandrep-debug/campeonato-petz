@@ -252,7 +252,7 @@ async function initializeApp() {
         // Attach listeners
         document.getElementById('filterRegional').addEventListener('change', onRegionalChange);
         document.getElementById('filterDistrito').addEventListener('change', onDistritoChange);
-        document.getElementById('calcularTodosBtn').addEventListener('click', calcularTodosOsJogos);
+        document.getElementById('reprocessarBtn').addEventListener('click', reprocessarDoSharePoint);
         document.getElementById('logoutBtn').addEventListener('click', logout);
 
         // Event listeners para filtro de estatísticas
@@ -282,6 +282,50 @@ async function carregarResumJogos() {
     } catch (error) {
         console.error('❌ Erro ao carregar resumo de jogos:', error);
         state.resumoCarregado = false;
+    }
+}
+
+async function reprocessarDoSharePoint() {
+    const btn = document.getElementById('reprocessarBtn');
+    const infoBar = document.getElementById('infoBar');
+    const textoOriginal = btn.innerHTML;
+
+    // Confirmar
+    if (!confirm('Isso vai baixar os dados mais recentes do SharePoint e recalcular todos os jogos. Pode levar até 30 segundos. Continuar?')) {
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Reprocessando...';
+    const infoOriginal = infoBar.innerHTML;
+    infoBar.innerHTML = '<span>⏳ Baixando dados do SharePoint e recalculando... (até 30s)</span>';
+
+    try {
+        const response = await fetch(`/api/reprocessar/${state.semana}`, { method: 'POST' });
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || `HTTP ${response.status}`);
+        }
+
+        // Recarregar o resumo recalculado
+        state.resumoCarregado = false;
+        state.gamesSummary = null;
+        state.todoCalculado = false;
+        state.jogosCalculados = {};
+        await carregarResumJogos();
+
+        const dias = (data.dias_semana_atual || []).join(', ');
+        infoBar.innerHTML = `<span>✅ Dados atualizados! ${data.total} jogos recalculados. Dias na semana atual: ${dias || '—'}</span>`;
+
+        // Reexibir a visão atual (regional/distrito) com os dados novos
+        loadGames();
+    } catch (error) {
+        console.error('Erro ao reprocessar:', error);
+        infoBar.innerHTML = `<span style="color:#c0392b;">❌ Erro ao reprocessar: ${error.message}</span>`;
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
     }
 }
 

@@ -49,6 +49,32 @@ try:
 except:
     BASE_PATH = Path(__file__).parent / "data"
 
+# Base "empacotada" (repositório/dev). Confrontos vêm sempre daqui.
+BUNDLED_BASE = BASE_PATH
+
+# Após um reprocessamento, os dados frescos do SharePoint são gravados em /tmp
+# (único diretório gravável no Vercel). As leituras passam a preferir /tmp.
+TMP_BASE = Path('/tmp/campeonato_data')
+
+
+def active_base():
+    """Retorna a base de dados ativa: /tmp se já houve reprocessamento, senão a
+    base empacotada."""
+    atual = TMP_BASE / "SEMANA ATUAL"
+    if atual.exists() and any(atual.glob("*.xlsx")):
+        return TMP_BASE
+    return BUNDLED_BASE
+
+
+def dir_anterior():
+    return active_base() / "SEMANA ANTERIOR"
+
+
+def dir_atual():
+    return active_base() / "SEMANA ATUAL"
+
+
+# Mantidos por compatibilidade (usados só como base do Confrontos e afins)
 SEMANA_ANTERIOR = BASE_PATH / "SEMANA ANTERIOR"
 SEMANA_ATUAL = BASE_PATH / "SEMANA ATUAL"
 
@@ -100,8 +126,8 @@ def mapear_indicadores():
     pequenas diferenças. Retorna dict:
         { nome_arquivo_atual: {"anterior": Path|None, "atual": Path|None} }
     Quando um novo .xlsx é adicionado, ele entra automaticamente."""
-    atual_files = _listar_xlsx(SEMANA_ATUAL)
-    anterior_files = _listar_xlsx(SEMANA_ANTERIOR)
+    atual_files = _listar_xlsx(dir_atual())
+    anterior_files = _listar_xlsx(dir_anterior())
 
     indicadores = {}
     for af in atual_files:
@@ -288,10 +314,10 @@ def ler_arquivo_excel(file_path):
         print(f"Erro ao ler {file_path}: {e}")
         return {}
 
-def get_dados_indicadores(semana_path):
-    """Lê todos os indicadores de uma semana (descobertos automaticamente)"""
+def get_dados_indicadores(slot):
+    """Lê todos os indicadores de uma semana (descobertos automaticamente).
+    slot: "anterior" ou "atual"."""
     dados_semana = {}
-    slot = "anterior" if semana_path == SEMANA_ANTERIOR else "atual"
 
     for arquivo, slots in mapear_indicadores().items():
         file_path = slots.get(slot)
@@ -338,8 +364,8 @@ def get_indicadores():
 def get_dados_semanas():
     """Retorna todos os dados de semana anterior e atual"""
     try:
-        dados_anterior = get_dados_indicadores(SEMANA_ANTERIOR)
-        dados_atual = get_dados_indicadores(SEMANA_ATUAL)
+        dados_anterior = get_dados_indicadores("anterior")
+        dados_atual = get_dados_indicadores("atual")
 
         return jsonify({
             "semana_anterior": dados_anterior,
@@ -365,8 +391,8 @@ def comparacao_lojas():
             return jsonify({"error": "Lojas inválidas"}), 400
 
         # Carregar dados
-        dados_anterior = get_dados_indicadores(SEMANA_ANTERIOR)
-        dados_atual = get_dados_indicadores(SEMANA_ATUAL)
+        dados_anterior = get_dados_indicadores("anterior")
+        dados_atual = get_dados_indicadores("atual")
 
         resultado = {
             "team1": team1,
@@ -439,8 +465,8 @@ def comparacao_lojas():
 def get_loja(sigla):
     """Retorna dados de uma loja específica"""
     try:
-        dados_anterior = get_dados_indicadores(SEMANA_ANTERIOR)
-        dados_atual = get_dados_indicadores(SEMANA_ATUAL)
+        dados_anterior = get_dados_indicadores("anterior")
+        dados_atual = get_dados_indicadores("atual")
 
         loja_data = {
             "sigla": sigla,
@@ -570,7 +596,7 @@ def get_placar(team1, team2, semana):
 def get_lojas_disponiveis():
     """Retorna lista de todas as lojas disponíveis"""
     try:
-        dados_anterior = get_dados_indicadores(SEMANA_ANTERIOR)
+        dados_anterior = get_dados_indicadores("anterior")
 
         # Pegar lojas do primeiro indicador
         primeiro_indicador = list(dados_anterior.values())[0]
@@ -732,16 +758,17 @@ def get_games_summary(semana):
         import json
         import os
 
-        # Verificar se arquivo em cache existe
-        try:
-            cache_file = str(BASE_PATH / "cache" / f'games-summary-w{semana}.json')
-            if os.path.exists(cache_file):
-                print(f"📦 Carregando resumo de cache: {cache_file}")
-                with open(cache_file, 'r') as f:
-                    data = json.load(f)
-                return jsonify(data)
-        except:
-            pass
+        # Verificar cache: primeiro /tmp (reprocessado), depois o empacotado
+        for cache_dir in (TMP_BASE / "cache", BUNDLED_BASE / "cache"):
+            try:
+                cache_file = str(cache_dir / f'games-summary-w{semana}.json')
+                if os.path.exists(cache_file):
+                    print(f"📦 Carregando resumo de cache: {cache_file}")
+                    with open(cache_file, 'r') as f:
+                        data = json.load(f)
+                    return jsonify(data)
+            except:
+                pass
 
         # Se não existe cache, calcular agora
         print(f"⚠️ Cache não encontrado! Calculando agora...")
@@ -800,6 +827,77 @@ def get_games_summary(semana):
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+# ============================================================
+# REPROCESSAR (baixa dados do SharePoint e recalcula)
+# ============================================================
+
+@app.route('/api/reprocessar/<int:semana>', methods=['POST'])
+@login_required
+def reprocessar(semana):
+    """Baixa as pastas SEMANA ANTERIOR/ATUAL do SharePoint, recalcula todos os
+    jogos e atualiza o cache. Retorna o resumo recalculado."""
+    import json
+    import sharepoint
+    import calculo_rapido as cr
+
+    try:
+        # 1) Baixar as pastas do SharePoint para /tmp
+        print(f"⏳ Reprocessar semana {semana}: baixando do SharePoint...")
+        baixados = sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40)
+        total_arqs = sum(len(v) for v in baixados.values())
+        if total_arqs == 0:
+            return jsonify({"error": "Nenhum arquivo baixado do SharePoint. "
+                                     "Verifique os links de compartilhamento."}), 502
+        print(f"✅ Baixados: {baixados}")
+
+        # 2) Confrontos vêm da base empacotada (não mudam no dia a dia)
+        confrontos_path = BUNDLED_BASE / "Confrontos" / f"Semana {semana}.xlsx"
+        if not confrontos_path.exists():
+            return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
+        confrontos = cr.ler_confrontos(confrontos_path)
+
+        # 3) Cálculo rápido em memória (lê os dados frescos de /tmp)
+        memoria = cr.carregar_tudo(TMP_BASE / "SEMANA ANTERIOR", TMP_BASE / "SEMANA ATUAL")
+        hoje_idx = (datetime.now().weekday() + 1) % 7
+        jogos = cr.calcular_todos_jogos(confrontos, memoria, hoje_idx)
+
+        # 4) Salvar cache em /tmp
+        cache_dir = TMP_BASE / "cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        data = {
+            "week": semana,
+            "lastUpdated": datetime.now().isoformat(),
+            "total": len(jogos),
+            "games": jogos,
+        }
+        with open(cache_dir / f'games-summary-w{semana}.json', 'w') as f:
+            json.dump(data, f, ensure_ascii=False)
+
+        # Dias disponíveis na semana atual (para informar o usuário)
+        dias_atual = []
+        for arq, sem in memoria.items():
+            for loja, dias in sem.get("atual", {}).items():
+                dias_atual = list(dias.keys())
+                break
+            if dias_atual:
+                break
+
+        print(f"✅ Reprocessamento concluído: {len(jogos)} jogos.")
+        return jsonify({
+            "message": "Reprocessamento concluído com sucesso",
+            "week": semana,
+            "total": len(jogos),
+            "arquivos_baixados": baixados,
+            "dias_semana_atual": dias_atual,
+            "lastUpdated": data["lastUpdated"],
+        })
+
+    except Exception as e:
+        print(f"❌ Erro no reprocessamento: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Falha ao reprocessar: {e}"}), 500
 
 # ============================================================
 # AUTENTICAÇÃO
