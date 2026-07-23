@@ -118,6 +118,32 @@ function calcularAnalisePorGol(jogosComDados, lojas) {
     return analise;
 }
 
+function calcularAnaliseDoResumo(jogosFiltrados, lojas) {
+    /**
+     * Análise por gol a partir do resumo pré-calculado, usando o vencedor REAL
+     * de cada indicador (golsProjetados: {arquivo: 1=team1, 2=team2, 0=empate}).
+     * Conta cada loja do grupo (distrito ou regional) separadamente — inclusive
+     * quando os dois times do jogo pertencem ao grupo.
+     */
+    const analise = {};
+    jogosFiltrados.forEach(gameData => {
+        const gols = gameData.golsProjetados || {};
+        [[gameData.team1, 1], [gameData.team2, 2]].forEach(([team, teamNum]) => {
+            if (!lojas.includes(team)) return;
+            Object.entries(gols).forEach(([ind, vencedor]) => {
+                if (!analise[ind]) {
+                    analise[ind] = { vitórias: 0, derrotas: 0, empates: 0, total: 0 };
+                }
+                if (vencedor === teamNum) analise[ind].vitórias++;
+                else if (vencedor === 0) analise[ind].empates++;
+                else analise[ind].derrotas++;
+                analise[ind].total++;
+            });
+        });
+    });
+    return analise;
+}
+
 // ============================================================
 // CÁLCULO DO PLACAR (LOCAL, SEM HTTP)
 // ============================================================
@@ -767,7 +793,8 @@ function loadGamesFromSummary(regional) {
         aproveitamento: totalLojas > 0 ? ((vitórias * 3 + empates * 1) / (totalLojas * 3)) * 100 : 0
     };
 
-    atualizarSeçãoEstatísticas(stats, {});
+    const analise = calcularAnaliseDoResumo(jogosFiltrados, lojas);
+    atualizarSeçãoEstatísticas(stats, analise);
     statsSection.style.display = 'block';
 
     infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button><span>📊 ${jogosFiltrados.length} jogos da regional (resumo rápido)</span>`;
@@ -867,28 +894,9 @@ function loadGamesFromSummaryForDistrito(regional, distrito, lojas) {
         aproveitamento: totalLojas > 0 ? ((vitórias * 3 + empates * 1) / (totalLojas * 3)) * 100 : 0
     };
 
-    // Calcular análise por gol a partir do resumo, usando o vencedor REAL de
-    // cada indicador (golsProjetados: {arquivo: 1=team1, 2=team2, 0=empate}).
-    const analise = {};
-
-    jogosFiltrados.forEach(gameData => {
-        const lojaDoDistrito = lojas.includes(gameData.team1) ? gameData.team1 : gameData.team2;
-        const isTeam1 = lojaDoDistrito === gameData.team1;
-        const gols = gameData.golsProjetados || {};
-
-        Object.entries(gols).forEach(([ind, vencedor]) => {
-            if (!analise[ind]) {
-                analise[ind] = { vitórias: 0, derrotas: 0, empates: 0, total: 0 };
-            }
-            const distritoVenceu = isTeam1 ? vencedor === 1 : vencedor === 2;
-            const distritoPerdeu = isTeam1 ? vencedor === 2 : vencedor === 1;
-
-            if (distritoVenceu) analise[ind].vitórias++;
-            else if (distritoPerdeu) analise[ind].derrotas++;
-            else analise[ind].empates++;
-            analise[ind].total++;
-        });
-    });
+    // Análise por gol usando o vencedor real de cada indicador (mesma lógica
+    // da regional).
+    const analise = calcularAnaliseDoResumo(jogosFiltrados, lojas);
 
     atualizarSeçãoEstatísticas(stats, analise);
     statsSection.style.display = 'block';
