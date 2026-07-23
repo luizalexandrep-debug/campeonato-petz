@@ -33,7 +33,17 @@ login_manager.login_view = 'login'
 init_db(app)
 
 # Configuração de caminhos
-BASE_PATH = Path("/Users/luizprado/Downloads/Claude/Campeonato Petz")
+# Em desenvolvimento local: /Users/luizprado/Downloads/Claude/Campeonato Petz
+# Em Vercel: use caminhos relativos
+try:
+    dev_path = Path("/Users/luizprado/Downloads/Claude/Campeonato Petz")
+    if dev_path.exists():
+        BASE_PATH = dev_path
+    else:
+        BASE_PATH = Path(__file__).parent / "data"
+except:
+    BASE_PATH = Path(__file__).parent / "data"
+
 SEMANA_ANTERIOR = BASE_PATH / "SEMANA ANTERIOR"
 SEMANA_ATUAL = BASE_PATH / "SEMANA ATUAL"
 
@@ -574,33 +584,37 @@ def get_lojas_disponiveis():
 # ============================================================
 
 def calcularPlacarBackend(team1, team2, semana, hojeIdx=None):
-    """Calcula placar comparando evolução percentual dos indicadores"""
+    """Calcula placar comparando evolução dos indicadores"""
     try:
-        dados1 = requests.get(f'http://localhost:5000/api/loja-dias/{team1}/{semana}').json()
-        dados2 = requests.get(f'http://localhost:5000/api/loja-dias/{team2}/{semana}').json()
-
-        dadosTeam1 = dados1.get('dados', {})
-        dadosTeam2 = dados2.get('dados', {})
-
+        mapa = mapear_indicadores()
         score1 = 0
         score2 = 0
-
         diasOrdenados = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
-        for indicador in dadosTeam1.keys():
-            if indicador not in dadosTeam2:
-                continue
+        for arquivo, slots in mapa.items():
+            dados1_ind = {}
+            dados2_ind = {}
 
-            dados1_ind = dadosTeam1[indicador]
-            dados2_ind = dadosTeam2[indicador]
+            for semana_type in ("anterior", "atual"):
+                file_path = slots.get(semana_type)
+                if not file_path:
+                    continue
+
+                dias1 = ler_dias_loja(file_path, team1)
+                dias2 = ler_dias_loja(file_path, team2)
+
+                if dias1:
+                    dados1_ind[semana_type] = dias1
+                if dias2:
+                    dados2_ind[semana_type] = dias2
 
             if not dados1_ind or not dados2_ind:
                 continue
 
-            dias1Anterior = dados1_ind.get('anterior', {}).get('dias', {})
-            dias1Atual = dados1_ind.get('atual', {}).get('dias', {})
-            dias2Anterior = dados2_ind.get('anterior', {}).get('dias', {})
-            dias2Atual = dados2_ind.get('atual', {}).get('dias', {})
+            dias1Anterior = dados1_ind.get('anterior', {})
+            dias1Atual = dados1_ind.get('atual', {})
+            dias2Anterior = dados2_ind.get('anterior', {})
+            dias2Atual = dados2_ind.get('atual', {})
 
             diasAcontar = diasOrdenados[:hojeIdx+1] if hojeIdx is not None else diasOrdenados
 
@@ -609,12 +623,12 @@ def calcularPlacarBackend(team1, team2, semana, hojeIdx=None):
             total2Anterior = sum(dias2Anterior.get(dia, 0) for dia in diasAcontar)
             total2Atual = sum(dias2Atual.get(dia, 0) for dia in diasAcontar)
 
-            evolucao1Pct = ((total1Atual - total1Anterior) / total1Anterior * 100) if total1Anterior != 0 else 0
-            evolucao2Pct = ((total2Atual - total2Anterior) / total2Anterior * 100) if total2Anterior != 0 else 0
+            evolucao1 = (total1Atual - total1Anterior)
+            evolucao2 = (total2Atual - total2Anterior)
 
-            if evolucao1Pct > evolucao2Pct:
+            if evolucao1 > evolucao2:
                 score1 += 1
-            elif evolucao2Pct > evolucao1Pct:
+            elif evolucao2 > evolucao1:
                 score2 += 1
 
         return score1, score2
@@ -627,82 +641,83 @@ def precalculate_games(semana):
     """Pré-calcula todos os jogos e salva em arquivo JSON para cache"""
     try:
         import json
-        import threading
 
-        def calcular_background():
-            try:
-                print(f"\n⏳ Iniciando pré-cálculo para semana {semana}...")
-                import sys
-                sys.stdout.flush()
+        print(f"\n⏳ Iniciando pré-cálculo para semana {semana}...")
 
-                # Carregar confrontos
-                confrontos_resp = requests.get(f'http://localhost:5000/api/confrontos/{semana}')
-                confrontos = confrontos_resp.json().get('confrontos', [])
-                games_summary = []
+        # Carregar confrontos
+        confrontos_path = BASE_PATH / "Confrontos" / f"Semana {semana}.xlsx"
+        if not confrontos_path.exists():
+            return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
 
-                print(f"⏳ Calculando {len(confrontos)} jogos...")
-                sys.stdout.flush()
+        wb = openpyxl.load_workbook(confrontos_path, data_only=True)
+        ws = wb.active
+        confrontos = []
 
-                for idx, conf in enumerate(confrontos):
-                    team1 = conf['team1']
-                    team2 = conf['team2']
+        for row_idx, row in enumerate(ws.iter_rows(values_only=True)):
+            if row_idx <= 1:
+                continue
+            team1 = row[2]
+            team2 = row[4]
+            if team1 and team2:
+                confrontos.append({"team1": team1, "team2": team2})
 
-                    if (idx + 1) % 20 == 0:
-                        print(f"  {idx + 1}/{len(confrontos)} calculados...")
-                        sys.stdout.flush()
+        games_summary = []
+        print(f"⏳ Calculando {len(confrontos)} jogos...")
 
-                    # Calcular placar projetado e acumulado
-                    score1_proj, score2_proj = calcularPlacarBackend(team1, team2, semana)
+        # Pegar hoje_idx
+        hoje_idx = 6
+        try:
+            hoje_idx_br = (datetime.now().weekday() + 1) % 7
+            hoje_idx = hoje_idx_br
+        except:
+            pass
 
-                    # Pegar hoje_idx do backend
-                    hoje_idx = 6  # Default domingo
-                    try:
-                        loja_data = requests.get(f'http://localhost:5000/api/loja-dias/{team1}/{semana}').json()
-                        hoje_idx = loja_data.get('hoje_idx', 6)
-                    except:
-                        pass
+        for idx, conf in enumerate(confrontos):
+            team1 = conf['team1']
+            team2 = conf['team2']
 
-                    score1_acum, score2_acum = calcularPlacarBackend(team1, team2, semana, hoje_idx)
+            if (idx + 1) % 20 == 0:
+                print(f"  {idx + 1}/{len(confrontos)} calculados...")
 
-                    games_summary.append({
-                        "team1": team1,
-                        "team2": team2,
-                        "scoreProjected": f"{score1_proj} x {score2_proj}",
-                        "scoreAccumulated": f"{score1_acum} x {score2_acum}",
-                        "hojeIdx": hoje_idx
-                    })
+            score1_proj, score2_proj = calcularPlacarBackend(team1, team2, semana)
+            score1_acum, score2_acum = calcularPlacarBackend(team1, team2, semana, hoje_idx)
 
-                # Salvar em arquivo com caminho absoluto
-                cache_file = str(BASE_PATH / f'games-summary-w{semana}.json')
-                data = {
-                    "week": semana,
-                    "lastUpdated": datetime.now().isoformat(),
-                    "total": len(games_summary),
-                    "games": games_summary
-                }
+            games_summary.append({
+                "team1": team1,
+                "team2": team2,
+                "scoreProjected": f"{score1_proj} x {score2_proj}",
+                "scoreAccumulated": f"{score1_acum} x {score2_acum}",
+                "hojeIdx": hoje_idx
+            })
 
-                with open(cache_file, 'w') as f:
-                    json.dump(data, f, indent=2)
-
-                print(f"✅ {len(games_summary)} jogos calculados e salvos em {cache_file}!")
-                sys.stdout.flush()
-            except Exception as e:
-                print(f"❌ Erro no background: {e}")
-                import traceback
-                traceback.print_exc()
-                import sys
-                sys.stdout.flush()
-
-        # Executar de forma síncrona (bloqueante, mas garante resultado)
-        calcular_background()
+        # Tentar salvar em arquivo (pode falhar em Vercel)
+        try:
+            cache_dir = BASE_PATH / "cache"
+            cache_dir.mkdir(exist_ok=True)
+            cache_file = str(cache_dir / f'games-summary-w{semana}.json')
+            data = {
+                "week": semana,
+                "lastUpdated": datetime.now().isoformat(),
+                "total": len(games_summary),
+                "games": games_summary
+            }
+            with open(cache_file, 'w') as f:
+                json.dump(data, f, indent=2)
+            print(f"✅ {len(games_summary)} jogos calculados e salvos!")
+        except Exception as cache_err:
+            print(f"⚠️  Não foi possível salvar cache: {cache_err}")
 
         return jsonify({
             "message": f"Pré-cálculo concluído para semana {semana}",
-            "week": semana
+            "week": semana,
+            "total": len(games_summary),
+            "games": games_summary
         }), 200
 
     except Exception as e:
         print(f"❌ Erro ao iniciar pré-cálculo: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/games-summary/<int:semana>', methods=['GET'])
@@ -713,18 +728,42 @@ def get_games_summary(semana):
         import os
 
         # Verificar se arquivo em cache existe
-        cache_file = str(BASE_PATH / f'games-summary-w{semana}.json')
-        if os.path.exists(cache_file):
-            print(f"📦 Carregando resumo de cache: {cache_file}")
-            with open(cache_file, 'r') as f:
-                data = json.load(f)
-            return jsonify(data)
+        try:
+            cache_file = str(BASE_PATH / "cache" / f'games-summary-w{semana}.json')
+            if os.path.exists(cache_file):
+                print(f"📦 Carregando resumo de cache: {cache_file}")
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+                return jsonify(data)
+        except:
+            pass
 
-        # Se não existe cache, calcular agora (lento!)
-        print(f"⚠️ Cache não encontrado! Calculando agora (pode demorar)...")
-        confrontos_resp = requests.get(f'http://localhost:5000/api/confrontos/{semana}')
-        confrontos = confrontos_resp.json().get('confrontos', [])
+        # Se não existe cache, calcular agora
+        print(f"⚠️ Cache não encontrado! Calculando agora...")
+
+        confrontos_path = BASE_PATH / "Confrontos" / f"Semana {semana}.xlsx"
+        if not confrontos_path.exists():
+            return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
+
+        wb = openpyxl.load_workbook(confrontos_path, data_only=True)
+        ws = wb.active
+        confrontos = []
+
+        for row_idx, row in enumerate(ws.iter_rows(values_only=True)):
+            if row_idx <= 1:
+                continue
+            team1 = row[2]
+            team2 = row[4]
+            if team1 and team2:
+                confrontos.append({"team1": team1, "team2": team2})
+
         games_summary = []
+        hoje_idx = 6
+        try:
+            hoje_idx_br = (datetime.now().weekday() + 1) % 7
+            hoje_idx = hoje_idx_br
+        except:
+            pass
 
         for idx, conf in enumerate(confrontos):
             team1 = conf['team1']
@@ -734,14 +773,6 @@ def get_games_summary(semana):
                 print(f"  {idx + 1}/{len(confrontos)} calculados...")
 
             score1_proj, score2_proj = calcularPlacarBackend(team1, team2, semana)
-
-            hoje_idx = 6
-            try:
-                loja_data = requests.get(f'http://localhost:5000/api/loja-dias/{team1}/{semana}').json()
-                hoje_idx = loja_data.get('hoje_idx', 6)
-            except:
-                pass
-
             score1_acum, score2_acum = calcularPlacarBackend(team1, team2, semana, hoje_idx)
 
             games_summary.append({
@@ -761,6 +792,8 @@ def get_games_summary(semana):
 
     except Exception as e:
         print(f"❌ Erro ao retornar resumo: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 # ============================================================
