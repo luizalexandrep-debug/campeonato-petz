@@ -1,0 +1,3 @@
+[tool.vercel]
+builder = "vercel-python"
+entrypoint = "backend:app"
