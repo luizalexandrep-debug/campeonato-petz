@@ -1,5 +1,6 @@
 // Configuração da API
-const API_BASE_URL = 'http://localhost:5000/api';
+// Caminho relativo: funciona tanto localmente quanto em produção (Vercel)
+const API_BASE_URL = '/api';
 
 // Cliente da API
 const api = {
