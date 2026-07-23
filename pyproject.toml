@@ -1,3 +1,9 @@
+[project]
+name = "campeonato-petz"
+version = "1.0.0"
+description = "Campeonato Petz 2026 - Dashboard de Vendas"
+requires-python = ">=3.8"
+
 [tool.vercel]
 builder = "vercel-python"
 entrypoint = "backend:app"
