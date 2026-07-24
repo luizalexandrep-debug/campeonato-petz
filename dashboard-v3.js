@@ -302,7 +302,7 @@ async function initializeApp() {
 async function carregarResumJogos() {
     try {
         console.log('📦 Carregando resumo de jogos...');
-        const response = await fetch(`/api/games-summary/${state.semana}`);
+        const response = await fetch(`/api/games-summary/${state.semana}`, { cache: 'no-store' });
         const data = await response.json();
         state.gamesSummary = data;
         state.resumoCarregado = true;

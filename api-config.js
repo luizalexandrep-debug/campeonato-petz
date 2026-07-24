@@ -6,7 +6,7 @@ const API_BASE_URL = '/api';
 const api = {
     async get(endpoint) {
         try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}`);
+            const response = await fetch(`${API_BASE_URL}${endpoint}`, { cache: 'no-store' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             return await response.json();
         } catch (error) {

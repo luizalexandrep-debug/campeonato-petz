@@ -37,6 +37,15 @@ login_manager.login_view = 'login'
 # Inicializar banco de dados
 init_db(app)
 
+
+@app.after_request
+def _sem_cache_api(resp):
+    """Impede navegador/CDN de servir respostas de API em cache (dados mudam)."""
+    if request.path.startswith('/api/'):
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        resp.headers['Pragma'] = 'no-cache'
+    return resp
+
 # Configuração de caminhos
 # Em desenvolvimento local: /Users/luizprado/Downloads/Claude/Campeonato Petz
 # Em Vercel: use caminhos relativos
@@ -77,6 +86,53 @@ def dir_atual():
 # Mantidos por compatibilidade (usados só como base do Confrontos e afins)
 SEMANA_ANTERIOR = BASE_PATH / "SEMANA ANTERIOR"
 SEMANA_ATUAL = BASE_PATH / "SEMANA ATUAL"
+
+# ------------------------------------------------------------------
+# Frescor dos dados (resolve o /tmp por-instância do Vercel)
+# ------------------------------------------------------------------
+# Cada instância serverless tem seu próprio /tmp. Sem um controle de validade,
+# uma instância que baixou os dados na quarta continua servindo quarta mesmo
+# depois de alguém atualizar o SharePoint. Este TTL faz cada instância
+# rebaixar os arquivos do SharePoint quando estão "velhos", convergindo todas
+# para o dado mais recente em poucos minutos.
+import time
+import threading
+
+CACHE_TTL_SEGUNDOS = 90          # frescor máximo antes de rebaixar
+_fetch_lock = threading.Lock()
+_MARKER = TMP_BASE / ".fetched_at"
+
+
+def _idade_tmp():
+    """Idade (segundos) dos dados em /tmp; None se nunca baixado."""
+    try:
+        if _MARKER.exists():
+            return time.time() - float(_MARKER.read_text().strip())
+    except Exception:
+        pass
+    return None
+
+
+def garantir_arquivos_frescos(force=False):
+    """Garante que /tmp tenha os arquivos do SharePoint razoavelmente frescos.
+    Baixa se nunca baixou, se passou do TTL, ou se force=True. Protegido por
+    lock para evitar downloads simultâneos na mesma instância."""
+    idade = _idade_tmp()
+    if not force and idade is not None and idade < CACHE_TTL_SEGUNDOS:
+        return  # já está fresco o suficiente
+    with _fetch_lock:
+        # Re-checar após o lock: outra thread pode ter acabado de baixar
+        idade = _idade_tmp()
+        if not force and idade is not None and idade < CACHE_TTL_SEGUNDOS:
+            return
+        try:
+            import sharepoint
+            print("⏳ Atualizando dados do SharePoint (frescor)...")
+            sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40)
+            _MARKER.write_text(str(time.time()))
+            print("✅ Dados do SharePoint atualizados em /tmp.")
+        except Exception as e:
+            print(f"⚠️ garantir_arquivos_frescos falhou: {e}")
 
 # Metadados opcionais (nome amigável/tipo) por arquivo. NÃO define quais
 # indicadores existem — os indicadores são descobertos automaticamente a partir
@@ -533,6 +589,7 @@ def get_confrontos(semana):
 def get_loja_dias(sigla, semana):
     """Retorna dados dia a dia de uma loja para uma semana"""
     try:
+        garantir_arquivos_frescos()
         dados_dias = {}
 
         # Indicadores descobertos automaticamente, já pareando o arquivo da
@@ -752,93 +809,52 @@ def precalculate_games(semana):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+def _calcular_summary(semana):
+    """Calcula o resumo de todos os jogos a partir da base ATIVA (/tmp se
+    reprocessado, senão empacotada). Retorna o dict do resumo."""
+    import calculo_rapido as cr
+    confrontos_path = BUNDLED_BASE / "Confrontos" / f"Semana {semana}.xlsx"
+    if not confrontos_path.exists():
+        raise FileNotFoundError(f"Confrontos da semana {semana} não encontrados")
+    confrontos = cr.ler_confrontos(confrontos_path)
+    memoria = cr.carregar_tudo(dir_anterior(), dir_atual())
+    hoje_idx = (datetime.now().weekday() + 1) % 7
+    jogos = cr.calcular_todos_jogos(confrontos, memoria, hoje_idx)
+    return {
+        "week": semana,
+        "lastUpdated": datetime.now().isoformat(),
+        "total": len(jogos),
+        "games": jogos,
+    }
+
+
 @app.route('/api/games-summary/<int:semana>', methods=['GET'])
 def get_games_summary(semana):
-    """Retorna resumo pré-calculado de todos os jogos da semana (from cache)"""
+    """Retorna o resumo de todos os jogos, sempre a partir dos dados mais
+    frescos disponíveis (SharePoint via /tmp, com TTL)."""
     try:
         import json
         import os
 
-        # 1) Cache em /tmp (reprocessado nesta instância) — mais fresco e rápido
-        try:
-            tmp_cache = str(TMP_BASE / "cache" / f'games-summary-w{semana}.json')
-            if os.path.exists(tmp_cache):
-                print(f"📦 Cache /tmp: {tmp_cache}")
-                with open(tmp_cache, 'r') as f:
-                    return jsonify(json.load(f))
-        except Exception:
-            pass
+        # 1) Garante que /tmp esteja fresco (rebaixa do SharePoint se preciso)
+        garantir_arquivos_frescos()
 
-        # 2) Sem cache local (ex.: cold start): buscar do SharePoint AO VIVO.
-        #    Isso garante que os dados nunca "revertam" para o empacotado antigo.
+        # 2) Calcular a partir da base ativa (rápido, ~0.4s)
         try:
-            print("🔄 Sem cache local — buscando do SharePoint ao vivo...")
-            r = _baixar_e_recalcular(semana)
-            return jsonify(r["data"])
+            return jsonify(_calcular_summary(semana))
         except Exception as e:
-            print(f"⚠️ Auto-fetch do SharePoint falhou ({e}). Usando fallback empacotado.")
+            print(f"⚠️ Cálculo do resumo falhou ({e}). Tentando fallback empacotado.")
 
         # 3) Fallback: cache empacotado no repositório
         try:
             b_cache = str(BUNDLED_BASE / "cache" / f'games-summary-w{semana}.json')
             if os.path.exists(b_cache):
-                print(f"📦 Cache empacotado: {b_cache}")
                 with open(b_cache, 'r') as f:
                     return jsonify(json.load(f))
         except Exception:
             pass
 
-        # 4) Último recurso: calcular a partir do empacotado (lento)
-        print(f"⚠️ Cache não encontrado! Calculando a partir do empacotado...")
-
-        confrontos_path = BASE_PATH / "Confrontos" / f"Semana {semana}.xlsx"
-        if not confrontos_path.exists():
-            return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
-
-        wb = openpyxl.load_workbook(confrontos_path, data_only=True)
-        ws = wb.active
-        confrontos = []
-
-        for row_idx, row in enumerate(ws.iter_rows(values_only=True)):
-            if row_idx <= 1:
-                continue
-            team1 = row[2]
-            team2 = row[4]
-            if team1 and team2:
-                confrontos.append({"team1": team1, "team2": team2})
-
-        games_summary = []
-        hoje_idx = 6
-        try:
-            hoje_idx_br = (datetime.now().weekday() + 1) % 7
-            hoje_idx = hoje_idx_br
-        except:
-            pass
-
-        for idx, conf in enumerate(confrontos):
-            team1 = conf['team1']
-            team2 = conf['team2']
-
-            if (idx + 1) % 30 == 0:
-                print(f"  {idx + 1}/{len(confrontos)} calculados...")
-
-            score1_proj, score2_proj = calcularPlacarBackend(team1, team2, semana)
-            score1_acum, score2_acum = calcularPlacarBackend(team1, team2, semana, hoje_idx)
-
-            games_summary.append({
-                "team1": team1,
-                "team2": team2,
-                "scoreProjected": f"{score1_proj} x {score2_proj}",
-                "scoreAccumulated": f"{score1_acum} x {score2_acum}",
-                "hojeIdx": hoje_idx
-            })
-
-        return jsonify({
-            "week": semana,
-            "lastUpdated": datetime.now().isoformat(),
-            "total": len(games_summary),
-            "games": games_summary
-        })
+        return jsonify({"error": "Não foi possível calcular o resumo"}), 500
 
     except Exception as e:
         print(f"❌ Erro ao retornar resumo: {e}")
@@ -851,46 +867,17 @@ def get_games_summary(semana):
 # ============================================================
 
 def _baixar_e_recalcular(semana):
-    """Baixa as pastas do SharePoint, recalcula todos os jogos e grava o cache
-    em /tmp. Retorna dict com 'data' (resumo), 'baixados' e 'dias_atual'.
-    Lança exceção em falha."""
-    import json
-    import sharepoint
+    """FORÇA o download das pastas do SharePoint e recalcula. Usado pelo botão
+    Reprocessar. Retorna dict com 'data' (resumo) e 'dias_atual'."""
     import calculo_rapido as cr
 
-    # 1) Baixar as pastas do SharePoint para /tmp
-    print(f"⏳ Semana {semana}: baixando do SharePoint...")
-    baixados = sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40)
-    total_arqs = sum(len(v) for v in baixados.values())
-    if total_arqs == 0:
-        raise RuntimeError("Nenhum arquivo baixado do SharePoint. "
-                           "Verifique os links de compartilhamento.")
-    print(f"✅ Baixados: {baixados}")
+    # Força o refresh imediato (ignora o TTL) nesta instância
+    garantir_arquivos_frescos(force=True)
 
-    # 2) Confrontos vêm da base empacotada (não mudam no dia a dia)
-    confrontos_path = BUNDLED_BASE / "Confrontos" / f"Semana {semana}.xlsx"
-    if not confrontos_path.exists():
-        raise FileNotFoundError(f"Confrontos da semana {semana} não encontrados")
-    confrontos = cr.ler_confrontos(confrontos_path)
-
-    # 3) Cálculo rápido em memória (lê os dados frescos de /tmp)
-    memoria = cr.carregar_tudo(TMP_BASE / "SEMANA ANTERIOR", TMP_BASE / "SEMANA ATUAL")
-    hoje_idx = (datetime.now().weekday() + 1) % 7
-    jogos = cr.calcular_todos_jogos(confrontos, memoria, hoje_idx)
-
-    # 4) Salvar cache em /tmp
-    cache_dir = TMP_BASE / "cache"
-    cache_dir.mkdir(parents=True, exist_ok=True)
-    data = {
-        "week": semana,
-        "lastUpdated": datetime.now().isoformat(),
-        "total": len(jogos),
-        "games": jogos,
-    }
-    with open(cache_dir / f'games-summary-w{semana}.json', 'w') as f:
-        json.dump(data, f, ensure_ascii=False)
+    data = _calcular_summary(semana)
 
     # Dias disponíveis na semana atual (para informar o usuário)
+    memoria = cr.carregar_tudo(dir_anterior(), dir_atual())
     dias_atual = []
     for arq, sem in memoria.items():
         for loja, dias in sem.get("atual", {}).items():
@@ -899,8 +886,8 @@ def _baixar_e_recalcular(semana):
         if dias_atual:
             break
 
-    print(f"✅ Reprocessamento concluído: {len(jogos)} jogos.")
-    return {"data": data, "baixados": baixados, "dias_atual": dias_atual}
+    print(f"✅ Reprocessamento concluído: {data['total']} jogos.")
+    return {"data": data, "dias_atual": dias_atual}
 
 
 @app.route('/api/reprocessar/<int:semana>', methods=['POST'])
@@ -914,7 +901,6 @@ def reprocessar(semana):
             "message": "Reprocessamento concluído com sucesso",
             "week": semana,
             "total": r["data"]["total"],
-            "arquivos_baixados": r["baixados"],
             "dias_semana_atual": r["dias_atual"],
             "lastUpdated": r["data"]["lastUpdated"],
         })
