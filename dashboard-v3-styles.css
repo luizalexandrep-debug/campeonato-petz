@@ -176,6 +176,20 @@ body {
     transform: none;
 }
 
+.btn-inicio {
+    background: #eef1ff;
+    color: #667eea;
+    padding: 12px 20px;
+    align-self: flex-end;
+    font-weight: 700;
+    border: 1px solid #c9d2ff;
+}
+
+.btn-inicio:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+}
+
 .btn-simulado {
     background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
     color: #5a3d00;

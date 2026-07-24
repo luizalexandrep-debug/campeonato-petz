@@ -287,6 +287,7 @@ async function initializeApp() {
         document.getElementById('filterDistrito').addEventListener('change', onDistritoChange);
         document.getElementById('reprocessarBtn').addEventListener('click', reprocessarDoSharePoint);
         document.getElementById('simuladoBtn').addEventListener('click', toggleRankingSimulado);
+        document.getElementById('inicioBtn').addEventListener('click', voltarDashboard);
         document.getElementById('logoutBtn').addEventListener('click', logout);
 
         // Event listeners para filtro de estatísticas
@@ -567,6 +568,23 @@ async function toggleRankingSimulado() {
         btn.classList.remove('ativo');
         loadGames(); // volta ao ranking normal
     }
+}
+
+function voltarDashboard() {
+    // Retorna à primeira tela (dashboard de rankings), limpando tudo
+    state.modoSimulado = false;
+    document.getElementById('simuladoBtn').classList.remove('ativo');
+    state.currentRegional = null;
+    state.currentDistrito = null;
+    state.filtroResultado = null;
+    const regSel = document.getElementById('filterRegional');
+    const distSel = document.getElementById('filterDistrito');
+    regSel.value = '';
+    distSel.value = '';
+    distSel.innerHTML = '<option value="">Selecione um Distrito...</option>';
+    distSel.disabled = true;
+    document.getElementById('statsSection').style.display = 'none';
+    loadGames(); // sem regional -> mostra o dashboard de rankings
 }
 
 function loadRankingSimulado() {
@@ -935,56 +953,56 @@ function loadRankingDashboard() {
         }))
         .sort((a, b) => b.media - a.media);
 
-    // Renderizar rankings
-    container.innerHTML = `
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; padding: 20px;">
-            <div class="stats-box" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <h3 style="color: #667eea; font-size: 1.3em; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px;">
-                    🏆 Ranking de Regionais
-                </h3>
-                ${ranking1.map((r, idx) => `
-                    <div style="padding: 12px; margin-bottom: 10px; background: ${idx === 0 ? '#fff3cd' : '#f9f9f9'}; border-radius: 8px; cursor: pointer; transition: all 0.3s;"
-                         onclick="document.getElementById('filterRegional').value='${r.nome}'; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 600; font-size: 1.1em;">
-                                ${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`} ${r.nome}
-                            </span>
-                            <span style="color: #667eea; font-weight: bold; font-size: 1.2em;">${r.media} pts</span>
-                        </div>
-                        <div style="font-size: 0.9em; color: #666; margin-top: 5px;">
-                            ${r.pontuacao}/${r.total} jogos
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
+    // Agrupar distritos por regional (cada um com sua média), ordenados
+    const distritosPorRegional = {};
+    Object.entries(rankingDistrito).forEach(([nome, dados]) => {
+        const sep = nome.indexOf(' > ');
+        const regional = nome.slice(0, sep);
+        const distrito = nome.slice(sep + 3);
+        if (!distritosPorRegional[regional]) distritosPorRegional[regional] = [];
+        distritosPorRegional[regional].push({
+            distrito,
+            media: dados.total > 0 ? dados.pontuacao / dados.total : 0,
+            pontuacao: dados.pontuacao,
+            total: dados.total
+        });
+    });
+    Object.values(distritosPorRegional).forEach(arr => arr.sort((a, b) => b.media - a.media));
 
-            <div class="stats-box" style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow-y: auto; max-height: 400px;">
-                <h3 style="color: #667eea; font-size: 1.3em; margin-bottom: 20px; border-bottom: 2px solid #667eea; padding-bottom: 10px;">
-                    ⭐ Ranking de Distritos
-                </h3>
-                ${ranking2.map((r, idx) => `
-                    <div style="padding: 12px; margin-bottom: 10px; background: ${idx === 0 ? '#fff3cd' : '#f9f9f9'}; border-radius: 8px; cursor: pointer; transition: all 0.3s;"
-                         onclick="
-                             const [regional, distrito] = '${r.nome}'.split(' > ');
-                             document.getElementById('filterRegional').value = regional;
-                             document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));
-                             setTimeout(() => {
-                                 document.getElementById('filterDistrito').value = distrito;
-                                 document.getElementById('filterDistrito').dispatchEvent(new Event('change', { bubbles: true }));
-                             }, 300);
-                         ">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-weight: 600; font-size: 0.95em;">
-                                ${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`} ${r.nome}
-                            </span>
-                            <span style="color: #667eea; font-weight: bold;">${r.media} pts</span>
-                        </div>
-                        <div style="font-size: 0.85em; color: #666; margin-top: 3px;">
-                            ${r.pontuacao}/${r.total} jogos
-                        </div>
+    // Renderizar: cada regional (com sua média) e, abaixo, seus distritos
+    container.innerHTML = `
+        <div style="padding: 20px; max-width: 1000px; margin: 0 auto;">
+            ${ranking1.map((r, idx) => {
+                const medalha = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                const dists = distritosPorRegional[r.nome] || [];
+                const regJs = r.nome.replace(/'/g, "\\'");
+                return `
+                <div style="background: white; border-radius: 12px; margin-bottom: 18px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; cursor: pointer;"
+                         title="Ver a regional ${r.nome}"
+                         onclick="document.getElementById('filterRegional').value='${regJs}'; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));">
+                        <span style="font-weight: 700; font-size: 1.25em;">${medalha} ${r.nome}</span>
+                        <span style="font-weight: bold; font-size: 1.3em;">${r.media} pts
+                            <span style="font-size: 0.65em; opacity: 0.85; font-weight: 400;">(${r.pontuacao}/${r.total} jogos)</span>
+                        </span>
                     </div>
-                `).join('')}
-            </div>
+                    <div style="padding: 8px 14px 12px;">
+                        ${dists.map((d, di) => {
+                            const distJs = d.distrito.replace(/'/g, "\\'");
+                            return `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 10px; border-bottom: 1px solid #f2f2f2; cursor: pointer;"
+                                 onmouseover="this.style.background='#f7f8ff'" onmouseout="this.style.background='transparent'"
+                                 title="Ver o distrito ${d.distrito}"
+                                 onclick="document.getElementById('filterRegional').value='${regJs}'; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true })); setTimeout(function(){ document.getElementById('filterDistrito').value='${distJs}'; document.getElementById('filterDistrito').dispatchEvent(new Event('change', { bubbles: true })); }, 300);">
+                                <span style="font-size: 0.98em;"><span style="color:#999;">${di + 1}.</span> ${d.distrito}</span>
+                                <span style="color: #667eea; font-weight: 600;">${d.media.toFixed(2)} pts
+                                    <span style="color: #999; font-size: 0.82em; font-weight: 400;">${d.pontuacao}/${d.total}</span>
+                                </span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>`;
+            }).join('')}
         </div>
     `;
 }
@@ -1454,6 +1472,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
 
     // Comparativo com adversário: aplicar cores apenas na célula de evolução
     let classeEvolucao = evoluClassTotal;
+    let faltaVirar = null; // R$ que ESTE time precisa vender a mais p/ virar o indicador
     if (dadosAdversario) {
         const evolucaoAdversario = totalAdversarioAnterior !== 0
             ? ((totalAdversarioAtual - totalAdversarioAnterior) / totalAdversarioAnterior * 100)
@@ -1464,6 +1483,14 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
             classeEvolucao = 'evolution-melhor';
         } else if (evolucaoTotal < evolucaoAdversario) {
             classeEvolucao = 'evolution-pior';
+            // Está perdendo: quanto precisa vender a mais na S. Atual para virar o gol.
+            // Precisa que a evolução dele iguale/supere a do adversário:
+            //   S.Atual necessária = S.Anterior_dele × (1 + evoluçãoAdv/100)
+            if (totalAnterior > 0) {
+                const necessario = totalAnterior * (1 + evolucaoAdversario / 100);
+                const falta = necessario - totalAtual;
+                if (falta > 0) faltaVirar = falta;
+            }
         }
     }
 
@@ -1474,6 +1501,23 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
                     <td style="text-align: center;">${formatarMoedaBR(totalAtual)}</td>
                     <td class="evolution ${classeEvolucao}" style="text-align: center;">${evolucaoTotal.toFixed(2)}%</td>
                 </tr>
+    `;
+
+    if (faltaVirar !== null) {
+        html += `
+                <tr class="virar-row">
+                    <td class="day-label" style="font-size: 0.78em; color: #999;">Falta p/ virar</td>
+                    <td></td>
+                    <td style="text-align: center; background: #fff3b0; font-weight: 700; color: #7a5c00;"
+                        title="${teamName} precisa vender +${formatarMoedaBR(faltaVirar)} na S. Atual para virar este gol">
+                        +${formatarMoedaBR(faltaVirar)}
+                    </td>
+                    <td></td>
+                </tr>
+        `;
+    }
+
+    html += `
             </tbody>
         </table>
     </div>
