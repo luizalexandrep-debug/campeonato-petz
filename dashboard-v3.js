@@ -14,8 +14,12 @@ const state = {
     jogosComDadosAtual: [], // Jogos do distrito/regional atual
     filtroResultado: null, // Filtro de resultado: 'vitoria', 'empate', 'derrota', null
     gamesSummary: null, // Resumo pré-calculado de todos os jogos
-    resumoCarregado: false // Flag indicando se o resumo foi carregado
+    resumoCarregado: false, // Flag indicando se o resumo foi carregado
+    historico: null, // Histórico das rodadas anteriores (ranking simulado)
+    modoSimulado: false // Flag: exibindo o ranking simulado
 };
+
+const REGIONAL_DESTAQUE = 'R2 - Luiz';
 
 // ============================================================
 // UTILIDADES
@@ -269,6 +273,9 @@ async function initializeApp() {
         // Carregar estrutura
         await loadEstrutura();
 
+        // Carregar histórico (rodadas anteriores) para o ranking simulado
+        await loadHistorico();
+
         // Carregar confrontos
         await loadConfrontos();
 
@@ -279,6 +286,7 @@ async function initializeApp() {
         document.getElementById('filterRegional').addEventListener('change', onRegionalChange);
         document.getElementById('filterDistrito').addEventListener('change', onDistritoChange);
         document.getElementById('reprocessarBtn').addEventListener('click', reprocessarDoSharePoint);
+        document.getElementById('simuladoBtn').addEventListener('click', toggleRankingSimulado);
         document.getElementById('logoutBtn').addEventListener('click', logout);
 
         // Event listeners para filtro de estatísticas
@@ -409,6 +417,247 @@ async function loadEstrutura() {
     } catch (error) {
         console.error('Erro ao carregar estrutura:', error);
     }
+}
+
+async function loadHistorico() {
+    try {
+        const response = await fetch('historico.json');
+        state.historico = await response.json();
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        state.historico = null;
+    }
+}
+
+// ============================================================
+// RANKING SIMULADO (histórico rodadas anteriores + rodada atual)
+// ============================================================
+
+function calcularRankingSimulado() {
+    // Retorna array por distrito com pontos históricos + atuais combinados.
+    const hist = state.historico;
+    const rodadasAnt = hist ? hist.rodadasAnteriores : 0;
+
+    // Mapa loja -> {regional, distrito}
+    const loja2dist = {};
+    const N = {}; // nº de lojas por distrito
+    Object.keys(state.estrutura).forEach(reg => {
+        Object.keys(state.estrutura[reg]).forEach(dist => {
+            const lojas = state.estrutura[reg][dist];
+            N[dist] = lojas.length;
+            lojas.forEach(l => { loja2dist[l] = { regional: reg, distrito: dist }; });
+        });
+    });
+
+    // Pontos/jogos da rodada atual por distrito (a partir do resumo)
+    const curPts = {}, curGm = {};
+    Object.keys(N).forEach(d => { curPts[d] = 0; curGm[d] = 0; });
+    (state.gamesSummary?.games || []).forEach(g => {
+        const [s1, s2] = g.scoreProjected.split('x').map(s => parseInt(s.trim()));
+        [[g.team1, s1, s2], [g.team2, s2, s1]].forEach(([team, me, other]) => {
+            const info = loja2dist[team];
+            if (!info) return;
+            curPts[info.distrito] += me > other ? 3 : (me === other ? 1 : 0);
+            curGm[info.distrito] += 1;
+        });
+    });
+
+    // Combinar
+    const linhas = [];
+    Object.keys(state.estrutura).forEach(reg => {
+        Object.keys(state.estrutura[reg]).forEach(dist => {
+            const n = N[dist];
+            const h = hist?.distritos?.[dist];
+            const histPts = h ? h.pontuacaoMedia * n : 0;
+            const histGm = h ? rodadasAnt * n : 0;
+            const cPts = curPts[dist] || 0;
+            const cGm = curGm[dist] || 0;
+            const totPts = histPts + cPts;
+            const totGm = histGm + cGm;
+            linhas.push({
+                regional: reg,
+                distrito: dist,
+                nLojas: n,
+                histAvg: histGm > 0 ? histPts / histGm : 0,
+                curAvg: cGm > 0 ? cPts / cGm : 0,
+                simAvg: totGm > 0 ? totPts / totGm : 0,
+                temHistorico: !!h
+            });
+        });
+    });
+
+    linhas.sort((a, b) => b.simAvg - a.simAvg);
+    linhas.forEach((l, i) => { l.posicao = i + 1; });
+    return linhas;
+}
+
+function insightsDistrito(distrito, lojas) {
+    // Analisa a rodada atual do distrito: lojas puxando pra cima/baixo e gol mais fraco.
+    const lojasSet = new Set(lojas);
+    const porLoja = {}; // loja -> {pts, resultado}
+    const analiseGol = {}; // indicador -> {v, d, e}
+
+    (state.gamesSummary?.games || []).forEach(g => {
+        const [s1, s2] = g.scoreProjected.split('x').map(s => parseInt(s.trim()));
+        [[g.team1, 1, s1, s2], [g.team2, 2, s2, s1]].forEach(([team, num, me, other]) => {
+            if (!lojasSet.has(team)) return;
+            porLoja[team] = {
+                resultado: me > other ? 'V' : (me === other ? 'E' : 'D'),
+                placar: `${me}x${other}`
+            };
+            const gols = g.golsProjetados || {};
+            Object.entries(gols).forEach(([ind, venc]) => {
+                if (!analiseGol[ind]) analiseGol[ind] = { v: 0, d: 0, e: 0 };
+                if (venc === num) analiseGol[ind].v++;
+                else if (venc === 0) analiseGol[ind].e++;
+                else analiseGol[ind].d++;
+            });
+        });
+    });
+
+    const lojasUp = Object.entries(porLoja).filter(([, r]) => r.resultado === 'V').map(([l]) => l);
+    const lojasDown = Object.entries(porLoja).filter(([, r]) => r.resultado === 'D').map(([l]) => l);
+
+    // Gol mais fraco (mais derrotas) e mais forte (mais vitórias)
+    const gols = Object.entries(analiseGol).map(([ind, a]) => ({
+        nome: ind.replace(/\.xlsx$/i, ''), v: a.v, d: a.d, e: a.e, total: a.v + a.d + a.e
+    }));
+    gols.sort((a, b) => a.v - b.v);
+    const golFraco = gols[0];
+    const golForte = gols[gols.length - 1];
+
+    return { lojasUp, lojasDown, golFraco, golForte, totalLojas: Object.keys(porLoja).length };
+}
+
+async function toggleRankingSimulado() {
+    state.modoSimulado = !state.modoSimulado;
+    const btn = document.getElementById('simuladoBtn');
+    if (state.modoSimulado) {
+        btn.classList.add('ativo');
+        // Limpar filtros e mostrar simulado
+        document.getElementById('filterRegional').value = '';
+        document.getElementById('filterDistrito').value = '';
+        state.currentRegional = null;
+        state.currentDistrito = null;
+        // Garantir que o resumo dos jogos está carregado
+        if (!state.gamesSummary) {
+            document.getElementById('infoBar').innerHTML = '<span>⏳ Carregando dados...</span>';
+            await carregarResumJogos();
+        }
+        loadRankingSimulado();
+    } else {
+        btn.classList.remove('ativo');
+        loadGames(); // volta ao ranking normal
+    }
+}
+
+function loadRankingSimulado() {
+    const container = document.getElementById('gamesContainer');
+    const infoBar = document.getElementById('infoBar');
+    const statsSection = document.getElementById('statsSection');
+    statsSection.style.display = 'none';
+
+    if (!state.historico || !state.gamesSummary) {
+        infoBar.innerHTML = '<span>⏳ Carregando dados do simulado...</span>';
+        return;
+    }
+
+    const ranking = calcularRankingSimulado();
+    const rodadasAnt = state.historico.rodadasAnteriores;
+
+    infoBar.innerHTML = `<span>🎯 Ranking Simulado — histórico (${rodadasAnt} rodadas) + rodada atual, ao vivo. Foco: ${REGIONAL_DESTAQUE}</span>`;
+
+    // Distritos da regional em destaque
+    const meus = ranking.filter(r => r.regional === REGIONAL_DESTAQUE);
+
+    const setaEvol = (r) => {
+        const diff = r.curAvg - r.histAvg;
+        if (Math.abs(diff) < 0.05) return '<span style="color:#888;">➡️ estável</span>';
+        return diff > 0
+            ? `<span style="color:#11998e;">▲ subindo (+${diff.toFixed(2)})</span>`
+            : `<span style="color:#c0392b;">▼ caindo (${diff.toFixed(2)})</span>`;
+    };
+
+    // Cards da R2 (destaque)
+    const cardsMeus = meus.map(r => {
+        const lojas = state.estrutura[r.regional][r.distrito];
+        const ins = insightsDistrito(r.distrito, lojas);
+        const up = ins.lojasUp.length ? ins.lojasUp.join(', ') : '—';
+        const down = ins.lojasDown.length ? ins.lojasDown.join(', ') : '—';
+        return `
+        <div style="background:white; border-radius:12px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-left:5px solid #667eea;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-weight:700; font-size:1.15em;">#${r.posicao} · ${r.distrito}</span>
+                <span style="color:#667eea; font-weight:bold; font-size:1.3em;">${r.simAvg.toFixed(2)} pts</span>
+            </div>
+            <div style="font-size:0.9em; color:#666; margin:6px 0 10px;">
+                Histórico ${r.histAvg.toFixed(2)} → Atual ${r.curAvg.toFixed(2)} · ${setaEvol(r)}
+            </div>
+            <div style="font-size:0.9em; line-height:1.6;">
+                <div>💪 <b>Puxando pra cima:</b> ${up}</div>
+                <div>📉 <b>Puxando pra baixo:</b> ${down}</div>
+                <div>⚽ <b>Gol mais fraco:</b> ${ins.golFraco ? `${ins.golFraco.nome} (${ins.golFraco.v}/${ins.golFraco.total})` : '—'}</div>
+                <div>🔥 <b>Gol mais forte:</b> ${ins.golForte ? `${ins.golForte.nome} (${ins.golForte.v}/${ins.golForte.total})` : '—'}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Insight geral da regional
+    const melhorMeu = meus.reduce((a, b) => (b.simAvg > a.simAvg ? b : a), meus[0]);
+    const piorMeu = meus.reduce((a, b) => (b.simAvg < a.simAvg ? b : a), meus[0]);
+    const subindo = meus.filter(r => r.curAvg > r.histAvg + 0.05);
+    const caindo = meus.filter(r => r.curAvg < r.histAvg - 0.05);
+
+    // Tabela completa (todos os distritos), R2 destacada
+    const linhasTabela = ranking.map(r => {
+        const destaque = r.regional === REGIONAL_DESTAQUE;
+        const medalha = r.posicao === 1 ? '🥇' : r.posicao === 2 ? '🥈' : r.posicao === 3 ? '🥉' : `#${r.posicao}`;
+        return `
+        <tr style="${destaque ? 'background:#eef1ff; font-weight:600;' : ''}">
+            <td style="padding:8px 10px; text-align:center;">${medalha}</td>
+            <td style="padding:8px 10px;">${destaque ? '⭐ ' : ''}${r.distrito}<span style="color:#999; font-size:0.85em;"> · ${r.regional}</span></td>
+            <td style="padding:8px 10px; text-align:center; color:#666;">${r.histAvg.toFixed(2)}</td>
+            <td style="padding:8px 10px; text-align:center; color:#666;">${r.curAvg.toFixed(2)}</td>
+            <td style="padding:8px 10px; text-align:center; color:#667eea; font-weight:bold;">${r.simAvg.toFixed(2)}</td>
+        </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+    <div style="padding:20px; max-width:1100px; margin:0 auto;">
+        <div style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; border-radius:12px; padding:18px 22px; margin-bottom:20px;">
+            <h2 style="margin:0 0 6px;">🔥 Seus Distritos — ${REGIONAL_DESTAQUE}</h2>
+            <div style="opacity:0.9; font-size:0.95em;">
+                Melhor posicionado: <b>${melhorMeu.distrito}</b> (#${melhorMeu.posicao}, ${melhorMeu.simAvg.toFixed(2)}) ·
+                Atenção: <b>${piorMeu.distrito}</b> (#${piorMeu.posicao}, ${piorMeu.simAvg.toFixed(2)})<br>
+                ${subindo.length ? `📈 Subindo na rodada: ${subindo.map(r => r.distrito).join(', ')}. ` : ''}
+                ${caindo.length ? `📉 Caindo na rodada: ${caindo.map(r => r.distrito).join(', ')}.` : ''}
+            </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px; margin-bottom:28px;">
+            ${cardsMeus}
+        </div>
+
+        <h3 style="color:#667eea; border-bottom:2px solid #667eea; padding-bottom:8px;">📊 Ranking Simulado Completo</h3>
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; margin-top:10px;">
+            <thead>
+                <tr style="border-bottom:2px solid #ddd; text-align:left;">
+                    <th style="padding:8px 10px; text-align:center;">#</th>
+                    <th style="padding:8px 10px;">Distrito</th>
+                    <th style="padding:8px 10px; text-align:center;">Histórico</th>
+                    <th style="padding:8px 10px; text-align:center;">Atual</th>
+                    <th style="padding:8px 10px; text-align:center;">Simulado</th>
+                </tr>
+            </thead>
+            <tbody>${linhasTabela}</tbody>
+        </table>
+        </div>
+        <div style="font-size:0.8em; color:#999; margin-top:12px;">
+            Simulado = (pontos do histórico + pontos da rodada atual) ÷ (jogos do histórico + jogos da rodada atual).
+            Histórico das rodadas 1-${rodadasAnt}; rodada atual ao vivo. ⭐ = seus distritos (${REGIONAL_DESTAQUE}).
+        </div>
+    </div>`;
 }
 
 function populateRegionalFilter() {

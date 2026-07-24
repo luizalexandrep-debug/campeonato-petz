@@ -1,0 +1,28 @@
+{
+  "rodadasAnteriores": 3,
+  "atualizadoEm": "2026-07-23 (rodadas 1-3, extraído do Power BI)",
+  "distritos": {
+    "SC-RS - Arnaldo": { "pontuacaoMedia": 6.50, "vitoriaMedia": 2.00 },
+    "CO-1 - Ana": { "pontuacaoMedia": 6.42, "vitoriaMedia": 2.00 },
+    "SP5 - Felipe P.": { "pontuacaoMedia": 4.67, "vitoriaMedia": 1.27 },
+    "CO-2 - Felipe A.": { "pontuacaoMedia": 4.67, "vitoriaMedia": 1.17 },
+    "MG2 - Junior M.": { "pontuacaoMedia": 4.56, "vitoriaMedia": 1.22 },
+    "NE3 - Georgia": { "pontuacaoMedia": 4.56, "vitoriaMedia": 1.22 },
+    "SP2 - Leonardo": { "pontuacaoMedia": 4.40, "vitoriaMedia": 1.27 },
+    "MG1 - Paula P.": { "pontuacaoMedia": 4.18, "vitoriaMedia": 1.09 },
+    "SP3 - Anderson B.": { "pontuacaoMedia": 4.13, "vitoriaMedia": 1.13 },
+    "NE1/ES - Eliab": { "pontuacaoMedia": 4.08, "vitoriaMedia": 1.17 },
+    "RJ - Diego": { "pontuacaoMedia": 4.00, "vitoriaMedia": 1.13 },
+    "SP6 - Patricia": { "pontuacaoMedia": 4.00, "vitoriaMedia": 1.07 },
+    "SP4 - Eliane": { "pontuacaoMedia": 3.92, "vitoriaMedia": 1.08 },
+    "RS - Armando": { "pontuacaoMedia": 3.92, "vitoriaMedia": 1.00 },
+    "NE2 - Denis": { "pontuacaoMedia": 3.78, "vitoriaMedia": 1.00 },
+    "SP7 - Caroline": { "pontuacaoMedia": 3.71, "vitoriaMedia": 1.00 },
+    "SP1 - Sergio": { "pontuacaoMedia": 3.64, "vitoriaMedia": 0.93 },
+    "PR-SC - Tascila": { "pontuacaoMedia": 3.57, "vitoriaMedia": 1.07 },
+    "CO-3 - Jessica C.": { "pontuacaoMedia": 3.50, "vitoriaMedia": 1.00 },
+    "INT2 - Fabiano": { "pontuacaoMedia": 3.06, "vitoriaMedia": 0.75 },
+    "INT1 - Alessandro": { "pontuacaoMedia": 2.53, "vitoriaMedia": 0.67 }
+  },
+  "regionalDestaque": "R2 - Luiz"
+}

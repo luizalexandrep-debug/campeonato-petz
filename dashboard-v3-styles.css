@@ -176,6 +176,24 @@ body {
     transform: none;
 }
 
+.btn-simulado {
+    background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+    color: #5a3d00;
+    padding: 12px 20px;
+    align-self: flex-end;
+    font-weight: 700;
+}
+
+.btn-simulado:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(247, 151, 30, 0.4);
+}
+
+.btn-simulado.ativo {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
 /* Info Bar */
 .info-bar {
     background: #e3f2fd;
