@@ -486,9 +486,27 @@ function calcularRankingSimulado() {
         });
     });
 
+    // Posição no ranking HISTÓRICO (por média histórica), para calcular a variação
+    const histRankMap = {};
+    [...linhas].sort((a, b) => b.histAvg - a.histAvg).forEach((l, i) => {
+        histRankMap[l.distrito] = i + 1;
+    });
+
+    // Posição no ranking SIMULADO
     linhas.sort((a, b) => b.simAvg - a.simAvg);
-    linhas.forEach((l, i) => { l.posicao = i + 1; });
+    linhas.forEach((l, i) => {
+        l.posicao = i + 1;
+        l.posicaoHist = histRankMap[l.distrito];
+        l.variacao = l.posicaoHist - l.posicao; // positivo = subiu no ranking
+    });
     return linhas;
+}
+
+function badgeVariacao(v) {
+    // Seta de variação de posição: ▲ subiu, ▼ desceu, — manteve
+    if (v > 0) return `<span style="color:#11998e; font-weight:700;" title="Subiu ${v} posição(ões)">▲ ${v}</span>`;
+    if (v < 0) return `<span style="color:#c0392b; font-weight:700;" title="Desceu ${Math.abs(v)} posição(ões)">▼ ${Math.abs(v)}</span>`;
+    return `<span style="color:#999;" title="Manteve a posição">— 0</span>`;
 }
 
 function insightsDistrito(distrito, lojas) {
@@ -587,7 +605,7 @@ function loadRankingSimulado() {
         return `
         <div style="background:white; border-radius:12px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-left:5px solid #667eea;">
             <div style="display:flex; justify-content:space-between; align-items:baseline;">
-                <span style="font-weight:700; font-size:1.15em;">#${r.posicao} · ${r.distrito}</span>
+                <span style="font-weight:700; font-size:1.15em;">#${r.posicao} ${badgeVariacao(r.variacao)} · ${r.distrito}</span>
                 <span style="color:#667eea; font-weight:bold; font-size:1.3em;">${r.simAvg.toFixed(2)} pts</span>
             </div>
             <div style="font-size:0.9em; color:#666; margin:6px 0 10px;">
@@ -615,6 +633,7 @@ function loadRankingSimulado() {
         return `
         <tr style="${destaque ? 'background:#eef1ff; font-weight:600;' : ''}">
             <td style="padding:8px 10px; text-align:center;">${medalha}</td>
+            <td style="padding:8px 10px; text-align:center;">${badgeVariacao(r.variacao)}</td>
             <td style="padding:8px 10px;">${destaque ? '⭐ ' : ''}${r.distrito}<span style="color:#999; font-size:0.85em;"> · ${r.regional}</span></td>
             <td style="padding:8px 10px; text-align:center; color:#666;">${r.histAvg.toFixed(2)}</td>
             <td style="padding:8px 10px; text-align:center; color:#666;">${r.curAvg.toFixed(2)}</td>
@@ -644,6 +663,7 @@ function loadRankingSimulado() {
             <thead>
                 <tr style="border-bottom:2px solid #ddd; text-align:left;">
                     <th style="padding:8px 10px; text-align:center;">#</th>
+                    <th style="padding:8px 10px; text-align:center;" title="Variação vs ranking histórico">Mov.</th>
                     <th style="padding:8px 10px;">Distrito</th>
                     <th style="padding:8px 10px; text-align:center;">Histórico</th>
                     <th style="padding:8px 10px; text-align:center;">Atual</th>
@@ -655,6 +675,7 @@ function loadRankingSimulado() {
         </div>
         <div style="font-size:0.8em; color:#999; margin-top:12px;">
             Simulado = (pontos do histórico + pontos da rodada atual) ÷ (jogos do histórico + jogos da rodada atual).
+            <b>Mov.</b> = variação de posição em relação ao ranking só do histórico (▲ subiu / ▼ desceu / — manteve).
             Histórico das rodadas 1-${rodadasAnt}; rodada atual ao vivo. ⭐ = seus distritos (${REGIONAL_DESTAQUE}).
         </div>
     </div>`;
