@@ -125,8 +125,10 @@ def _placar(memoria, team1, team2, hoje_idx=None):
         t1_atu = sum((d1t or {}).get(d, 0) for d in dias_a_contar)
         t2_ant = sum((d2a or {}).get(d, 0) for d in dias_a_contar)
         t2_atu = sum((d2t or {}).get(d, 0) for d in dias_a_contar)
-        ev1 = t1_atu - t1_ant
-        ev2 = t2_atu - t2_ant
+        # Evolução PERCENTUAL em relação à semana anterior (regra do campeonato).
+        # Deve casar exatamente com calcularPlacarLocal() no frontend.
+        ev1 = ((t1_atu - t1_ant) / t1_ant * 100) if t1_ant != 0 else 0
+        ev2 = ((t2_atu - t2_ant) / t2_ant * 100) if t2_ant != 0 else 0
         if ev1 > ev2:
             score1 += 1
             gols[arquivo] = 1

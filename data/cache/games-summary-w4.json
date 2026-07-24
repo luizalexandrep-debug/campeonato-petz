@@ -1,95 +1,11 @@
 {
   "week": 4,
-  "lastUpdated": "2026-07-23T20:36:17.949209",
+  "lastUpdated": "2026-07-23T22:02:04.909423",
   "total": 133,
   "games": [
     {
       "team1": "RJAF-SP",
       "team2": "RBFR-RN",
-      "scoreProjected": "0 x 5",
-      "scoreAccumulated": "1 x 4",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
-      }
-    },
-    {
-      "team1": "TRSN-PI",
-      "team2": "BQMA-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "2 x 3",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
-      }
-    },
-    {
-      "team1": "FBYT-GO",
-      "team2": "BSIA-DF",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "2 x 3",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
-      }
-    },
-    {
-      "team1": "VISA-RJ",
-      "team2": "SLUI-MA",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "4 x 1",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      }
-    },
-    {
-      "team1": "ALPH-SP",
-      "team2": "MRPG-CE",
       "scoreProjected": "1 x 4",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
@@ -106,6 +22,90 @@
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
+      }
+    },
+    {
+      "team1": "TRSN-PI",
+      "team2": "BQMA-SP",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "4 x 1",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      }
+    },
+    {
+      "team1": "FBYT-GO",
+      "team2": "BSIA-DF",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "1 x 4",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
+      }
+    },
+    {
+      "team1": "VISA-RJ",
+      "team2": "SLUI-MA",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 2
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 2
+      }
+    },
+    {
+      "team1": "ALPH-SP",
+      "team2": "MRPG-CE",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
       }
     },
     {
@@ -133,17 +133,17 @@
       "team1": "CGDE-MS",
       "team2": "ACST-SP",
       "scoreProjected": "1 x 4",
-      "scoreAccumulated": "1 x 4",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
@@ -153,83 +153,83 @@
     {
       "team1": "EPIA-DF",
       "team2": "MTLM-PR",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "5 x 0",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "SMNA-PR",
       "team2": "RDLT-SP",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "CTMN-MG",
       "team2": "JAPE-SP",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "1 x 4",
+      "scoreAccumulated": "0 x 5",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      }
-    },
-    {
-      "team1": "JUZF-MG",
-      "team2": "CPIC-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "1 x 4",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
+      }
+    },
+    {
+      "team1": "JUZF-MG",
+      "team2": "CPIC-SP",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "2 x 3",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       }
@@ -237,39 +237,39 @@
     {
       "team1": "JGRE-SP",
       "team2": "PQSH-BA",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "4 x 1",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      }
+    },
+    {
+      "team1": "TRMS-SP",
+      "team2": "SMGL-SP",
       "scoreProjected": "3 x 2",
       "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
-      }
-    },
-    {
-      "team1": "TRMS-SP",
-      "team2": "SMGL-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "4 x 1",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
@@ -279,21 +279,21 @@
     {
       "team1": "ITNH-SP",
       "team2": "SOTT-SP",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       }
     },
@@ -321,14 +321,14 @@
     {
       "team1": "ABNO-RJ",
       "team2": "DDMA-SP",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "4 x 1",
       "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 2,
+        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
@@ -364,7 +364,7 @@
       "team1": "MAUA-SP",
       "team2": "SUBR-MG",
       "scoreProjected": "5 x 0",
-      "scoreAccumulated": "4 x 1",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
@@ -374,7 +374,7 @@
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
@@ -384,76 +384,76 @@
     {
       "team1": "SLPD-RS",
       "team2": "SERR-ES",
-      "scoreProjected": "5 x 0",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "SCSU-SP",
       "team2": "TORS-PR",
-      "scoreProjected": "5 x 0",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "RPVG-SP",
       "team2": "NDTN-SP",
-      "scoreProjected": "0 x 5",
-      "scoreAccumulated": "0 x 5",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "PDTP-SP",
       "team2": "VRAO-SP",
-      "scoreProjected": "3 x 2",
+      "scoreProjected": "1 x 4",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
@@ -494,10 +494,10 @@
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
+        "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
@@ -531,11 +531,11 @@
     {
       "team1": "VLMA-SP",
       "team2": "BTTA-SP",
-      "scoreProjected": "1 x 4",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
@@ -544,7 +544,7 @@
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 1
       }
@@ -573,12 +573,12 @@
     {
       "team1": "RGRD-RS",
       "team2": "INTL-SP",
-      "scoreProjected": "0 x 5",
+      "scoreProjected": "1 x 4",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
+        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
@@ -594,60 +594,60 @@
     {
       "team1": "CGDR-RJ",
       "team2": "JJAU-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "1 x 4",
+      "scoreAccumulated": "0 x 5",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
+        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "CFTT-SP",
       "team2": "PSMC-AL",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "BAND-SP",
       "team2": "BFGO-RJ",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
@@ -657,28 +657,28 @@
     {
       "team1": "AUGT-SP",
       "team2": "NTAL-RN",
-      "scoreProjected": "0 x 5",
-      "scoreAccumulated": "1 x 4",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "OSAS-SP",
       "team2": "PNMR-PE",
-      "scoreProjected": "3 x 2",
+      "scoreProjected": "2 x 3",
       "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
@@ -686,7 +686,7 @@
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
@@ -699,18 +699,18 @@
     {
       "team1": "BAUR-SP",
       "team2": "PROT-RS",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "5 x 0",
+      "scoreAccumulated": "5 x 0",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
@@ -720,39 +720,39 @@
     {
       "team1": "BOVG-PE",
       "team2": "PAMP-MG",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "VLVL-ES",
       "team2": "BAME-RJ",
       "scoreProjected": "4 x 1",
-      "scoreAccumulated": "5 x 0",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
@@ -762,6 +762,48 @@
     {
       "team1": "JVLE-SC",
       "team2": "CORA-SP",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      }
+    },
+    {
+      "team1": "FLNP-SC",
+      "team2": "MOOC-SP",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "5 x 0",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      }
+    },
+    {
+      "team1": "CRBT-RS",
+      "team2": "SJRP-SP",
       "scoreProjected": "1 x 4",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
@@ -774,115 +816,73 @@
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
-      }
-    },
-    {
-      "team1": "FLNP-SC",
-      "team2": "MOOC-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "4 x 1",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      }
-    },
-    {
-      "team1": "CRBT-RS",
-      "team2": "SJRP-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "3 x 2",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "WLUI-SP",
       "team2": "UDIA-MG",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      }
-    },
-    {
-      "team1": "JANH-SP",
-      "team2": "ITPC-SP",
-      "scoreProjected": "0 x 5",
-      "scoreAccumulated": "1 x 4",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
+      }
+    },
+    {
+      "team1": "JANH-SP",
+      "team2": "ITPC-SP",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "3 x 2",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "VMTD-SP",
       "team2": "VGLV-SP",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
@@ -931,7 +931,7 @@
       "team1": "SPVL-RO",
       "team2": "MRNG-PR",
       "scoreProjected": "0 x 5",
-      "scoreAccumulated": "1 x 4",
+      "scoreAccumulated": "0 x 5",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
@@ -944,7 +944,7 @@
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       }
     },
@@ -952,7 +952,7 @@
       "team1": "CGUA-SP",
       "team2": "MNLH-RJ",
       "scoreProjected": "2 x 3",
-      "scoreAccumulated": "2 x 3",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
@@ -966,19 +966,19 @@
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "TEOD-SP",
       "team2": "CNTG-MG",
-      "scoreProjected": "1 x 4",
+      "scoreProjected": "3 x 2",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       },
@@ -993,20 +993,20 @@
     {
       "team1": "PIRA-SP",
       "team2": "IPIR-SP",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "1 x 4",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       }
@@ -1019,9 +1019,9 @@
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
+        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
@@ -1035,43 +1035,43 @@
     {
       "team1": "PGDE-SP",
       "team2": "CATU-PR",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "5 x 0",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "TGTG-DF",
       "team2": "NSPL-MS",
-      "scoreProjected": "1 x 4",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
@@ -1119,11 +1119,11 @@
     {
       "team1": "ESTG-GO",
       "team2": "BFRX-RJ",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "3 x 2",
       "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
@@ -1140,34 +1140,34 @@
     {
       "team1": "GBSL-DF",
       "team2": "LTIR-PR",
-      "scoreProjected": "1 x 4",
-      "scoreAccumulated": "1 x 4",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "GVLD-MG",
       "team2": "NIGC-RJ",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "3 x 2",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       },
@@ -1182,20 +1182,20 @@
     {
       "team1": "HTLD-SP",
       "team2": "BTCT-SP",
-      "scoreProjected": "1 x 4",
-      "scoreAccumulated": "1 x 4",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       }
@@ -1224,63 +1224,63 @@
     {
       "team1": "SGSQ-SP",
       "team2": "ITGU-SC",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "PIND-SP",
       "team2": "MTTO-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "PRLA-BA",
       "team2": "FOZI-PR",
-      "scoreProjected": "0 x 5",
-      "scoreAccumulated": "0 x 5",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
+        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       }
     },
@@ -1299,8 +1299,8 @@
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       }
@@ -1308,18 +1308,18 @@
     {
       "team1": "BLUM-SC",
       "team2": "MOGI-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
@@ -1329,11 +1329,11 @@
     {
       "team1": "MRBI-SP",
       "team2": "TMBO-SP",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "1 x 4",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
@@ -1350,34 +1350,34 @@
     {
       "team1": "PVRD-AL",
       "team2": "ANHM-SP",
-      "scoreProjected": "1 x 4",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "5 x 0",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "MCNA-RJ",
       "team2": "BALN-SC",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 1
       },
@@ -1386,7 +1386,7 @@
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
@@ -1398,16 +1398,16 @@
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
@@ -1434,22 +1434,22 @@
     {
       "team1": "GPIR-SP",
       "team2": "EDFC-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "0 x 5",
+      "scoreAccumulated": "0 x 5",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
       }
     },
     {
@@ -1476,22 +1476,22 @@
     {
       "team1": "NHBG-RS",
       "team2": "GVGC-SP",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "3 x 2",
       "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
@@ -1501,36 +1501,36 @@
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "CCVE-PR",
       "team2": "ACTN-MG",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
+        "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
@@ -1560,28 +1560,28 @@
     {
       "team1": "JUND-SP",
       "team2": "BTIM-MG",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "3 x 2",
       "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
+        "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "STAD-SP",
       "team2": "JPES-PB",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "1 x 4",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
@@ -1589,7 +1589,7 @@
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
@@ -1602,29 +1602,29 @@
     {
       "team1": "MGYA-SP",
       "team2": "LAUZ-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "5 x 0",
+      "scoreAccumulated": "5 x 0",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "GRLH-SP",
       "team2": "CDIA-DF",
       "scoreProjected": "1 x 4",
-      "scoreAccumulated": "2 x 3",
+      "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
@@ -1638,27 +1638,27 @@
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "CVDA-RS",
       "team2": "CTTE-SC",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "1 x 4",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       }
     },
@@ -1708,17 +1708,17 @@
       "team1": "NCUN-SP",
       "team2": "JABT-PE",
       "scoreProjected": "2 x 3",
-      "scoreAccumulated": "3 x 2",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
@@ -1728,12 +1728,12 @@
     {
       "team1": "CPCB-RJ",
       "team2": "RICL-SP",
-      "scoreProjected": "1 x 4",
+      "scoreProjected": "2 x 3",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
+        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
@@ -1750,17 +1750,17 @@
       "team1": "UBRB-MG",
       "team2": "SHGR-RJ",
       "scoreProjected": "4 x 1",
-      "scoreAccumulated": "3 x 2",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
@@ -1770,18 +1770,18 @@
     {
       "team1": "IGES-SP",
       "team2": "SADP-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
@@ -1791,6 +1791,27 @@
     {
       "team1": "CTJC-MG",
       "team2": "SCAR-SP",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "4 x 1",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      }
+    },
+    {
+      "team1": "CCMA-SC",
+      "team2": "IPTG-MG",
       "scoreProjected": "2 x 3",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
@@ -1798,28 +1819,7 @@
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
-      }
-    },
-    {
-      "team1": "CCMA-SC",
-      "team2": "IPTG-MG",
-      "scoreProjected": "0 x 5",
-      "scoreAccumulated": "2 x 3",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
@@ -1833,11 +1833,11 @@
     {
       "team1": "SJCK-PR",
       "team2": "BGCV-RS",
-      "scoreProjected": "1 x 4",
+      "scoreProjected": "2 x 3",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
@@ -1854,48 +1854,6 @@
     {
       "team1": "RPTO-SP",
       "team2": "ARAC-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "3 x 2",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      }
-    },
-    {
-      "team1": "JCRI-SP",
-      "team2": "GRVT-RS",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "4 x 1",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      }
-    },
-    {
-      "team1": "DJBA-AM",
-      "team2": "TIET-SP",
       "scoreProjected": "1 x 4",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
@@ -1915,43 +1873,85 @@
       }
     },
     {
-      "team1": "NSCA-MG",
-      "team2": "BT63-GO",
-      "scoreProjected": "0 x 5",
-      "scoreAccumulated": "0 x 5",
+      "team1": "JCRI-SP",
+      "team2": "GRVT-RS",
+      "scoreProjected": "1 x 4",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 2
+      }
+    },
+    {
+      "team1": "DJBA-AM",
+      "team2": "TIET-SP",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "2 x 3",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 2,
+        "VENDAS.xlsx": 2
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       }
     },
     {
+      "team1": "NSCA-MG",
+      "team2": "BT63-GO",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "4 x 1",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      }
+    },
+    {
       "team1": "ALDT-CE",
       "team2": "ASTS-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "1 x 4",
+      "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       }
@@ -1959,124 +1959,124 @@
     {
       "team1": "RAJA-MG",
       "team2": "CGHS-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "ASAN-DF",
       "team2": "BNOC-BA",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "5 x 0",
+      "scoreAccumulated": "5 x 0",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "AFCO-SP",
       "team2": "W3NT-DF",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "1 x 4",
+      "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "FCOR-MT",
       "team2": "BLEM-PA",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "1 x 4",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
       }
     },
     {
       "team1": "SCBA-SP",
       "team2": "STCE-SP",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "1 x 4",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "PMAS-TO",
       "team2": "ABVT-SP",
-      "scoreProjected": "5 x 0",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
+        "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
@@ -2085,20 +2085,20 @@
     {
       "team1": "CTIA-SP",
       "team2": "MOIN-RS",
-      "scoreProjected": "3 x 2",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       }
@@ -2127,14 +2127,14 @@
     {
       "team1": "PTBA-BA",
       "team2": "BJDB-DF",
-      "scoreProjected": "3 x 2",
+      "scoreProjected": "2 x 3",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
@@ -2169,20 +2169,20 @@
     {
       "team1": "PCCD-MG",
       "team2": "CXAS-RS",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "3 x 2",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       }
@@ -2196,47 +2196,47 @@
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "PBAR-SP",
       "team2": "STDU-CE",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "2 x 3",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "JFIR-SP",
       "team2": "VCQT-BA",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "1 x 4",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
@@ -2274,11 +2274,11 @@
     {
       "team1": "WSOA-CE",
       "team2": "CPCO-SC",
-      "scoreProjected": "3 x 2",
+      "scoreProjected": "2 x 3",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
@@ -2316,15 +2316,15 @@
     {
       "team1": "ENSD-SP",
       "team2": "VGDE-MT",
-      "scoreProjected": "0 x 5",
+      "scoreProjected": "4 x 1",
       "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
@@ -2338,7 +2338,7 @@
       "team1": "ANGL-SP",
       "team2": "SMOC-SP",
       "scoreProjected": "5 x 0",
-      "scoreAccumulated": "4 x 1",
+      "scoreAccumulated": "5 x 0",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
@@ -2352,7 +2352,7 @@
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       }
     },
     {
@@ -2362,16 +2362,16 @@
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       }
@@ -2390,17 +2390,17 @@
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "RMAR-PE",
       "team2": "ANCH-SP",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "3 x 2",
       "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
@@ -2408,7 +2408,7 @@
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
@@ -2421,13 +2421,13 @@
     {
       "team1": "ACTB-GO",
       "team2": "PRUD-SP",
-      "scoreProjected": "4 x 1",
+      "scoreProjected": "5 x 0",
       "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
@@ -2442,14 +2442,14 @@
     {
       "team1": "ILHG-RJ",
       "team2": "RPIN-SP",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "4 x 1",
       "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
@@ -2463,13 +2463,13 @@
     {
       "team1": "TTCP-SP",
       "team2": "BARR-MG",
-      "scoreProjected": "2 x 3",
+      "scoreProjected": "1 x 4",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
@@ -2505,12 +2505,12 @@
     {
       "team1": "CPNS-SP",
       "team2": "AVGO-SP",
-      "scoreProjected": "5 x 0",
+      "scoreProjected": "4 x 1",
       "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
+        "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
@@ -2526,14 +2526,14 @@
     {
       "team1": "DVNP-MG",
       "team2": "AMER-SP",
-      "scoreProjected": "0 x 5",
+      "scoreProjected": "2 x 3",
       "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
+        "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
@@ -2568,14 +2568,14 @@
     {
       "team1": "ASAC-SP",
       "team2": "ARUJ-SP",
-      "scoreProjected": "1 x 4",
-      "scoreAccumulated": "1 x 4",
+      "scoreProjected": "0 x 5",
+      "scoreAccumulated": "0 x 5",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 1,
+        "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
@@ -2583,24 +2583,24 @@
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
       "team1": "BNGU-RJ",
       "team2": "CMCD-MG",
-      "scoreProjected": "5 x 0",
-      "scoreAccumulated": "4 x 1",
+      "scoreProjected": "4 x 1",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
@@ -2631,15 +2631,15 @@
     {
       "team1": "SGPZ-SP",
       "team2": "DOMP-SP",
-      "scoreProjected": "1 x 4",
+      "scoreProjected": "5 x 0",
       "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 2
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
@@ -2673,39 +2673,39 @@
     {
       "team1": "PKSB-DF",
       "team2": "SCVL-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
       "hojeIdx": 4,
       "golsProjetados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
-      },
-      "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 2
-      }
-    },
-    {
-      "team1": "DRDS-MS",
-      "team2": "TTUI-SP",
-      "scoreProjected": "5 x 0",
-      "scoreAccumulated": "4 x 1",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
-        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       },
       "golsAcumulados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      }
+    },
+    {
+      "team1": "DRDS-MS",
+      "team2": "TTUI-SP",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "3 x 2",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
@@ -2715,7 +2715,7 @@
     {
       "team1": "ZVJD-SP",
       "team2": "ARRQ-SP",
-      "scoreProjected": "3 x 2",
+      "scoreProjected": "2 x 3",
       "scoreAccumulated": "2 x 3",
       "hojeIdx": 4,
       "golsProjetados": {
@@ -2723,7 +2723,7 @@
         "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 2,
         "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 1,
@@ -2736,53 +2736,32 @@
     {
       "team1": "ZBND-MG",
       "team2": "CLNS-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "2 x 3",
+      "scoreProjected": "1 x 4",
+      "scoreAccumulated": "1 x 4",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 1,
-        "VENDAS.xlsx": 1
-      },
-      "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 2,
-        "LIMPEZA PERFUMARIA.xlsx": 1,
-        "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
-      }
-    },
-    {
-      "team1": "SZNO-SP",
-      "team2": "MGGU-SP",
-      "scoreProjected": "2 x 3",
-      "scoreAccumulated": "3 x 2",
-      "hojeIdx": 4,
-      "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
         "VENDAS.xlsx": 2
       },
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
-        "ELANCO.xlsx": 1,
+        "ELANCO.xlsx": 2,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 2,
-        "VENDAS.xlsx": 1
+        "VENDAS.xlsx": 2
       }
     },
     {
-      "team1": "SBAR-SP",
-      "team2": "COSA-SP",
-      "scoreProjected": "4 x 1",
-      "scoreAccumulated": "3 x 2",
+      "team1": "SZNO-SP",
+      "team2": "MGGU-SP",
+      "scoreProjected": "5 x 0",
+      "scoreAccumulated": "4 x 1",
       "hojeIdx": 4,
       "golsProjetados": {
-        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
         "ELANCO.xlsx": 1,
         "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
@@ -2791,7 +2770,28 @@
       "golsAcumulados": {
         "CAMAS ROUPAS COBERTORES.xlsx": 2,
         "ELANCO.xlsx": 1,
-        "LIMPEZA PERFUMARIA.xlsx": 2,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 1
+      }
+    },
+    {
+      "team1": "SBAR-SP",
+      "team2": "COSA-SP",
+      "scoreProjected": "3 x 2",
+      "scoreAccumulated": "5 x 0",
+      "hojeIdx": 4,
+      "golsProjetados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 2,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
+        "PREMIER.xlsx": 1,
+        "VENDAS.xlsx": 2
+      },
+      "golsAcumulados": {
+        "CAMAS ROUPAS COBERTORES.xlsx": 1,
+        "ELANCO.xlsx": 1,
+        "LIMPEZA PERFUMARIA.xlsx": 1,
         "PREMIER.xlsx": 1,
         "VENDAS.xlsx": 1
       }

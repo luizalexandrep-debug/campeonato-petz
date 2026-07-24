@@ -654,8 +654,9 @@ def calcularPlacarBackend(team1, team2, semana, hojeIdx=None):
             total2Anterior = sum(dias2Anterior.get(dia, 0) for dia in diasAcontar)
             total2Atual = sum(dias2Atual.get(dia, 0) for dia in diasAcontar)
 
-            evolucao1 = (total1Atual - total1Anterior)
-            evolucao2 = (total2Atual - total2Anterior)
+            # Evolução PERCENTUAL (regra do campeonato) — casa com o frontend
+            evolucao1 = ((total1Atual - total1Anterior) / total1Anterior * 100) if total1Anterior != 0 else 0
+            evolucao2 = ((total2Atual - total2Anterior) / total2Anterior * 100) if total2Anterior != 0 else 0
 
             if evolucao1 > evolucao2:
                 score1 += 1
