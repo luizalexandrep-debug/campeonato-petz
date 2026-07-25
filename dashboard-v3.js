@@ -636,7 +636,7 @@ function insightsR2Html(simulado) {
     const caindo = meus.filter(r => r.curAvg < r.histAvg - 0.05);
 
     return `
-    <div style="padding:0 20px 24px; max-width:1280px; margin:0 auto;">
+    <div class="panel">
         <div style="background:linear-gradient(135deg,#2b5aa8,#1e2a5a); color:white; border-radius:12px; padding:16px 20px; margin-bottom:16px;">
             <h2 style="margin:0 0 6px;">🔥 Seus Distritos — ${REGIONAL_DESTAQUE}</h2>
             <div style="opacity:0.9; font-size:0.92em;">
@@ -849,41 +849,45 @@ function loadRankingDashboard() {
         rankingRegional[regional] = { vitórias: 0, total: 0, pontuacao: 0 };
     });
 
-    // Calcular pontuação por distrito
+    // Calcular pontuação por distrito (com V/E/D)
     const rankingDistrito = {};
     Object.keys(state.estrutura).forEach(regional => {
         Object.keys(state.estrutura[regional]).forEach(distrito => {
-            rankingDistrito[`${regional} > ${distrito}`] = { vitórias: 0, total: 0, pontuacao: 0, lojas: state.estrutura[regional][distrito] };
+            rankingDistrito[`${regional} > ${distrito}`] = {
+                V: 0, E: 0, D: 0, total: 0, pontuacao: 0,
+                lojas: state.estrutura[regional][distrito]
+            };
+        });
+    });
+    const regV = {};
+    Object.keys(state.estrutura).forEach(r => { regV[r] = { V: 0, E: 0, D: 0 }; });
+
+    // Índice loja -> {regional, distrito} (evita varrer toda a estrutura por jogo)
+    const loja2dist = {};
+    Object.keys(state.estrutura).forEach(regional => {
+        Object.keys(state.estrutura[regional]).forEach(distrito => {
+            state.estrutura[regional][distrito].forEach(l => {
+                loja2dist[l] = { regional, distrito };
+            });
         });
     });
 
     // Processar cada jogo
     state.gamesSummary.games.forEach(game => {
         const [score1, score2] = game.scoreProjected.split('x').map(s => parseInt(s.trim()));
-
-        // Encontrar regional e distrito de cada time
-        Object.keys(state.estrutura).forEach(regional => {
-            Object.keys(state.estrutura[regional]).forEach(distrito => {
-                const lojas = state.estrutura[regional][distrito];
-
-                // Team1 neste distrito?
-                if (lojas.includes(game.team1)) {
-                    const pontos1 = score1 > score2 ? 3 : score1 === score2 ? 1 : 0;
-                    rankingRegional[regional].pontuacao += pontos1;
-                    rankingRegional[regional].total++;
-                    rankingDistrito[`${regional} > ${distrito}`].pontuacao += pontos1;
-                    rankingDistrito[`${regional} > ${distrito}`].total++;
-                }
-
-                // Team2 neste distrito?
-                if (lojas.includes(game.team2)) {
-                    const pontos2 = score2 > score1 ? 3 : score2 === score1 ? 1 : 0;
-                    rankingRegional[regional].pontuacao += pontos2;
-                    rankingRegional[regional].total++;
-                    rankingDistrito[`${regional} > ${distrito}`].pontuacao += pontos2;
-                    rankingDistrito[`${regional} > ${distrito}`].total++;
-                }
-            });
+        [[game.team1, score1, score2], [game.team2, score2, score1]].forEach(([team, meu, adv]) => {
+            const info = loja2dist[team];
+            if (!info) return;
+            const { regional, distrito } = info;
+            const pontos = meu > adv ? 3 : (meu === adv ? 1 : 0);
+            const chave = `${regional} > ${distrito}`;
+            rankingRegional[regional].pontuacao += pontos;
+            rankingRegional[regional].total++;
+            rankingDistrito[chave].pontuacao += pontos;
+            rankingDistrito[chave].total++;
+            if (meu > adv) { rankingDistrito[chave].V++; regV[regional].V++; }
+            else if (meu === adv) { rankingDistrito[chave].E++; regV[regional].E++; }
+            else { rankingDistrito[chave].D++; regV[regional].D++; }
         });
     });
 
@@ -952,52 +956,134 @@ function loadRankingDashboard() {
         </div>`;
     }).join('');
 
-    // COLUNA 2 — ranking distrital (rodada atual)
-    const colDistritalAtual = ranking2.map((r, idx) => {
-        const sep = r.nome.indexOf(' > ');
-        const reg = r.nome.slice(0, sep);
-        const dist = r.nome.slice(sep + 3);
-        const destaque = reg === REGIONAL_DESTAQUE;
-        return `
-        <div class="rank-row${destaque ? ' destaque' : ''}" title="Ver ${dist}" onclick="${clkDist(reg, dist)}">
-            <span style="font-size:0.9em;"><span style="color:#999;">${medalhaFn(idx)}</span> ${dist}
-                <span style="color:#bbb; font-size:0.82em;">· ${reg.split(' - ')[0]}</span></span>
-            <span style="color:#2b5aa8; font-weight:700;">${r.media}</span>
-        </div>`;
-    }).join('');
+    // ---------- Dados por distrito para as tabelas ----------
+    const f2 = (x) => x.toFixed(2).replace('.', ',');
+    const fp = (x) => x.toFixed(1).replace('.', ',') + '%';
+    const simMap = {};
+    simulado.forEach(s => { simMap[s.distrito] = s; });
 
-    // COLUNA 3 — ranking simulado (base + atual)
-    const colSimulado = simulado.length ? simulado.map((r) => {
-        const destaque = r.regional === REGIONAL_DESTAQUE;
-        return `
-        <div class="rank-row${destaque ? ' destaque' : ''}" title="Ver ${r.distrito}" onclick="${clkDist(r.regional, r.distrito)}">
-            <span style="font-size:0.9em;"><span style="color:#999;">${medalhaFn(r.posicao - 1)}</span> ${badgeVariacao(r.variacao)} ${r.distrito}</span>
-            <span style="color:#2b5aa8; font-weight:700;">${r.simAvg.toFixed(2)}</span>
-        </div>`;
-    }).join('') : '<div style="color:#999; padding:20px; text-align:center;">Histórico indisponível</div>';
+    const dadosDist = Object.entries(rankingDistrito).map(([nome, d]) => {
+        const sep = nome.indexOf(' > ');
+        const reg = nome.slice(0, sep);
+        const dist = nome.slice(sep + 3);
+        const disp = d.total * 3;
+        return {
+            reg, dist, V: d.V, E: d.E, D: d.D,
+            conq: d.pontuacao, disp,
+            media: d.total > 0 ? d.pontuacao / d.total : 0,
+            aprov: disp > 0 ? d.pontuacao / disp * 100 : 0,
+            sim: simMap[dist] || null
+        };
+    });
 
-    const colHeader = (txt, sub) => `
-        <h3 style="color:#2b5aa8; font-size:1.05em; margin:0 0 4px; border-bottom:2px solid #2b5aa8; padding-bottom:8px;">${txt}</h3>
-        <div style="font-size:0.78em; color:#999; margin-bottom:10px;">${sub}</div>`;
+    const porMediaAtual = [...dadosDist].sort((a, b) => b.media - a.media);
+    porMediaAtual.forEach((r, i) => { r.rankAtual = i + 1; });
 
-    // Renderizar as 3 colunas + insights da R2 embaixo
+    // Totais por regional (rodada atual)
+    const totReg = {};
+    dadosDist.forEach(r => {
+        const t = totReg[r.reg] || (totReg[r.reg] = { V: 0, E: 0, D: 0, conq: 0, disp: 0 });
+        t.V += r.V; t.E += r.E; t.D += r.D; t.conq += r.conq; t.disp += r.disp;
+    });
+    Object.values(totReg).forEach(t => {
+        const jogos = t.V + t.E + t.D;
+        t.media = jogos > 0 ? t.conq / jogos : 0;
+        t.aprov = t.disp > 0 ? t.conq / t.disp * 100 : 0;
+    });
+    const nomeReg = (reg) => {
+        const p = reg.split(' - ');
+        return p.length > 1 ? `Regional ${p[0].replace('R', '')} (${p[1]})` : reg;
+    };
+
+    // ---------- TABELA 1: rodada atual ----------
+    const linhasAtual = porMediaAtual.map(r => {
+        const dest = r.reg === REGIONAL_DESTAQUE;
+        return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
+            <td class="c b">${medalhaFn(r.rankAtual - 1)}</td>
+            <td class="l">${r.dist}</td><td class="l reg">${r.reg}</td>
+            <td class="c">${r.V}</td><td class="c">${r.E}</td><td class="c">${r.D}</td>
+            <td class="c b">${f2(r.media)}</td><td class="c">${r.conq}/${r.disp}</td>
+            <td class="c b">${fp(r.aprov)}</td></tr>`;
+    }).join('') + Object.entries(totReg).sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
+        <tr class="tot"><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
+            <td class="c">${t.V}</td><td class="c">${t.E}</td><td class="c">${t.D}</td>
+            <td class="c b">${f2(t.media)}</td><td class="c">${t.conq}/${t.disp}</td>
+            <td class="c b">${fp(t.aprov)}</td></tr>`).join('');
+
+    // ---------- TABELA 2: acumulado simulado ----------
+    let secaoAcumulado = '';
+    if (simulado.length) {
+        const rodadas = state.historico.rodadasAnteriores;
+        const porSim = [...dadosDist].filter(r => r.sim).sort((a, b) => a.sim.posicao - b.sim.posicao);
+
+        const totAcum = {};
+        porSim.forEach(r => {
+            const nLojas = state.estrutura[r.reg][r.dist].length;
+            const hConq = Math.round((r.sim.histAvg * rodadas * nLojas));
+            const hDisp = rodadas * nLojas * 3;
+            const t = totAcum[r.reg] || (totAcum[r.reg] = { conq: 0, disp: 0 });
+            t.conq += hConq + r.conq;
+            t.disp += hDisp + r.disp;
+            r.aConq = hConq + r.conq;
+            r.aDisp = hDisp + r.disp;
+        });
+        Object.values(totAcum).forEach(t => {
+            t.media = t.disp > 0 ? t.conq / (t.disp / 3) : 0;
+            t.aprov = t.disp > 0 ? t.conq / t.disp * 100 : 0;
+        });
+
+        const linhasAcum = porSim.map(r => {
+            const dest = r.reg === REGIONAL_DESTAQUE;
+            const mov = r.rankAtual - r.sim.posicao;
+            const movHtml = mov > 0 ? `<span style="color:#16a34a;font-weight:700;">▲${mov}</span>`
+                : mov < 0 ? `<span style="color:#dc2626;font-weight:700;">▼${-mov}</span>`
+                : '<span style="color:#cbd5e1;">—</span>';
+            return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
+                <td class="c b">${medalhaFn(r.sim.posicao - 1)}</td><td class="c">${movHtml}</td>
+                <td class="l">${r.dist}</td><td class="l reg">${r.reg}</td>
+                <td class="c">${f2(r.sim.histAvg)}</td><td class="c">${f2(r.sim.curAvg)}</td>
+                <td class="c b">${f2(r.sim.simAvg)}</td><td class="c">${r.aConq}/${r.aDisp}</td>
+                <td class="c b">${fp(r.aConq / r.aDisp * 100)}</td></tr>`;
+        }).join('') + Object.entries(totAcum).sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
+            <tr class="tot"><td></td><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
+                <td class="c">—</td><td class="c">${f2(totReg[reg].media)}</td>
+                <td class="c b">${f2(t.media)}</td><td class="c">${t.conq}/${t.disp}</td>
+                <td class="c b">${fp(t.aprov)}</td></tr>`).join('');
+
+        secaoAcumulado = `
+        <section class="sec acum">
+            <div class="sec-head">📊 ACUMULADO SIMULADO <small>· rodadas 1-${rodadas} + rodada atual</small></div>
+            <div class="sec-body">
+                <div class="tbl-wrap"><table class="rank-table">
+                    <thead><tr><th>#</th><th>Mov.</th><th class="l">Distrito</th><th class="l">Regional</th>
+                        <th>Média Base</th><th>Média Atual</th><th>Média Simulada</th><th>Pontos</th><th>% Aprov.</th></tr></thead>
+                    <tbody>${linhasAcum}</tbody>
+                </table></div>
+                ${insightsR2Html(simulado)}
+            </div>
+        </section>`;
+    }
+
+    // ---------- Render ----------
     container.innerHTML = `
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); gap:20px; padding:20px; max-width:1280px; margin:0 auto; align-items:start;">
-            <div>
-                ${colHeader('🏆 Regionais', 'clique p/ abrir a regional ou um distrito')}
-                ${colRegionais}
+    <div class="home-sections">
+        <section class="sec atual">
+            <div class="sec-head">📅 RODADA ATUAL <small>· desempenho desta semana, ao vivo</small></div>
+            <div class="sec-body">
+                <div class="tbl-wrap"><table class="rank-table">
+                    <thead><tr><th>#</th><th class="l">Distrito</th><th class="l">Regional</th>
+                        <th>V</th><th>E</th><th>D</th><th>Pontuação Média</th><th>Pontos</th><th>% Aprov.</th></tr></thead>
+                    <tbody>${linhasAtual}</tbody>
+                </table></div>
+                <div class="panel">
+                    <h4>🏆 Regionais</h4>
+                    <div class="hint">clique p/ abrir a regional ou um distrito</div>
+                    <div class="reg-grid">${colRegionais}</div>
+                </div>
             </div>
-            <div style="background:white; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-                ${colHeader('⭐ Distrital — rodada atual', 'pontuação média só da rodada atual')}
-                ${colDistritalAtual}
-            </div>
-            <div style="background:white; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
-                ${colHeader('🎯 Simulado — base + atual', 'como fica somando o histórico à rodada atual')}
-                ${colSimulado}
-            </div>
-        </div>
-        ${simulado.length ? insightsR2Html(simulado) : ''}
-    `;
+        </section>
+        ${secaoAcumulado}
+    </div>`;
 }
 
 function loadGamesFromSummary(regional) {

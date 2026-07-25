@@ -4,6 +4,7 @@
 :root {
     /* Marca oficial Campeonato Petz — navy + azul royal + creme */
     --brand-1: #1e2a5a;   /* navy (fundo escuro) */
+    --navy: #1e2a5a;      /* alias usado nas tabelas/seções */
     --brand-2: #2b5aa8;   /* azul royal */
     --brand: #2b5aa8;     /* azul (acento) */
     --brand-ink: #1e4483; /* azul escuro (valores/texto) */
@@ -301,6 +302,123 @@ body {
     border-left: 4px solid var(--info);
     font-weight: 500;
     font-size: 0.95em;
+}
+
+/* ============ Seções temáticas da home (atual / acumulado) ============ */
+.home-sections {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-8);
+    padding: var(--s-2) 0 var(--s-6);
+}
+
+.sec-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 14px 20px;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.05em;
+    letter-spacing: 0.02em;
+}
+
+.sec-head small {
+    font-weight: 400;
+    opacity: 0.85;
+    font-size: 0.74em;
+    letter-spacing: 0;
+}
+
+.sec.atual .sec-head { background: linear-gradient(135deg, #2b5aa8, #1e4483); }
+.sec.acum  .sec-head { background: linear-gradient(135deg, #0f7b6c, #0b5d52); }
+
+.sec-body {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--r-lg) var(--r-lg);
+    padding: var(--s-5);
+    box-shadow: var(--shadow-sm);
+}
+
+.tbl-wrap {
+    overflow-x: auto;
+    margin-bottom: var(--s-5);
+}
+
+.rank-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.87em;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.rank-table thead th {
+    padding: 10px;
+    text-align: center;
+    font-weight: 700;
+    color: #fff;
+}
+
+.sec.atual .rank-table thead th { background: var(--navy, #1e2a5a); }
+.sec.acum  .rank-table thead th { background: #0b5d52; }
+.rank-table thead th.l { text-align: left; }
+
+.rank-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+}
+
+.rank-table td.c { text-align: center; }
+.rank-table td.l { text-align: left; }
+.rank-table td.b { font-weight: 700; color: var(--brand-ink); }
+.sec.acum .rank-table td.b { color: #0f7b6c; }
+.rank-table td.reg { color: var(--text-3); font-size: 0.9em; }
+
+.rank-table tr.clk { cursor: pointer; }
+.rank-table tr.clk:hover td { background: var(--hover); }
+
+.rank-table tr.dest td { background: var(--brand-tint); font-weight: 700; }
+.sec.acum .rank-table tr.dest td { background: #eaf6f3; }
+.rank-table tr.dest:hover td { background: #dbe6f7; }
+.sec.acum .rank-table tr.dest:hover td { background: #d9efe9; }
+
+.rank-table tr.tot td {
+    background: #eef1f6;
+    font-weight: 700;
+    color: #1e2a5a;
+    border-top: 2px solid #cfd6e4;
+    border-bottom: none;
+}
+
+.panel {
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: var(--s-4);
+}
+
+.panel h4 {
+    color: var(--brand-ink);
+    font-size: 1em;
+    margin-bottom: 2px;
+}
+
+.sec.acum .panel h4 { color: #0f7b6c; }
+
+.panel .hint {
+    font-size: 0.78em;
+    color: var(--text-3);
+    margin-bottom: var(--s-3);
+}
+
+.reg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: var(--s-3);
+    align-items: start;
 }
 
 /* ============================ Linhas de ranking ============================ */
