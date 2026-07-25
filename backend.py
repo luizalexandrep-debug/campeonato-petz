@@ -469,6 +469,59 @@ def health():
         "message": "API Campeonato Petz funcionando"
     })
 
+@app.route('/api/diag', methods=['GET'])
+def diagnostico():
+    """Diagnóstico: mostra qual arquivo está sendo usado por indicador/semana,
+    tamanho e quantos valores não-zero foram lidos. Ajuda a detectar arquivo
+    desatualizado/corrompido em /tmp."""
+    try:
+        garantir_arquivos_frescos()
+        out = {
+            "base_ativa": str(active_base()),
+            "tmp_existe": (TMP_BASE / "SEMANA ATUAL").exists(),
+            "idade_download_s": round(_idade_tmp()) if _idade_tmp() is not None else None,
+            "indicadores": {}
+        }
+        for arquivo, slots in mapear_indicadores().items():
+            info = {}
+            for semana in ("anterior", "atual"):
+                fp = slots.get(semana)
+                if not fp:
+                    info[semana] = None
+                    continue
+                dados = {}
+                try:
+                    wb = openpyxl.load_workbook(fp, data_only=True, read_only=True)
+                    ws = wb.active
+                    naozero = 0
+                    total = 0
+                    lojas = 0
+                    for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
+                        if not row or not row[0]:
+                            continue
+                        lojas += 1
+                        for v in row[2:9]:
+                            total += 1
+                            if isinstance(v, (int, float)) and v != 0:
+                                naozero += 1
+                    wb.close()
+                    dados = {"lojas": lojas, "celulas": total, "nao_zero": naozero}
+                except Exception as e:
+                    dados = {"erro": str(e)}
+                info[semana] = {
+                    "arquivo": fp.name,
+                    "bytes": fp.stat().st_size if fp.exists() else None,
+                    **dados
+                }
+            info["tipo"] = detectar_tipo(slots.get("atual") or slots.get("anterior"))
+            out["indicadores"][arquivo] = info
+        return jsonify(out)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/indicadores', methods=['GET'])
 def get_indicadores():
     """Retorna lista de indicadores disponíveis"""
