@@ -46,13 +46,21 @@ def load_user(user_id):
     return Usuario.query.get(int(user_id))
 
 def init_db(app):
-    """Inicializa o banco de dados"""
+    """Inicializa o banco de dados.
+    Cria o usuário master apenas se ele ainda não existir — NUNCA sobrescreve a
+    senha de um master já existente (senão a troca de senha seria desfeita a
+    cada reinício)."""
+    import os
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as e:
+            print(f"⚠️ Falha ao criar tabelas: {e}")
+            return
 
-        # Criar usuário master se não existir
         master = Usuario.query.filter_by(username='master').first()
         if not master:
+            senha_inicial = os.environ.get('MASTER_PASSWORD', 'master123')
             master = Usuario(
                 username='master',
                 email='master@campeonato.local',
@@ -60,7 +68,10 @@ def init_db(app):
                 é_admin=True,
                 ativo=True
             )
-            master.set_password('master123')  # Senha padrão - MUDE ISSO!
+            master.set_password(senha_inicial)
             db.session.add(master)
             db.session.commit()
-            print('✅ Usuário master criado: master / master123')
+            origem = 'MASTER_PASSWORD' if os.environ.get('MASTER_PASSWORD') else 'padrão'
+            print(f'✅ Usuário master criado (senha: {origem})')
+        else:
+            print('ℹ️ Usuário master já existe — senha preservada')

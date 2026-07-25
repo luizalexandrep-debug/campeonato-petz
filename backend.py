@@ -18,14 +18,35 @@ from auth import db, login_manager, Usuario, init_db
 app = Flask(__name__)
 CORS(app)
 
-# Configuração de banco de dados e autenticação
-# Em Vercel o filesystem é somente-leitura, exceto /tmp
-if os.environ.get('VERCEL') or not os.access(str(Path(__file__).parent), os.W_OK):
-    db_path = '/tmp/campeonato.db'
-else:
-    db_path = str(Path(__file__).parent / 'campeonato.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-app.config['SECRET_KEY'] = 'sua-chave-secreta-mude-isso-em-producao'
+# ------------------------------------------------------------------
+# Banco de dados de usuários
+# ------------------------------------------------------------------
+# Prioriza um Postgres gerenciado (Vercel/Neon), que é PERMANENTE. Sem ele,
+# cai para SQLite — que em /tmp no Vercel é efêmero (usuários/senhas se perdem
+# a cada reinício da instância).
+def _database_uri():
+    for var in ('POSTGRES_URL_NON_POOLING', 'POSTGRES_URL', 'DATABASE_URL',
+                'POSTGRES_PRISMA_URL'):
+        url = os.environ.get(var)
+        if url:
+            # SQLAlchemy exige o driver explícito
+            if url.startswith('postgres://'):
+                url = url.replace('postgres://', 'postgresql://', 1)
+            if url.startswith('postgresql://'):
+                url = url.replace('postgresql://', 'postgresql+psycopg://', 1)
+            # o parâmetro do Prisma não é aceito pelo driver
+            url = url.replace('?pgbouncer=true', '?').replace('&pgbouncer=true', '')
+            print(f"🗄️  Usando Postgres permanente (via {var})")
+            return url
+    if os.environ.get('VERCEL') or not os.access(str(Path(__file__).parent), os.W_OK):
+        print("⚠️  Sem Postgres configurado — usando SQLite em /tmp (efêmero!)")
+        return 'sqlite:////tmp/campeonato.db'
+    return f"sqlite:///{Path(__file__).parent / 'campeonato.db'}"
+
+
+app.config['SQLALCHEMY_DATABASE_URI'] = _database_uri()
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sua-chave-secreta-mude-isso-em-producao')
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False  # Mude para True em produção (HTTPS)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
