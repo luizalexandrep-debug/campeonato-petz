@@ -1071,7 +1071,9 @@ function loadRankingDashboard() {
 
         const linhasAcum = porSim.filter(r => passaFiltro(r.reg)).map(r => {
             const dest = r.reg === REGIONAL_DESTAQUE;
-            const mov = r.rankAtual - r.sim.posicao;
+            // Variação em relação ao ranking das RODADAS ANTERIORES (base),
+            // não ao ranking da rodada atual.
+            const mov = r.sim.variacao;
             const movHtml = mov > 0 ? `<span style="color:#16a34a;font-weight:700;">▲${mov}</span>`
                 : mov < 0 ? `<span style="color:#dc2626;font-weight:700;">▼${-mov}</span>`
                 : '<span style="color:#cbd5e1;">—</span>';
@@ -1093,7 +1095,7 @@ function loadRankingDashboard() {
             <div class="sec-head">📊 ACUMULADO SIMULADO <small>· rodadas 1-${rodadas} + rodada atual</small></div>
             <div class="sec-body">
                 <div class="tbl-wrap"><table class="rank-table">
-                    <thead><tr><th>#</th><th>Mov.</th><th class="l">Distrito</th><th class="l">Regional</th>
+                    <thead><tr><th>#</th><th title="Variação de posição em relação ao ranking das rodadas anteriores (base)">Mov.</th><th class="l">Distrito</th><th class="l">Regional</th>
                         <th>Média Base</th><th>Média Atual</th><th>Média Simulada</th><th>Pontos</th><th>% Aprov.</th></tr></thead>
                     <tbody>${linhasAcum}</tbody>
                 </table></div>
@@ -1102,8 +1104,18 @@ function loadRankingDashboard() {
         </section>`;
     }
 
+    // ---------- Alerta de indicador sem dados ----------
+    const avisos = state.gamesSummary?.avisos || [];
+    const blocoAvisos = avisos.length ? `
+        <div class="alerta-dados">
+            <div class="alerta-titulo">⚠️ Atenção: indicador sem dados</div>
+            <ul>${avisos.map(a => `<li><b>${a.indicador}</b> (${a.semana}) subiu zerado — esse gol não está sendo disputado, então os placares somam menos de 6.</li>`).join('')}</ul>
+            <div class="alerta-dica">Dica: na planilha, use <b>Colar Especial → Somente Valores</b> antes de subir, para as fórmulas não zerarem ao fechar a origem.</div>
+        </div>` : '';
+
     // ---------- Render ----------
     container.innerHTML = `
+    ${blocoAvisos}
     <div class="home-sections">
         <section class="sec atual">
             <div class="sec-head">📅 RODADA ATUAL <small>· desempenho desta semana, ao vivo</small></div>

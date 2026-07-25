@@ -941,11 +941,31 @@ def _calcular_summary(semana):
     memoria = cr.carregar_tudo(dir_anterior(), dir_atual())
     hoje_idx = (datetime.now().weekday() + 1) % 7
     jogos = cr.calcular_todos_jogos(confrontos, memoria, hoje_idx)
+
+    # Alerta: indicador que subiu sem nenhum valor (planilha zerada). Sem base
+    # de comparação o gol empata em todos os jogos e o placar não soma 6.
+    avisos = []
+    for arquivo, sem in memoria.items():
+        nome = arquivo.rsplit('.', 1)[0]
+        for rotulo, chave in (("semana anterior", "anterior"), ("semana atual", "atual")):
+            lojas = sem.get(chave) or {}
+            if not lojas:
+                continue  # arquivo ausente nessa semana (não é o mesmo problema)
+            tem_valor = any(v for dias in lojas.values() for v in dias.values())
+            if not tem_valor:
+                avisos.append({
+                    "indicador": nome,
+                    "semana": rotulo,
+                    "mensagem": f"{nome} ({rotulo}) está sem dados — a planilha subiu zerada, "
+                                f"então esse gol não está sendo disputado."
+                })
+
     return {
         "week": semana,
         "lastUpdated": datetime.now().isoformat(),
         "total": len(jogos),
         "games": jogos,
+        "avisos": avisos,
     }
 
 
