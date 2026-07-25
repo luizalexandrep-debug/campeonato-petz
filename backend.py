@@ -240,13 +240,58 @@ def mapear_indicadores():
     return indicadores
 
 
-def indicador_meta(arquivo):
-    """Nome/tipo do indicador. Usa INDICADORES_MAP se disponível, senão deriva
-    do nome do arquivo."""
-    if arquivo in INDICADORES_MAP:
-        return INDICADORES_MAP[arquivo]
-    nome = arquivo.rsplit(".", 1)[0]  # Remove extensão
-    return {"name": nome, "type": "R$"}
+_TIPO_CACHE = {}
+
+
+def detectar_tipo(file_path):
+    """Detecta automaticamente se o indicador é percentual ou monetário,
+    lendo o FORMATO DE NÚMERO das células do Excel (ex.: '0.00%').
+    Fallback: se todos os valores estiverem entre -1 e 1, trata como %."""
+    if file_path is None:
+        return "R$"
+    chave = str(file_path)
+    if chave in _TIPO_CACHE:
+        return _TIPO_CACHE[chave]
+    tipo = "R$"
+    try:
+        wb = openpyxl.load_workbook(file_path)  # sem data_only: preserva formato
+        ws = wb.active
+        # Olha algumas células de dados (linhas 2-6, colunas C em diante)
+        formatos = []
+        for row in ws.iter_rows(min_row=2, max_row=6, min_col=3, max_col=6):
+            for c in row:
+                if c.number_format:
+                    formatos.append(str(c.number_format))
+        wb.close()
+        if formatos and any('%' in f for f in formatos):
+            tipo = "%"
+        else:
+            # Fallback: valores todos no intervalo de fração (0..1)
+            wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
+            ws = wb.active
+            vals = []
+            for i, row in enumerate(ws.iter_rows(min_row=2, max_row=40,
+                                                 min_col=3, max_col=6,
+                                                 values_only=True)):
+                for v in row:
+                    if isinstance(v, (int, float)) and v != 0:
+                        vals.append(abs(v))
+            wb.close()
+            if vals and all(v < 1 for v in vals):
+                tipo = "%"
+    except Exception as e:
+        print(f"⚠️ detectar_tipo falhou para {file_path}: {e}")
+    _TIPO_CACHE[chave] = tipo
+    return tipo
+
+
+def indicador_meta(arquivo, file_path=None):
+    """Nome/tipo do indicador. O tipo é DETECTADO do arquivo (formato da
+    célula); INDICADORES_MAP serve só para o nome amigável."""
+    nome = INDICADORES_MAP.get(arquivo, {}).get("name") or arquivo.rsplit(".", 1)[0]
+    tipo = detectar_tipo(file_path) if file_path is not None else \
+        INDICADORES_MAP.get(arquivo, {}).get("type", "R$")
+    return {"name": nome, "type": tipo}
 
 
 def ler_dias_loja(file_path, sigla):
@@ -269,7 +314,8 @@ def ler_dias_loja(file_path, sigla):
                         if valor == "-" or valor is None:
                             dias[dia_nome] = 0
                         else:
-                            dias[dia_nome] = round(float(valor), 2)
+                            # 6 casas: preserva percentuais (0,21% = 0.0021)
+                            dias[dia_nome] = round(float(valor), 6)
                     except (ValueError, TypeError):
                         dias[dia_nome] = 0
             return dias
@@ -401,7 +447,7 @@ def get_dados_indicadores(slot):
         if not file_path:
             continue
 
-        info = indicador_meta(arquivo)
+        info = indicador_meta(arquivo, file_path)
         dados = ler_arquivo_excel(file_path)
         dados_semana[arquivo] = {
             "name": info["name"],
@@ -619,7 +665,8 @@ def get_loja_dias(sigla, semana):
         mapa = mapear_indicadores()
 
         for arquivo, slots in mapa.items():
-            info = indicador_meta(arquivo)
+            # Tipo detectado do arquivo (prefere o da semana atual)
+            info = indicador_meta(arquivo, slots.get("atual") or slots.get("anterior"))
 
             for semana_type in ("anterior", "atual"):
                 file_path = slots.get(semana_type)

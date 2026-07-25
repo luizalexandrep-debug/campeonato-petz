@@ -60,6 +60,33 @@ def mapear_indicadores(semana_anterior, semana_atual):
     return indicadores
 
 
+def detectar_tipo(file_path):
+    """Detecta se o indicador é percentual ('%') ou monetário ('R$') pelo
+    formato de número das células do Excel. Fallback: valores todos < 1."""
+    if file_path is None:
+        return "R$"
+    try:
+        wb = openpyxl.load_workbook(file_path)  # precisa do formato
+        ws = wb.active
+        formatos = [str(c.number_format) for row in
+                    ws.iter_rows(min_row=2, max_row=6, min_col=3, max_col=6)
+                    for c in row if c.number_format]
+        wb.close()
+        if formatos and any('%' in f for f in formatos):
+            return "%"
+        wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
+        ws = wb.active
+        vals = [abs(v) for row in ws.iter_rows(min_row=2, max_row=40, min_col=3,
+                                               max_col=6, values_only=True)
+                for v in row if isinstance(v, (int, float)) and v != 0]
+        wb.close()
+        if vals and all(v < 1 for v in vals):
+            return "%"
+    except Exception as e:
+        print(f"⚠️ detectar_tipo falhou ({file_path}): {e}")
+    return "R$"
+
+
 def _carregar_arquivo(file_path):
     """Carrega TODAS as lojas de um arquivo de uma vez: {loja: {dia: valor}}."""
     wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
@@ -85,7 +112,9 @@ def _carregar_arquivo(file_path):
                 if valor == "-" or valor is None:
                     dias[dia_nome] = 0
                 else:
-                    dias[dia_nome] = round(float(valor), 2)
+                    # 6 casas: preserva percentuais (0,21% = 0.0021).
+                    # Arredondar em 2 casas zerava indicadores de share.
+                    dias[dia_nome] = round(float(valor), 6)
             except (ValueError, TypeError):
                 dias[dia_nome] = 0
         dados[sigla] = dias
@@ -99,12 +128,22 @@ def carregar_tudo(semana_anterior, semana_atual):
     mapa = mapear_indicadores(semana_anterior, semana_atual)
     memoria = {}
     for arquivo, slots in mapa.items():
-        memoria[arquivo] = {"anterior": {}, "atual": {}}
+        # Tipo detectado do arquivo (prefere a semana atual)
+        tipo = detectar_tipo(slots.get("atual") or slots.get("anterior"))
+        memoria[arquivo] = {"anterior": {}, "atual": {}, "tipo": tipo}
         for semana_type in ("anterior", "atual"):
             fp = slots.get(semana_type)
             if fp:
                 memoria[arquivo][semana_type] = _carregar_arquivo(fp)
     return memoria
+
+
+def _media_dias(dias_obj, dias_a_contar):
+    """Média dos dias COM dado (ignora zeros = dia sem informação).
+    Usado por indicadores percentuais, onde somar não faz sentido."""
+    vals = [(dias_obj or {}).get(d, 0) for d in dias_a_contar]
+    vals = [v for v in vals if v]
+    return sum(vals) / len(vals) if vals else 0
 
 
 def _placar(memoria, team1, team2, hoje_idx=None):
@@ -121,10 +160,13 @@ def _placar(memoria, team1, team2, hoje_idx=None):
         # Precisa dos dois times presentes no indicador
         if not (d1a or d1t) or not (d2a or d2t):
             continue
-        t1_ant = sum((d1a or {}).get(d, 0) for d in dias_a_contar)
-        t1_atu = sum((d1t or {}).get(d, 0) for d in dias_a_contar)
-        t2_ant = sum((d2a or {}).get(d, 0) for d in dias_a_contar)
-        t2_atu = sum((d2t or {}).get(d, 0) for d in dias_a_contar)
+        # Indicador percentual (ex.: SHARE) agrega por MÉDIA dos dias com dado;
+        # indicador monetário agrega por SOMA.
+        ehPct = semanas.get("tipo") == "%"
+        agg = (lambda o: _media_dias(o, dias_a_contar)) if ehPct else \
+              (lambda o: sum((o or {}).get(d, 0) for d in dias_a_contar))
+        t1_ant, t1_atu = agg(d1a), agg(d1t)
+        t2_ant, t2_atu = agg(d2a), agg(d2t)
         # Evolução PERCENTUAL em relação à semana anterior (regra do campeonato).
         # Deve casar exatamente com calcularPlacarLocal() no frontend.
         ev1 = ((t1_atu - t1_ant) / t1_ant * 100) if t1_ant != 0 else 0

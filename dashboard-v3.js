@@ -25,6 +25,17 @@ const REGIONAL_DESTAQUE = 'R2 - Luiz';
 // UTILIDADES
 // ============================================================
 
+function formatarPercentual(valor) {
+    // Valor vem como fração (0.0021 = 0,21%)
+    return (valor * 100).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2, maximumFractionDigits: 2
+    }) + '%';
+}
+
+function formatarValor(valor, tipo) {
+    return tipo === '%' ? formatarPercentual(valor) : formatarMoedaBR(valor);
+}
+
 function formatarMoedaBR(valor) {
     return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -210,23 +221,25 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
         const dias2Anterior = dados2.anterior?.dias || {};
         const dias2Atual = dados2.atual?.dias || {};
 
-        // Se hojeIdx for definido, somar apenas até hoje
+        // Se hojeIdx for definido, considerar apenas até hoje
         const diasAcontar = hojeIdx !== null
             ? diasOrdenados.slice(0, hojeIdx + 1)
             : diasOrdenados;
 
-        // Calcular evolução em valores absolutos
-        let total1Anterior = 0, total1Atual = 0;
-        diasAcontar.forEach(dia => {
-            total1Anterior += dias1Anterior[dia] || 0;
-            total1Atual += dias1Atual[dia] || 0;
-        });
+        // Indicador percentual (share) agrega por MÉDIA dos dias com dado;
+        // monetário agrega por SOMA. Tipo vem detectado do backend.
+        const ehPct = (dados1.atual?.type || dados1.anterior?.type) === '%';
+        const agregar = (diasObj) => {
+            const vals = diasAcontar.map(d => diasObj[d] || 0);
+            if (!ehPct) return vals.reduce((a, b) => a + b, 0);
+            const comDado = vals.filter(v => v);
+            return comDado.length ? comDado.reduce((a, b) => a + b, 0) / comDado.length : 0;
+        };
 
-        let total2Anterior = 0, total2Atual = 0;
-        diasAcontar.forEach(dia => {
-            total2Anterior += dias2Anterior[dia] || 0;
-            total2Atual += dias2Atual[dia] || 0;
-        });
+        const total1Anterior = agregar(dias1Anterior);
+        const total1Atual = agregar(dias1Atual);
+        const total2Anterior = agregar(dias2Anterior);
+        const total2Atual = agregar(dias2Atual);
 
         // Calcular evolução percentual
         const evolucao1Pct = total1Anterior !== 0
@@ -1521,6 +1534,18 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     const displayName = (indicador || 'Indicador').replace(/\.xlsx$/i, '');
     const diasOrdenados = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
+    // Tipo detectado automaticamente no backend ('%' ou 'R$')
+    const tipo = dados.atual?.type || dados.anterior?.type || 'R$';
+    const ehPct = tipo === '%';
+    const fmt = (v) => formatarValor(v, tipo);
+    // Percentual agrega por MÉDIA dos dias com dado; monetário por SOMA
+    const agregar = (diasObj) => {
+        const vals = diasOrdenados.map(d => (diasObj || {})[d] || 0);
+        if (!ehPct) return vals.reduce((a, b) => a + b, 0);
+        const comDado = vals.filter(v => v);
+        return comDado.length ? comDado.reduce((a, b) => a + b, 0) / comDado.length : 0;
+    };
+
     let totalAnterior = 0;
     let totalAtual = 0;
 
@@ -1528,12 +1553,8 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     let totalAdversarioAnterior = 0;
     let totalAdversarioAtual = 0;
     if (dadosAdversario) {
-        const diasAdvAnterior = dadosAdversario.anterior?.dias || {};
-        const diasAdvAtual = dadosAdversario.atual?.dias || {};
-        diasOrdenados.forEach(dia => {
-            totalAdversarioAnterior += diasAdvAnterior[dia] || 0;
-            totalAdversarioAtual += diasAdvAtual[dia] || 0;
-        });
+        totalAdversarioAnterior = agregar(dadosAdversario.anterior?.dias);
+        totalAdversarioAtual = agregar(dadosAdversario.atual?.dias);
     }
 
     let html = `
@@ -1555,21 +1576,22 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
         const valorAnterior = (dados && dados.anterior && dados.anterior.dias) ? (dados.anterior.dias[dia] || 0) : 0;
         const valorAtual = (dados && dados.atual && dados.atual.dias) ? (dados.atual.dias[dia] || 0) : 0;
 
-        totalAnterior += valorAnterior;
-        totalAtual += valorAtual;
-
         const evolucao = valorAnterior !== 0 ? ((valorAtual - valorAnterior) / valorAnterior * 100) : 0;
         const evoluClass = evolucao > 0 ? 'positive' : evolucao < 0 ? 'negative' : 'neutral';
 
         html += `
             <tr>
                 <td class="day-label">${dia}</td>
-                <td class="value-anterior">${formatarMoedaBR(valorAnterior)}</td>
-                <td class="value-atual">${formatarMoedaBR(valorAtual)}</td>
+                <td class="value-anterior">${fmt(valorAnterior)}</td>
+                <td class="value-atual">${fmt(valorAtual)}</td>
                 <td class="evolution ${evoluClass}">${evolucao.toFixed(2)}%</td>
             </tr>
         `;
     });
+
+    // Totais (soma para R$, média dos dias com dado para %)
+    totalAnterior = agregar(dados.anterior?.dias);
+    totalAtual = agregar(dados.atual?.dias);
 
     const evolucaoTotal = totalAnterior !== 0 ? ((totalAtual - totalAnterior) / totalAnterior * 100) : 0;
     const evoluClassTotal = evolucaoTotal > 0 ? 'positive' : evolucaoTotal < 0 ? 'negative' : 'neutral';
@@ -1600,21 +1622,25 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
 
     html += `
                 <tr class="total-row">
-                    <td class="day-label">TOTAL</td>
-                    <td style="text-align: center;">${formatarMoedaBR(totalAnterior)}</td>
-                    <td style="text-align: center;">${formatarMoedaBR(totalAtual)}</td>
+                    <td class="day-label">${ehPct ? 'MÉDIA' : 'TOTAL'}</td>
+                    <td style="text-align: center;">${fmt(totalAnterior)}</td>
+                    <td style="text-align: center;">${fmt(totalAtual)}</td>
                     <td class="evolution ${classeEvolucao}" style="text-align: center;">${evolucaoTotal.toFixed(2)}%</td>
                 </tr>
     `;
 
     if (faltaVirar !== null) {
+        const rotulo = ehPct ? 'Falta p/ virar (média)' : 'Falta p/ virar';
+        const dica = ehPct
+            ? `${teamName} precisa subir +${fmt(faltaVirar)} na média para virar este gol`
+            : `${teamName} precisa vender +${fmt(faltaVirar)} na S. Atual para virar este gol`;
         html += `
                 <tr class="virar-row">
-                    <td class="day-label" style="font-size: 0.78em; color: #999;">Falta p/ virar</td>
+                    <td class="day-label" style="font-size: 0.78em; color: #999;">${rotulo}</td>
                     <td></td>
                     <td style="text-align: center; background: #fff3b0; font-weight: 700; color: #7a5c00;"
-                        title="${teamName} precisa vender +${formatarMoedaBR(faltaVirar)} na S. Atual para virar este gol">
-                        +${formatarMoedaBR(faltaVirar)}
+                        title="${dica}">
+                        +${fmt(faltaVirar)}
                     </td>
                     <td></td>
                 </tr>
