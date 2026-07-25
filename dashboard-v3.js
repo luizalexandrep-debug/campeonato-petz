@@ -959,11 +959,10 @@ function loadRankingDashboard() {
         const dist = r.nome.slice(sep + 3);
         const destaque = reg === REGIONAL_DESTAQUE;
         return `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:3px; cursor:pointer; ${destaque ? 'background:#fbf3dc; font-weight:600;' : ''}"
-             ${hover} title="Ver ${dist}" onclick="${clkDist(reg, dist)}">
-            <span style="font-size:0.9em;"><span style="color:#999;">${medalhaFn(idx)}</span> ${destaque ? '⭐ ' : ''}${dist}
+        <div class="rank-row${destaque ? ' destaque' : ''}" title="Ver ${dist}" onclick="${clkDist(reg, dist)}">
+            <span style="font-size:0.9em;"><span style="color:#999;">${medalhaFn(idx)}</span> ${dist}
                 <span style="color:#bbb; font-size:0.82em;">· ${reg.split(' - ')[0]}</span></span>
-            <span style="color:#2b5aa8; font-weight:600;">${r.media}</span>
+            <span style="color:#2b5aa8; font-weight:700;">${r.media}</span>
         </div>`;
     }).join('');
 
@@ -971,10 +970,9 @@ function loadRankingDashboard() {
     const colSimulado = simulado.length ? simulado.map((r) => {
         const destaque = r.regional === REGIONAL_DESTAQUE;
         return `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:3px; cursor:pointer; ${destaque ? 'background:#fbf3dc; font-weight:600;' : ''}"
-             ${hover} title="Ver ${r.distrito}" onclick="${clkDist(r.regional, r.distrito)}">
-            <span style="font-size:0.9em;"><span style="color:#999;">${medalhaFn(r.posicao - 1)}</span> ${badgeVariacao(r.variacao)} ${destaque ? '⭐ ' : ''}${r.distrito}</span>
-            <span style="color:#2b5aa8; font-weight:600;">${r.simAvg.toFixed(2)}</span>
+        <div class="rank-row${destaque ? ' destaque' : ''}" title="Ver ${r.distrito}" onclick="${clkDist(r.regional, r.distrito)}">
+            <span style="font-size:0.9em;"><span style="color:#999;">${medalhaFn(r.posicao - 1)}</span> ${badgeVariacao(r.variacao)} ${r.distrito}</span>
+            <span style="color:#2b5aa8; font-weight:700;">${r.simAvg.toFixed(2)}</span>
         </div>`;
     }).join('') : '<div style="color:#999; padding:20px; text-align:center;">Histórico indisponível</div>';
 

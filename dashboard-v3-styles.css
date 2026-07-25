@@ -303,6 +303,27 @@ body {
     font-size: 0.95em;
 }
 
+/* ============================ Linhas de ranking ============================ */
+.rank-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: var(--r-sm);
+    margin-bottom: 3px;
+    cursor: pointer;
+    transition: background .15s var(--ease);
+}
+
+.rank-row:hover {
+    background: var(--hover);
+}
+
+/* Distritos da minha regional em destaque — apenas o texto em negrito */
+.rank-row.destaque {
+    font-weight: 700;
+}
+
 /* ============================ Stats ============================ */
 .stats-section {
     margin-bottom: var(--s-8);
