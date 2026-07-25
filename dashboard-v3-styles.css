@@ -801,6 +801,10 @@ tbody tr:hover {
 }
 
 /* ============================ Responsivo ============================ */
+body {
+    overflow-x: hidden;   /* trava rolagem horizontal acidental */
+}
+
 @media (max-width: 768px) {
     .container {
         padding: var(--s-4) var(--s-3);
@@ -809,11 +813,28 @@ tbody tr:hover {
     .header {
         flex-direction: column;
         align-items: flex-start;
-        padding: 22px 20px;
+        gap: var(--s-3);
+        padding: 20px;
+    }
+
+    .header-brand {
+        gap: var(--s-3);
+    }
+
+    .header-logo {
+        height: 56px;
     }
 
     .header h1 {
-        font-size: 1.6em;
+        font-size: 1.4em;
+    }
+
+    .subtitle {
+        font-size: 0.9em;
+    }
+
+    .header-actions {
+        flex-wrap: wrap;
     }
 
     .filters-section {
@@ -828,18 +849,72 @@ tbody tr:hover {
 
     .btn-calc, .btn-reprocess, .btn-simulado, .btn-inicio {
         width: 100%;
+        align-self: stretch;
     }
 
     .tables-wrapper {
         grid-template-columns: 1fr;
     }
 
+    /* Cabeçalho de cada jogo: quebrar em vez de estourar a largura */
+    .game-header {
+        flex-wrap: wrap;
+        gap: var(--s-2);
+        padding: var(--s-3) var(--s-2);
+    }
+
+    .game-title-compact {
+        flex-wrap: wrap;
+        gap: var(--s-2);
+        font-size: 1em;
+    }
+
+    .team-compact {
+        flex: 1 1 40%;
+    }
+
+    .result-compact {
+        min-width: 0;
+        flex: 1 1 100%;
+        text-align: center;
+    }
+
+    .game-section {
+        padding: var(--s-4);
+    }
+
+    .score-number {
+        font-size: 2.2em;
+    }
+
     table {
-        font-size: 0.85em;
+        font-size: 0.82em;
     }
 
     th, td {
-        padding: 8px;
+        padding: 7px 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.25em;
+    }
+
+    .header-logo {
+        height: 48px;
+    }
+
+    .stat-value {
+        font-size: 1.15em;
+    }
+
+    table {
+        font-size: 0.76em;
+    }
+
+    th, td {
+        padding: 6px 4px;
     }
 }
 
