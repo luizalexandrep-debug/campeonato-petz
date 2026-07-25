@@ -646,7 +646,7 @@ function insightsR2Html(simulado) {
                 ${caindo.length ? `📉 Caindo: ${caindo.map(r => r.distrito).join(', ')}.` : ''}
             </div>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); gap:16px;">
             ${cards}
         </div>
     </div>`;
@@ -982,7 +982,7 @@ function loadRankingDashboard() {
 
     // Renderizar as 3 colunas + insights da R2 embaixo
     container.innerHTML = `
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; padding:20px; max-width:1280px; margin:0 auto; align-items:start;">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr)); gap:20px; padding:20px; max-width:1280px; margin:0 auto; align-items:start;">
             <div>
                 ${colHeader('🏆 Regionais', 'clique p/ abrir a regional ou um distrito')}
                 ${colRegionais}
