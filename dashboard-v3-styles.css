@@ -248,13 +248,13 @@ body {
 }
 
 .btn-reprocess {
-    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    background: linear-gradient(135deg, #2b5aa8 0%, #1e4483 100%);
     color: #fff;
 }
 
 .btn-reprocess:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(17, 153, 142, 0.32);
+    box-shadow: 0 8px 20px rgba(43, 90, 168, 0.32);
 }
 
 .btn-reprocess:disabled {
@@ -319,9 +319,14 @@ body {
     background: var(--hover);
 }
 
-/* Distritos da minha regional em destaque — apenas o texto em negrito */
+/* Distritos da minha regional — destaque permanente em azul claro + negrito */
 .rank-row.destaque {
+    background: var(--brand-tint);
     font-weight: 700;
+}
+
+.rank-row.destaque:hover {
+    background: #dbe6f7;
 }
 
 /* ============================ Stats ============================ */
