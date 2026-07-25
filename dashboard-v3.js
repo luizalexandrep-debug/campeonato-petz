@@ -148,6 +148,37 @@ function calcularAnaliseDoResumo(jogosFiltrados, lojas) {
     return analise;
 }
 
+let _golTip = null;
+function setupGolTooltip() {
+    // Tooltip customizado instantâneo para as barras de Análise por Gol.
+    if (_golTip) return;
+    _golTip = document.createElement('div');
+    _golTip.id = 'golTooltip';
+    _golTip.style.cssText = 'position:fixed; z-index:99999; pointer-events:none; ' +
+        'background:rgba(25,25,25,0.96); color:#fff; padding:6px 10px; border-radius:6px; ' +
+        'font-size:12px; line-height:1.45; max-width:280px; display:none; ' +
+        'box-shadow:0 3px 12px rgba(0,0,0,0.35);';
+    document.body.appendChild(_golTip);
+
+    document.addEventListener('mousemove', (e) => {
+        const bar = e.target.closest && e.target.closest('.gol-item-bar-win, .gol-item-bar-loss');
+        if (bar && bar.dataset.lojas) {
+            const isWin = bar.classList.contains('gol-item-bar-win');
+            _golTip.textContent = bar.dataset.lojas;
+            _golTip.style.borderLeft = `3px solid ${isWin ? '#2ecc71' : '#e74c3c'}`;
+            _golTip.style.display = 'block';
+            let x = e.clientX + 14, y = e.clientY + 14;
+            const r = _golTip.getBoundingClientRect();
+            if (x + r.width > window.innerWidth) x = e.clientX - r.width - 14;
+            if (y + r.height > window.innerHeight) y = e.clientY - r.height - 14;
+            _golTip.style.left = x + 'px';
+            _golTip.style.top = y + 'px';
+        } else if (_golTip.style.display !== 'none') {
+            _golTip.style.display = 'none';
+        }
+    });
+}
+
 // ============================================================
 // CÁLCULO DO PLACAR (LOCAL, SEM HTTP)
 // ============================================================
@@ -287,6 +318,7 @@ async function initializeApp() {
         document.getElementById('filterDistrito').addEventListener('change', onDistritoChange);
         document.getElementById('reprocessarBtn').addEventListener('click', reprocessarDoSharePoint);
         document.getElementById('inicioBtn').addEventListener('click', voltarDashboard);
+        setupGolTooltip();
         document.getElementById('logoutBtn').addEventListener('click', logout);
 
         // Event listeners para filtro de estatísticas
@@ -1656,22 +1688,15 @@ function atualizarSeçãoEstatísticas(stats, analise) {
             const percentualVitórias = gol.total > 0 ? (gol.vitórias / gol.total * 100) : 0;
             const percentualDerrotas = gol.total > 0 ? (gol.derrotas / gol.total * 100) : 0;
 
-            const tipVenc = gol.lojasVitoria.length
-                ? `✅ Vencendo em ${gol.nome} (${gol.vitórias}):\n${gol.lojasVitoria.join(', ')}`
-                : `Nenhuma loja vencendo em ${gol.nome}`;
-            const tipPerd = gol.lojasDerrota.length
-                ? `❌ Perdendo em ${gol.nome} (${gol.derrotas}):\n${gol.lojasDerrota.join(', ')}`
-                : `Nenhuma loja perdendo em ${gol.nome}`;
-
             const golElement = document.createElement('div');
             golElement.className = 'gol-item';
             golElement.innerHTML = `
                 <div class="gol-item-name">${gol.nome}</div>
                 <div class="gol-item-bar">
-                    <div class="gol-item-bar-win" style="width: ${percentualVitórias}%; cursor: help;" title="${tipVenc.replace(/"/g, '&quot;')}">
+                    <div class="gol-item-bar-win" style="width: ${percentualVitórias}%; cursor: help;" data-lojas="${gol.lojasVitoria.join(', ')}">
                         ${gol.vitórias > 0 ? gol.vitórias : ''}
                     </div>
-                    <div class="gol-item-bar-loss" style="width: ${percentualDerrotas}%; cursor: help;" title="${tipPerd.replace(/"/g, '&quot;')}">
+                    <div class="gol-item-bar-loss" style="width: ${percentualDerrotas}%; cursor: help;" data-lojas="${gol.lojasDerrota.join(', ')}">
                         ${gol.derrotas > 0 ? gol.derrotas : ''}
                     </div>
                 </div>
