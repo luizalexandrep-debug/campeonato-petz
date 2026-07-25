@@ -10,6 +10,7 @@ baixa todos os .xlsx de dentro dela, sem necessidade de login:
   3. Baixa cada .xlsx via _api/web/GetFileByServerRelativeUrl('...')/$value.
 """
 import re
+import uuid
 import urllib.parse as urlparse
 from pathlib import Path
 import requests
@@ -24,6 +25,10 @@ PASTAS_SHAREPOINT = {
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+    # Evita que o SharePoint/CDN devolva uma versão em cache (já causou leitura
+    # de arquivo antigo, com os valores ainda zerados).
+    "Cache-Control": "no-cache, no-store, max-age=0",
+    "Pragma": "no-cache",
 }
 
 
@@ -61,7 +66,8 @@ def baixar_pasta(folder_link, dest_dir, timeout=40):
     # 2) Listar arquivos
     enc_folder = urlparse.quote(folder_path)
     list_url = (f"{host}{userpath}/_api/web/"
-                f"GetFolderByServerRelativeUrl('{enc_folder}')/Files")
+                f"GetFolderByServerRelativeUrl('{enc_folder}')/Files"
+                f"?nocache={uuid.uuid4().hex}")
     lr = sess.get(list_url, headers={"Accept": "application/json;odata=nometadata"},
                   timeout=timeout)
     lr.raise_for_status()
@@ -74,8 +80,11 @@ def baixar_pasta(folder_link, dest_dir, timeout=40):
             continue
         srv = f.get("ServerRelativeUrl")
         enc_file = urlparse.quote(srv)
+        # cache-buster: garante a versão MAIS RECENTE (sem ele o SharePoint já
+        # devolveu arquivo antigo com valores zerados)
+        buster = uuid.uuid4().hex
         dl_url = (f"{host}{userpath}/_api/web/"
-                  f"GetFileByServerRelativeUrl('{enc_file}')/$value")
+                  f"GetFileByServerRelativeUrl('{enc_file}')/$value?nocache={buster}")
         dr = sess.get(dl_url, timeout=timeout)
         dr.raise_for_status()
         (dest / nome).write_bytes(dr.content)
