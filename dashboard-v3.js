@@ -135,11 +135,12 @@ function calcularAnaliseDoResumo(jogosFiltrados, lojas) {
             if (!lojas.includes(team)) return;
             Object.entries(gols).forEach(([ind, vencedor]) => {
                 if (!analise[ind]) {
-                    analise[ind] = { vitórias: 0, derrotas: 0, empates: 0, total: 0 };
+                    analise[ind] = { vitórias: 0, derrotas: 0, empates: 0, total: 0,
+                                     lojasVitoria: [], lojasDerrota: [], lojasEmpate: [] };
                 }
-                if (vencedor === teamNum) analise[ind].vitórias++;
-                else if (vencedor === 0) analise[ind].empates++;
-                else analise[ind].derrotas++;
+                if (vencedor === teamNum) { analise[ind].vitórias++; analise[ind].lojasVitoria.push(team); }
+                else if (vencedor === 0) { analise[ind].empates++; analise[ind].lojasEmpate.push(team); }
+                else { analise[ind].derrotas++; analise[ind].lojasDerrota.push(team); }
                 analise[ind].total++;
             });
         });
@@ -1644,7 +1645,9 @@ function atualizarSeçãoEstatísticas(stats, analise) {
             vitórias: dados.vitórias,
             derrotas: dados.derrotas,
             empates: dados.empates,
-            total: dados.total
+            total: dados.total,
+            lojasVitoria: dados.lojasVitoria || [],
+            lojasDerrota: dados.lojasDerrota || []
         }))
         .sort((a, b) => b.vitórias - a.vitórias); // Ordenar por vitórias descendentes
 
@@ -1653,15 +1656,22 @@ function atualizarSeçãoEstatísticas(stats, analise) {
             const percentualVitórias = gol.total > 0 ? (gol.vitórias / gol.total * 100) : 0;
             const percentualDerrotas = gol.total > 0 ? (gol.derrotas / gol.total * 100) : 0;
 
+            const tipVenc = gol.lojasVitoria.length
+                ? `✅ Vencendo em ${gol.nome} (${gol.vitórias}):\n${gol.lojasVitoria.join(', ')}`
+                : `Nenhuma loja vencendo em ${gol.nome}`;
+            const tipPerd = gol.lojasDerrota.length
+                ? `❌ Perdendo em ${gol.nome} (${gol.derrotas}):\n${gol.lojasDerrota.join(', ')}`
+                : `Nenhuma loja perdendo em ${gol.nome}`;
+
             const golElement = document.createElement('div');
             golElement.className = 'gol-item';
             golElement.innerHTML = `
                 <div class="gol-item-name">${gol.nome}</div>
                 <div class="gol-item-bar">
-                    <div class="gol-item-bar-win" style="width: ${percentualVitórias}%">
+                    <div class="gol-item-bar-win" style="width: ${percentualVitórias}%; cursor: help;" title="${tipVenc.replace(/"/g, '&quot;')}">
                         ${gol.vitórias > 0 ? gol.vitórias : ''}
                     </div>
-                    <div class="gol-item-bar-loss" style="width: ${percentualDerrotas}%">
+                    <div class="gol-item-bar-loss" style="width: ${percentualDerrotas}%; cursor: help;" title="${tipPerd.replace(/"/g, '&quot;')}">
                         ${gol.derrotas > 0 ? gol.derrotas : ''}
                     </div>
                 </div>
