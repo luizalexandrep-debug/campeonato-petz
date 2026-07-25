@@ -302,6 +302,54 @@ body {
     border-left: 4px solid var(--info);
     font-weight: 500;
     font-size: 0.95em;
+    /* Fica visível ao rolar a página */
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 4px 14px rgba(16, 24, 40, .07);
+}
+
+/* Barra de filtro por regional (home) */
+.filtro-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    flex-wrap: wrap;
+}
+
+.filtro-label {
+    font-size: 0.82em;
+    font-weight: 700;
+    color: var(--text-2);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-right: var(--s-1);
+}
+
+.filtro-reg {
+    background: var(--surface);
+    color: var(--brand-ink);
+    border: 1px solid #cdd9ee;
+    padding: 7px 15px;
+    border-radius: var(--r-pill);
+    font-family: inherit;
+    font-size: 0.88em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .18s var(--ease), color .18s var(--ease),
+                border-color .18s var(--ease), transform .18s var(--ease);
+}
+
+.filtro-reg:hover {
+    background: var(--brand-tint);
+    transform: translateY(-1px);
+}
+
+.filtro-reg.ativo {
+    background: var(--brand-grad);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(30, 42, 90, .22);
 }
 
 /* ============ Seções temáticas da home (atual / acumulado) ============ */

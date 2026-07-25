@@ -15,7 +15,8 @@ const state = {
     filtroResultado: null, // Filtro de resultado: 'vitoria', 'empate', 'derrota', null
     gamesSummary: null, // Resumo pré-calculado de todos os jogos
     resumoCarregado: false, // Flag indicando se o resumo foi carregado
-    historico: null // Histórico das rodadas anteriores (ranking simulado)
+    historico: null, // Histórico das rodadas anteriores (ranking simulado)
+    filtroRegionalHome: null // Filtro de regional aplicado às tabelas da home
 };
 
 const REGIONAL_DESTAQUE = 'R2 - Luiz';
@@ -835,13 +836,27 @@ async function loadGames() {
 // CARREGAR DADOS DE UM JOGO
 // ============================================================
 
+function filtrarHomePorRegional(regional) {
+    // Alterna o filtro das tabelas da home (vazio = todas)
+    state.filtroRegionalHome = regional || null;
+    loadRankingDashboard();
+}
+
 function loadRankingDashboard() {
     const container = document.getElementById('gamesContainer');
     const infoBar = document.getElementById('infoBar');
     const statsSection = document.getElementById('statsSection');
 
     statsSection.style.display = 'none';
-    infoBar.innerHTML = '<span>🏆 Ranking de Pontuação Média</span>';
+
+    // Barra de filtro por regional (aplica às duas tabelas da home)
+    const fSel = state.filtroRegionalHome;
+    const btnsFiltro = ['Todas', ...Object.keys(state.estrutura)].map(nome => {
+        const val = nome === 'Todas' ? '' : nome;
+        const ativo = (fSel || '') === val;
+        return `<button class="filtro-reg${ativo ? ' ativo' : ''}" onclick="filtrarHomePorRegional('${val.replace(/'/g, "\\'")}')">${nome}</button>`;
+    }).join('');
+    infoBar.innerHTML = `<div class="filtro-bar"><span class="filtro-label">Filtrar por regional:</span>${btnsFiltro}</div>`;
 
     // Calcular pontuação por regional
     const rankingRegional = {};
@@ -936,7 +951,12 @@ function loadRankingDashboard() {
     const hover = `onmouseover="this.style.background='#f7f8ff'" onmouseout="this.style.background='transparent'"`;
 
     // COLUNA 1 — regionais com distritos aninhados
-    const colRegionais = ranking1.map((r, idx) => {
+    const colRegionais = ranking1
+        // guarda a posição no ranking GERAL antes de filtrar (medalha correta)
+        .map((r, idx) => ({ ...r, posGeral: idx }))
+        .filter(r => !state.filtroRegionalHome || r.nome === state.filtroRegionalHome)
+        .map((r) => {
+        const idx = r.posGeral;
         const dists = distritosPorRegional[r.nome] || [];
         return `
         <div style="background:white; border-radius:12px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.08); overflow:hidden;">
@@ -996,7 +1016,10 @@ function loadRankingDashboard() {
     };
 
     // ---------- TABELA 1: rodada atual ----------
-    const linhasAtual = porMediaAtual.map(r => {
+    // O filtro esconde linhas de outras regionais, mas a posição (#) continua
+    // sendo a do ranking GERAL.
+    const passaFiltro = (reg) => !state.filtroRegionalHome || reg === state.filtroRegionalHome;
+    const linhasAtual = porMediaAtual.filter(r => passaFiltro(r.reg)).map(r => {
         const dest = r.reg === REGIONAL_DESTAQUE;
         return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
             <td class="c b">${medalhaFn(r.rankAtual - 1)}</td>
@@ -1004,7 +1027,8 @@ function loadRankingDashboard() {
             <td class="c">${r.V}</td><td class="c">${r.E}</td><td class="c">${r.D}</td>
             <td class="c b">${f2(r.media)}</td><td class="c">${r.conq}/${r.disp}</td>
             <td class="c b">${fp(r.aprov)}</td></tr>`;
-    }).join('') + Object.entries(totReg).sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
+    }).join('') + Object.entries(totReg).filter(([reg]) => passaFiltro(reg))
+        .sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
         <tr class="tot"><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
             <td class="c">${t.V}</td><td class="c">${t.E}</td><td class="c">${t.D}</td>
             <td class="c b">${f2(t.media)}</td><td class="c">${t.conq}/${t.disp}</td>
@@ -1032,7 +1056,7 @@ function loadRankingDashboard() {
             t.aprov = t.disp > 0 ? t.conq / t.disp * 100 : 0;
         });
 
-        const linhasAcum = porSim.map(r => {
+        const linhasAcum = porSim.filter(r => passaFiltro(r.reg)).map(r => {
             const dest = r.reg === REGIONAL_DESTAQUE;
             const mov = r.rankAtual - r.sim.posicao;
             const movHtml = mov > 0 ? `<span style="color:#16a34a;font-weight:700;">▲${mov}</span>`
@@ -1044,7 +1068,8 @@ function loadRankingDashboard() {
                 <td class="c">${f2(r.sim.histAvg)}</td><td class="c">${f2(r.sim.curAvg)}</td>
                 <td class="c b">${f2(r.sim.simAvg)}</td><td class="c">${r.aConq}/${r.aDisp}</td>
                 <td class="c b">${fp(r.aConq / r.aDisp * 100)}</td></tr>`;
-        }).join('') + Object.entries(totAcum).sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
+        }).join('') + Object.entries(totAcum).filter(([reg]) => passaFiltro(reg))
+            .sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
             <tr class="tot"><td></td><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
                 <td class="c">—</td><td class="c">${f2(totReg[reg].media)}</td>
                 <td class="c b">${f2(t.media)}</td><td class="c">${t.conq}/${t.disp}</td>
