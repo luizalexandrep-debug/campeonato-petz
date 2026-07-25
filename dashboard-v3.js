@@ -613,10 +613,10 @@ function insightsR2Html(simulado) {
         const up = ins.lojasUp.length ? ins.lojasUp.join(', ') : '—';
         const down = ins.lojasDown.length ? ins.lojasDown.join(', ') : '—';
         return `
-        <div style="background:white; border-radius:12px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-left:5px solid #667eea;">
+        <div style="background:white; border-radius:12px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-left:5px solid #2b5aa8;">
             <div style="display:flex; justify-content:space-between; align-items:baseline;">
                 <span style="font-weight:700; font-size:1.1em;">#${r.posicao} ${badgeVariacao(r.variacao)} · ${r.distrito}</span>
-                <span style="color:#667eea; font-weight:bold; font-size:1.25em;">${r.simAvg.toFixed(2)} pts</span>
+                <span style="color:#2b5aa8; font-weight:bold; font-size:1.25em;">${r.simAvg.toFixed(2)} pts</span>
             </div>
             <div style="font-size:0.88em; color:#666; margin:6px 0 10px;">
                 Histórico ${r.histAvg.toFixed(2)} → Atual ${r.curAvg.toFixed(2)} · ${setaEvol(r)}
@@ -637,7 +637,7 @@ function insightsR2Html(simulado) {
 
     return `
     <div style="padding:0 20px 24px; max-width:1280px; margin:0 auto;">
-        <div style="background:linear-gradient(135deg,#667eea,#764ba2); color:white; border-radius:12px; padding:16px 20px; margin-bottom:16px;">
+        <div style="background:linear-gradient(135deg,#2b5aa8,#1e2a5a); color:white; border-radius:12px; padding:16px 20px; margin-bottom:16px;">
             <h2 style="margin:0 0 6px;">🔥 Seus Distritos — ${REGIONAL_DESTAQUE}</h2>
             <div style="opacity:0.9; font-size:0.92em;">
                 Melhor: <b>${melhorMeu.distrito}</b> (#${melhorMeu.posicao}, ${melhorMeu.simAvg.toFixed(2)}) ·
@@ -739,7 +739,7 @@ async function loadGames() {
         if (state.resumoCarregado && state.gamesSummary) {
             console.log('⚡ Usando resumo pré-calculado para regional');
             // Adicionar botão de voltar
-            infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button>`;
+            infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #2b5aa8; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button>`;
             loadGamesFromSummary(state.currentRegional);
             return;
         } else {
@@ -936,7 +936,7 @@ function loadRankingDashboard() {
         const dists = distritosPorRegional[r.nome] || [];
         return `
         <div style="background:white; border-radius:12px; margin-bottom:14px; box-shadow:0 2px 8px rgba(0,0,0,0.08); overflow:hidden;">
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:linear-gradient(135deg,#667eea,#764ba2); color:white; cursor:pointer;"
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:linear-gradient(135deg,#2b5aa8,#1e2a5a); color:white; cursor:pointer;"
                  title="Ver a regional ${r.nome}" onclick="${clkReg(r.nome)}">
                 <span style="font-weight:700; font-size:1.05em;">${medalhaFn(idx)} ${r.nome}</span>
                 <span style="font-weight:bold;">${r.media} pts</span>
@@ -946,7 +946,7 @@ function loadRankingDashboard() {
                     <div style="display:flex; justify-content:space-between; align-items:center; padding:7px 8px; border-bottom:1px solid #f2f2f2; cursor:pointer;"
                          ${hover} title="Ver ${d.distrito}" onclick="${clkDist(r.nome, d.distrito)}">
                         <span style="font-size:0.9em;"><span style="color:#999;">${di + 1}.</span> ${d.distrito}</span>
-                        <span style="color:#667eea; font-weight:600; font-size:0.9em;">${d.media.toFixed(2)}</span>
+                        <span style="color:#2b5aa8; font-weight:600; font-size:0.9em;">${d.media.toFixed(2)}</span>
                     </div>`).join('')}
             </div>
         </div>`;
@@ -959,11 +959,11 @@ function loadRankingDashboard() {
         const dist = r.nome.slice(sep + 3);
         const destaque = reg === REGIONAL_DESTAQUE;
         return `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:3px; cursor:pointer; ${destaque ? 'background:#eef1ff; font-weight:600;' : ''}"
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:3px; cursor:pointer; ${destaque ? 'background:#fbf3dc; font-weight:600;' : ''}"
              ${hover} title="Ver ${dist}" onclick="${clkDist(reg, dist)}">
             <span style="font-size:0.9em;"><span style="color:#999;">${medalhaFn(idx)}</span> ${destaque ? '⭐ ' : ''}${dist}
                 <span style="color:#bbb; font-size:0.82em;">· ${reg.split(' - ')[0]}</span></span>
-            <span style="color:#667eea; font-weight:600;">${r.media}</span>
+            <span style="color:#2b5aa8; font-weight:600;">${r.media}</span>
         </div>`;
     }).join('');
 
@@ -971,15 +971,15 @@ function loadRankingDashboard() {
     const colSimulado = simulado.length ? simulado.map((r) => {
         const destaque = r.regional === REGIONAL_DESTAQUE;
         return `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:3px; cursor:pointer; ${destaque ? 'background:#eef1ff; font-weight:600;' : ''}"
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:3px; cursor:pointer; ${destaque ? 'background:#fbf3dc; font-weight:600;' : ''}"
              ${hover} title="Ver ${r.distrito}" onclick="${clkDist(r.regional, r.distrito)}">
             <span style="font-size:0.9em;"><span style="color:#999;">${medalhaFn(r.posicao - 1)}</span> ${badgeVariacao(r.variacao)} ${destaque ? '⭐ ' : ''}${r.distrito}</span>
-            <span style="color:#667eea; font-weight:600;">${r.simAvg.toFixed(2)}</span>
+            <span style="color:#2b5aa8; font-weight:600;">${r.simAvg.toFixed(2)}</span>
         </div>`;
     }).join('') : '<div style="color:#999; padding:20px; text-align:center;">Histórico indisponível</div>';
 
     const colHeader = (txt, sub) => `
-        <h3 style="color:#667eea; font-size:1.05em; margin:0 0 4px; border-bottom:2px solid #667eea; padding-bottom:8px;">${txt}</h3>
+        <h3 style="color:#2b5aa8; font-size:1.05em; margin:0 0 4px; border-bottom:2px solid #2b5aa8; padding-bottom:8px;">${txt}</h3>
         <div style="font-size:0.78em; color:#999; margin-bottom:10px;">${sub}</div>`;
 
     // Renderizar as 3 colunas + insights da R2 embaixo
@@ -1080,7 +1080,7 @@ function loadGamesFromSummary(regional) {
     atualizarSeçãoEstatísticas(stats, analise);
     statsSection.style.display = 'block';
 
-    infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button><span>📊 ${jogosFiltrados.length} jogos da regional (resumo rápido)</span>`;
+    infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #2b5aa8; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button><span>📊 ${jogosFiltrados.length} jogos da regional (resumo rápido)</span>`;
 
     // Renderizar cards simplificados (sem dados detalhados)
     container.innerHTML = '';
@@ -1184,7 +1184,7 @@ function loadGamesFromSummaryForDistrito(regional, distrito, lojas) {
     atualizarSeçãoEstatísticas(stats, analise);
     statsSection.style.display = 'block';
 
-    infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #667eea; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button><span>📊 ${jogosFiltrados.length} jogos carregando detalhes...</span>`;
+    infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #2b5aa8; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button><span>📊 ${jogosFiltrados.length} jogos carregando detalhes...</span>`;
 
     // Renderizar cards do resumo
     container.innerHTML = '';
