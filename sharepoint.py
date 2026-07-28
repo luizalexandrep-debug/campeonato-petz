@@ -20,6 +20,7 @@ import requests
 PASTAS_SHAREPOINT = {
     "SEMANA ANTERIOR": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAraUw_Xz5lQ7wctHpiwl0SAbkW2E_LbgyX5_9MkQb9z_o?e=h5XcMc",
     "SEMANA ATUAL": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgA5CGHOHMqQSLe5xDfQJDKEAQ_EvUCnYvUUjzlsWuE49eU?e=5TpKZ1",
+    "Confrontos": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAunV-h79oqTpWyR6vr0BgJAbl2b88L_W15BMnnEgE8Jl0?e=cAqSK4",
 }
 
 HEADERS = {
@@ -98,8 +99,15 @@ def baixar_todas_pastas(base_dest, timeout=40):
     Retorna dict {pasta: [arquivos]}."""
     resultado = {}
     for nome_pasta, link in PASTAS_SHAREPOINT.items():
+        if not link:
+            continue  # pasta ainda sem link configurado
         alvo = Path(base_dest) / nome_pasta
-        resultado[nome_pasta] = baixar_pasta(link, alvo, timeout=timeout)
+        try:
+            resultado[nome_pasta] = baixar_pasta(link, alvo, timeout=timeout)
+        except Exception as e:
+            # Uma pasta com problema não pode derrubar as demais
+            print(f"⚠️ Falha ao baixar '{nome_pasta}': {e}")
+            resultado[nome_pasta] = []
     return resultado
 
 

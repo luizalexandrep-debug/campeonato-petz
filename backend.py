@@ -104,6 +104,36 @@ def dir_atual():
     return active_base() / "SEMANA ATUAL"
 
 
+def dir_confrontos():
+    """Pasta de confrontos: prefere a baixada do SharePoint (/tmp), senão a
+    empacotada no repositório."""
+    tmp_conf = TMP_BASE / "Confrontos"
+    if tmp_conf.exists() and any(tmp_conf.glob("Semana *.xlsx")):
+        return tmp_conf
+    return BUNDLED_BASE / "Confrontos"
+
+
+def semanas_disponiveis():
+    """Lista os números de semana com arquivo de confrontos disponível."""
+    semanas = set()
+    for base in (TMP_BASE / "Confrontos", BUNDLED_BASE / "Confrontos"):
+        if not base.exists():
+            continue
+        for f in base.glob("Semana *.xlsx"):
+            if f.name.startswith("~"):
+                continue
+            m = re.search(r"Semana\s+(\d+)", f.name)
+            if m:
+                semanas.add(int(m.group(1)))
+    return sorted(semanas)
+
+
+def semana_atual():
+    """Semana vigente = maior número de semana com confrontos disponíveis."""
+    s = semanas_disponiveis()
+    return s[-1] if s else 4
+
+
 # Mantidos por compatibilidade (usados só como base do Confrontos e afins)
 SEMANA_ANTERIOR = BASE_PATH / "SEMANA ANTERIOR"
 SEMANA_ATUAL = BASE_PATH / "SEMANA ATUAL"
@@ -469,6 +499,21 @@ def health():
         "message": "API Campeonato Petz funcionando"
     })
 
+@app.route('/api/semana', methods=['GET'])
+def get_semana():
+    """Semana vigente, detectada pelos arquivos de confronto disponíveis.
+    Assim, ao subir 'Semana 6.xlsx' o site passa a usar a semana 6 sozinho."""
+    try:
+        garantir_arquivos_frescos()
+    except Exception:
+        pass
+    return jsonify({
+        "semana": semana_atual(),
+        "disponiveis": semanas_disponiveis(),
+        "origem": str(dir_confrontos()),
+    })
+
+
 @app.route('/api/diag', methods=['GET'])
 def diagnostico():
     """Diagnóstico: mostra qual arquivo está sendo usado por indicador/semana,
@@ -665,7 +710,7 @@ def get_loja(sigla):
 def get_confrontos(semana):
     """Retorna os confrontos de uma semana específica"""
     try:
-        confrontos_path = BASE_PATH / "Confrontos" / f"Semana {semana}.xlsx"
+        confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
 
         if not confrontos_path.exists():
             return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
@@ -855,7 +900,7 @@ def precalculate_games(semana):
         print(f"\n⏳ Iniciando pré-cálculo para semana {semana}...")
 
         # Carregar confrontos
-        confrontos_path = BASE_PATH / "Confrontos" / f"Semana {semana}.xlsx"
+        confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
         if not confrontos_path.exists():
             return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
 
@@ -934,7 +979,7 @@ def _calcular_summary(semana):
     """Calcula o resumo de todos os jogos a partir da base ATIVA (/tmp se
     reprocessado, senão empacotada). Retorna o dict do resumo."""
     import calculo_rapido as cr
-    confrontos_path = BUNDLED_BASE / "Confrontos" / f"Semana {semana}.xlsx"
+    confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
     if not confrontos_path.exists():
         raise FileNotFoundError(f"Confrontos da semana {semana} não encontrados")
     confrontos = cr.ler_confrontos(confrontos_path)

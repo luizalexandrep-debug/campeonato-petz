@@ -315,6 +315,9 @@ async function initializeApp() {
         // Verificar autenticação
         await checkAuthentication();
 
+        // Descobrir a semana vigente (detectada pelos confrontos disponíveis)
+        await loadSemana();
+
         // Carregar estrutura
         await loadEstrutura();
 
@@ -462,6 +465,24 @@ async function loadEstrutura() {
         populateRegionalFilter();
     } catch (error) {
         console.error('Erro ao carregar estrutura:', error);
+    }
+}
+
+async function loadSemana() {
+    // A semana vem do backend (maior "Semana N.xlsx" na pasta Confrontos).
+    // Assim, ao subir a semana seguinte no SharePoint, o site se atualiza sozinho.
+    try {
+        const r = await fetch('/api/semana', { cache: 'no-store' });
+        const d = await r.json();
+        if (d && d.semana) {
+            state.semana = d.semana;
+            const h1 = document.querySelector('.header h1');
+            if (h1) h1.textContent = `Campeonato Petz 2026 - Semana ${d.semana}`;
+            document.title = `Campeonato Petz - Semana ${d.semana}`;
+            console.log(`📅 Semana vigente: ${d.semana} (disponíveis: ${d.disponiveis})`);
+        }
+    } catch (e) {
+        console.error('Não foi possível detectar a semana; usando', state.semana, e);
     }
 }
 
