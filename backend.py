@@ -499,6 +499,131 @@ def health():
         "message": "API Campeonato Petz funcionando"
     })
 
+def historico_do_sharepoint():
+    """Lê o histórico (ranking das rodadas encerradas) de uma planilha na pasta
+    'Histórico ranking distritais' do SharePoint, se existir.
+
+    Formato esperado (1ª linha = cabeçalho, nomes flexíveis):
+        Distrital | Pontuação Média | Vit. Média        (opcional: Rodadas)
+    O número de rodadas pode vir numa coluna 'Rodadas' ou no nome do arquivo
+    (ex.: 'Ranking apos rodada 6.xlsx'). Retorna None se não houver planilha.
+    """
+    pasta = TMP_BASE / "Historico"
+    if not pasta.exists():
+        return None
+    arquivos = [f for f in pasta.glob("*.xlsx") if not f.name.startswith("~")]
+    if not arquivos:
+        return None
+    # mais recente primeiro
+    arq = max(arquivos, key=lambda f: f.stat().st_mtime)
+
+    def norm(s):
+        return re.sub(r"[^a-z]", "", str(s or "").lower())
+
+    try:
+        wb = openpyxl.load_workbook(arq, data_only=True, read_only=True)
+        ws = wb.active
+        linhas = list(ws.iter_rows(values_only=True))
+        wb.close()
+        if not linhas:
+            return None
+
+        # Descobrir a linha de cabeçalho (a que tem uma coluna de distrito)
+        idx_head = None
+        for i, row in enumerate(linhas[:10]):
+            if any(norm(c).startswith(("distrital", "distrito")) for c in row):
+                idx_head = i
+                break
+        if idx_head is None:
+            return None
+        head = linhas[idx_head]
+
+        col_dist = col_pts = col_vit = col_rod = None
+        for j, c in enumerate(head):
+            n = norm(c)
+            if col_dist is None and n.startswith(("distrital", "distrito")):
+                col_dist = j
+            elif col_pts is None and "pontuacaomedia" in n:
+                col_pts = j
+            elif col_vit is None and ("vitmedia" in n or "vitoriamedia" in n):
+                col_vit = j
+            elif col_rod is None and n.startswith("rodada"):
+                col_rod = j
+        if col_dist is None or col_pts is None:
+            return None
+
+        distritos = {}
+        rodadas_col = None
+        for row in linhas[idx_head + 1:]:
+            if not row or col_dist >= len(row):
+                continue
+            nome = row[col_dist]
+            if not nome or not str(nome).strip():
+                continue
+            try:
+                pts = float(row[col_pts])
+            except (TypeError, ValueError):
+                continue
+            vit = 0.0
+            if col_vit is not None and col_vit < len(row):
+                try:
+                    vit = float(row[col_vit])
+                except (TypeError, ValueError):
+                    vit = 0.0
+            if col_rod is not None and col_rod < len(row) and rodadas_col is None:
+                try:
+                    rodadas_col = int(float(row[col_rod]))
+                except (TypeError, ValueError):
+                    pass
+            distritos[str(nome).strip()] = {
+                "pontuacaoMedia": pts, "vitoriaMedia": vit
+            }
+
+        if not distritos:
+            return None
+
+        # Nº de rodadas: coluna > nome do arquivo > (semana vigente - 1)
+        rodadas = rodadas_col
+        if not rodadas:
+            m = re.search(r"(\d+)", arq.stem)
+            if m:
+                rodadas = int(m.group(1))
+        if not rodadas:
+            rodadas = max(semana_atual() - 1, 1)
+
+        return {
+            "rodadasAnteriores": rodadas,
+            "atualizadoEm": f"{arq.name} (SharePoint)",
+            "distritos": distritos,
+            "regionalDestaque": "R2 - Luiz",
+            "origem": "sharepoint",
+        }
+    except Exception as e:
+        print(f"⚠️ Falha ao ler histórico do SharePoint: {e}")
+        return None
+
+
+@app.route('/api/historico', methods=['GET'])
+def get_historico():
+    """Histórico das rodadas encerradas. Prefere a planilha do SharePoint;
+    se não houver, usa o historico.json empacotado."""
+    try:
+        garantir_arquivos_frescos()
+    except Exception:
+        pass
+    h = historico_do_sharepoint()
+    if h:
+        return jsonify(h)
+    try:
+        import json as _json
+        with open(Path(__file__).parent / 'historico.json') as f:
+            d = _json.load(f)
+        d["origem"] = "arquivo"
+        return jsonify(d)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/semana', methods=['GET'])
 def get_semana():
     """Semana vigente, detectada pelos arquivos de confronto disponíveis.

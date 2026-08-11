@@ -21,6 +21,9 @@ PASTAS_SHAREPOINT = {
     "SEMANA ANTERIOR": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAraUw_Xz5lQ7wctHpiwl0SAbkW2E_LbgyX5_9MkQb9z_o?e=h5XcMc",
     "SEMANA ATUAL": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgA5CGHOHMqQSLe5xDfQJDKEAQ_EvUCnYvUUjzlsWuE49eU?e=5TpKZ1",
     "Confrontos": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAunV-h79oqTpWyR6vr0BgJAbl2b88L_W15BMnnEgE8Jl0?e=cAqSK4",
+    # Ranking acumulado das rodadas já encerradas (export do Power BI).
+    # Ver leitura em backend.historico_do_sharepoint().
+    "Historico": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAJLDGS_b2DSJri9CAzz6dBAWb5DNwKssFacdi6Y9gwm00?e=bcUoZf",
 }
 
 HEADERS = {

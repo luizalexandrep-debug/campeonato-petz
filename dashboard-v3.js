@@ -487,8 +487,20 @@ async function loadSemana() {
 }
 
 async function loadHistorico() {
+    // Prefere o histórico do SharePoint (via backend); cai para o arquivo local
     try {
-        const response = await fetch('historico.json');
+        const r = await fetch('/api/historico', { cache: 'no-store' });
+        if (r.ok) {
+            const d = await r.json();
+            if (d && d.distritos) {
+                state.historico = d;
+                console.log(`📚 Histórico: ${d.rodadasAnteriores} rodadas (${d.origem || 'arquivo'})`);
+                return;
+            }
+        }
+    } catch (e) { /* segue para o fallback */ }
+    try {
+        const response = await fetch('historico.json', { cache: 'no-store' });
         state.historico = await response.json();
     } catch (error) {
         console.error('Erro ao carregar histórico:', error);
@@ -1113,7 +1125,8 @@ function loadRankingDashboard() {
 
         secaoAcumulado = `
         <section class="sec acum">
-            <div class="sec-head">📊 ACUMULADO SIMULADO <small>· rodadas 1-${rodadas} + rodada atual</small></div>
+            <div class="sec-head">📊 ACUMULADO SIMULADO <small>· rodadas 1-${rodadas} + rodada ${state.semana} (atual)</small></div>
+            ${rodadas < state.semana - 1 ? `<div class="alerta-hist">⚠️ O histórico está com <b>${rodadas} rodada(s)</b>, mas a rodada atual é a <b>${state.semana}</b> — as rodadas ${rodadas + 1} a ${state.semana - 1} não estão sendo somadas. Atualize o ranking na pasta <b>Histórico ranking distritais</b> do SharePoint.</div>` : ''}
             <div class="sec-body">
                 <div class="tbl-wrap"><table class="rank-table">
                     <thead><tr><th>#</th><th title="Variação de posição em relação ao ranking das rodadas anteriores (base)">Mov.</th><th class="l">Distrito</th><th class="l">Regional</th>
