@@ -459,8 +459,20 @@ function onFiltroEstatísticas(resultado) {
 // ============================================================
 
 async function loadEstrutura() {
+    // Prefere a estrutura do SharePoint (via backend); cai para o arquivo local
     try {
-        const response = await fetch('estrutura.json');
+        const r = await fetch('/api/estrutura', { cache: 'no-store' });
+        if (r.ok) {
+            const d = await r.json();
+            if (d && !d.error && Object.keys(d).length) {
+                state.estrutura = d;
+                populateRegionalFilter();
+                return;
+            }
+        }
+    } catch (e) { /* segue para o fallback */ }
+    try {
+        const response = await fetch('estrutura.json', { cache: 'no-store' });
         state.estrutura = await response.json();
         populateRegionalFilter();
     } catch (error) {

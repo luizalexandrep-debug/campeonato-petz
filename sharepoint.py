@@ -24,6 +24,8 @@ PASTAS_SHAREPOINT = {
     # Ranking acumulado das rodadas já encerradas (export do Power BI).
     # Ver leitura em backend.historico_do_sharepoint().
     "Historico": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAJLDGS_b2DSJri9CAzz6dBAWb5DNwKssFacdi6Y9gwm00?e=bcUoZf",
+    # Pasta raiz — contém estrutura.xlsx (Regional | Distrito | Sigla Loja)
+    "Estrutura": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgBmj_M4lNJVT5A78h_MKThtAaUgbM2id9_uj_Zjjs-8I3g?e=KLPE4E",
 }
 
 HEADERS = {

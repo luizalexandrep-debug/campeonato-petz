@@ -499,13 +499,71 @@ def health():
         "message": "API Campeonato Petz funcionando"
     })
 
-def _distritos_da_estrutura():
-    """Lista de distritos conforme estrutura.json (fonte da verdade do app)."""
+def estrutura_do_sharepoint():
+    """Lê estrutura.xlsx (Regional | Distrito | Sigla Loja) da pasta raiz do
+    SharePoint. Retorna {regional: {distrito: [lojas]}} ou None."""
+    pasta = TMP_BASE / "Estrutura"
+    arq = pasta / "estrutura.xlsx"
+    if not arq.exists():
+        cands = list(pasta.glob("*.xlsx")) if pasta.exists() else []
+        if not cands:
+            return None
+        arq = cands[0]
+    try:
+        wb = openpyxl.load_workbook(arq, data_only=True, read_only=True)
+        ws = wb.active
+        linhas = list(ws.iter_rows(values_only=True))
+        wb.close()
+        est = {}
+        for row in linhas[1:]:
+            if not row or len(row) < 3:
+                continue
+            reg, dist, loja = row[0], row[1], row[2]
+            if not reg or not dist or not loja:
+                continue
+            est.setdefault(str(reg).strip(), {}) \
+               .setdefault(str(dist).strip(), []).append(str(loja).strip())
+        return est or None
+    except Exception as e:
+        print(f"⚠️ Falha ao ler estrutura do SharePoint: {e}")
+        return None
+
+
+def estrutura_ativa():
+    """Estrutura vigente: SharePoint se disponível, senão estrutura.json."""
+    est = estrutura_do_sharepoint()
+    if est:
+        return est
     try:
         import json as _json
         with open(Path(__file__).parent / 'estrutura.json') as f:
-            est = _json.load(f)
-        return [d for reg in est.values() for d in reg]
+            return _json.load(f)
+    except Exception:
+        return {}
+
+
+@app.route('/api/estrutura', methods=['GET'])
+def get_estrutura():
+    """Estrutura Regional > Distrito > Lojas (do SharePoint, com fallback)."""
+    try:
+        garantir_arquivos_frescos()
+    except Exception:
+        pass
+    est = estrutura_do_sharepoint()
+    if est:
+        return jsonify(est)
+    try:
+        import json as _json
+        with open(Path(__file__).parent / 'estrutura.json') as f:
+            return jsonify(_json.load(f))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+def _distritos_da_estrutura():
+    """Lista de distritos da estrutura vigente (fonte da verdade do app)."""
+    try:
+        return [d for reg in estrutura_ativa().values() for d in reg]
     except Exception:
         return []
 
