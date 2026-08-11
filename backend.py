@@ -499,6 +499,56 @@ def health():
         "message": "API Campeonato Petz funcionando"
     })
 
+def _distritos_da_estrutura():
+    """Lista de distritos conforme estrutura.json (fonte da verdade do app)."""
+    try:
+        import json as _json
+        with open(Path(__file__).parent / 'estrutura.json') as f:
+            est = _json.load(f)
+        return [d for reg in est.values() for d in reg]
+    except Exception:
+        return []
+
+
+def _parear_com_estrutura(distritos_planilha):
+    """Converte os nomes vindos do ranking para os nomes usados no app.
+    Retorna (dict_pareado, nomes_da_planilha_sem_par, distritos_do_app_sem_historico).
+    """
+    import unicodedata
+
+    def norm(s):
+        s = unicodedata.normalize('NFKD', str(s)).encode('ascii', 'ignore').decode().lower()
+        return re.sub(r'[^a-z0-9]', '', s)
+
+    def partes(nome):
+        p = str(nome).split(' - ', 1)
+        return norm(p[0]), (norm(p[1]) if len(p) > 1 else '')
+
+    app_dists = _distritos_da_estrutura()
+    if not app_dists:
+        return distritos_planilha, [], []
+
+    resultado, usados = {}, set()
+    criterios = [
+        lambda a, b: a == b,                                   # nome idêntico
+        lambda a, b: partes(a)[0] == partes(b)[0],             # mesmo prefixo
+        lambda a, b: partes(a)[1] and partes(a)[1] == partes(b)[1],  # mesma pessoa
+    ]
+    pendentes = list(distritos_planilha.keys())
+    for cmp_ in criterios:
+        for nome in list(pendentes):
+            for alvo in app_dists:
+                if alvo in usados:
+                    continue
+                if cmp_(nome, alvo):
+                    resultado[alvo] = distritos_planilha[nome]
+                    usados.add(alvo)
+                    pendentes.remove(nome)
+                    break
+    sem_historico = [d for d in app_dists if d not in usados]
+    return resultado, pendentes, sem_historico
+
+
 def historico_do_sharepoint():
     """Lê o histórico (ranking das rodadas encerradas) de uma planilha na pasta
     'Histórico ranking distritais' do SharePoint, se existir.
@@ -514,8 +564,17 @@ def historico_do_sharepoint():
     arquivos = [f for f in pasta.glob("*.xlsx") if not f.name.startswith("~")]
     if not arquivos:
         return None
-    # mais recente primeiro
-    arq = max(arquivos, key=lambda f: f.stat().st_mtime)
+
+    # Escolhe a MAIOR rodada disponível (ex.: 'rodada 6.xlsx'), pois cada
+    # arquivo traz o ranking ACUMULADO até aquela rodada. Sem número no nome,
+    # cai para o mais recente por data.
+    def num_rodada(f):
+        m = re.search(r"(\d+)", f.stem)
+        return int(m.group(1)) if m else -1
+
+    com_numero = [f for f in arquivos if num_rodada(f) >= 0]
+    arq = (max(com_numero, key=num_rodada) if com_numero
+           else max(arquivos, key=lambda f: f.stat().st_mtime))
 
     def norm(s):
         return re.sub(r"[^a-z]", "", str(s or "").lower())
@@ -582,6 +641,11 @@ def historico_do_sharepoint():
         if not distritos:
             return None
 
+        # Os nomes no ranking podem diferir dos da estrutura do app
+        # (ex.: 'CO-1 - Ana B.' x 'CO-1 - Ana'). Pareia por: nome exato →
+        # mesmo prefixo (CO-1, SP5...) → mesma pessoa (Jessica C.).
+        distritos, nao_pareados, sem_historico = _parear_com_estrutura(distritos)
+
         # Nº de rodadas: coluna > nome do arquivo > (semana vigente - 1)
         rodadas = rodadas_col
         if not rodadas:
@@ -597,6 +661,8 @@ def historico_do_sharepoint():
             "distritos": distritos,
             "regionalDestaque": "R2 - Luiz",
             "origem": "sharepoint",
+            "naoPareados": nao_pareados,      # nomes do ranking sem par no app
+            "semHistorico": sem_historico,    # distritos do app sem histórico
         }
     except Exception as e:
         print(f"⚠️ Falha ao ler histórico do SharePoint: {e}")
