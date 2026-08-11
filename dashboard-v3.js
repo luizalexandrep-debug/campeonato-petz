@@ -565,13 +565,19 @@ function calcularRankingSimulado() {
             const cGm = curGm[dist] || 0;
             const totPts = histPts + cPts;
             const totGm = histGm + cGm;
+            const simAvg = totGm > 0 ? totPts / totGm : 0;   // pontos por jogo
             linhas.push({
                 regional: reg,
                 distrito: dist,
                 nLojas: n,
                 histAvg: histGm > 0 ? histPts / histGm : 0,
                 curAvg: cGm > 0 ? cPts / cGm : 0,
-                simAvg: totGm > 0 ? totPts / totGm : 0,
+                simAvg,
+                // Escala do Power BI: pontos ACUMULADOS por loja.
+                // histAcum = o próprio número do ranking oficial (ex.: 12,42)
+                // simAcum  = como fica somando a rodada atual (ex.: 13,42)
+                histAcum: h ? h.pontuacaoMedia : 0,
+                simAcum: simAvg * (rodadasAnt + 1),
                 temHistorico: !!h
             });
         });
@@ -675,10 +681,10 @@ function insightsR2Html(simulado) {
         <div style="background:white; border-radius:12px; padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.08); border-left:5px solid #2b5aa8;">
             <div style="display:flex; justify-content:space-between; align-items:baseline;">
                 <span style="font-weight:700; font-size:1.1em;">#${r.posicao} ${badgeVariacao(r.variacao)} · ${r.distrito}</span>
-                <span style="color:#2b5aa8; font-weight:bold; font-size:1.25em;">${r.simAvg.toFixed(2)} pts</span>
+                <span style="color:#2b5aa8; font-weight:bold; font-size:1.25em;">${r.simAcum.toFixed(2)} pts</span>
             </div>
             <div style="font-size:0.88em; color:#666; margin:6px 0 10px;">
-                Histórico ${r.histAvg.toFixed(2)} → Atual ${r.curAvg.toFixed(2)} · ${setaEvol(r)}
+                Base ${r.histAcum.toFixed(2)} + rodada ${r.curAvg.toFixed(2)} · ritmo ${setaEvol(r)}
             </div>
             <div style="font-size:0.88em; line-height:1.6;">
                 <div>💪 <b>Puxando pra cima:</b> ${up}</div>
@@ -699,8 +705,8 @@ function insightsR2Html(simulado) {
         <div style="background:linear-gradient(135deg,#2b5aa8,#1e2a5a); color:white; border-radius:12px; padding:16px 20px; margin-bottom:16px;">
             <h2 style="margin:0 0 6px;">🔥 Seus Distritos — ${REGIONAL_DESTAQUE}</h2>
             <div style="opacity:0.9; font-size:0.92em;">
-                Melhor: <b>${melhorMeu.distrito}</b> (#${melhorMeu.posicao}, ${melhorMeu.simAvg.toFixed(2)}) ·
-                Atenção: <b>${piorMeu.distrito}</b> (#${piorMeu.posicao}, ${piorMeu.simAvg.toFixed(2)})<br>
+                Melhor: <b>${melhorMeu.distrito}</b> (#${melhorMeu.posicao}, ${melhorMeu.simAcum.toFixed(2)}) ·
+                Atenção: <b>${piorMeu.distrito}</b> (#${piorMeu.posicao}, ${piorMeu.simAcum.toFixed(2)})<br>
                 ${subindo.length ? `📈 Subindo: ${subindo.map(r => r.distrito).join(', ')}. ` : ''}
                 ${caindo.length ? `📉 Caindo: ${caindo.map(r => r.distrito).join(', ')}.` : ''}
             </div>
@@ -1110,7 +1116,9 @@ function loadRankingDashboard() {
             r.aDisp = hDisp + r.disp;
         });
         Object.values(totAcum).forEach(t => {
-            t.media = t.disp > 0 ? t.conq / (t.disp / 3) : 0;
+            // média por jogo × nº de rodadas = escala acumulada do ranking oficial
+            const porJogo = t.disp > 0 ? t.conq / (t.disp / 3) : 0;
+            t.media = porJogo * (rodadas + 1);
             t.aprov = t.disp > 0 ? t.conq / t.disp * 100 : 0;
         });
 
@@ -1125,8 +1133,8 @@ function loadRankingDashboard() {
             return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
                 <td class="c b">${medalhaFn(r.sim.posicao - 1)}</td><td class="c">${movHtml}</td>
                 <td class="l">${r.dist}</td><td class="l reg">${r.reg}</td>
-                <td class="c">${f2(r.sim.histAvg)}</td><td class="c">${f2(r.sim.curAvg)}</td>
-                <td class="c b">${f2(r.sim.simAvg)}</td><td class="c">${r.aConq}/${r.aDisp}</td>
+                <td class="c">${f2(r.sim.histAcum)}</td><td class="c">${f2(r.sim.curAvg)}</td>
+                <td class="c b">${f2(r.sim.simAcum)}</td><td class="c">${r.aConq}/${r.aDisp}</td>
                 <td class="c b">${fp(r.aConq / r.aDisp * 100)}</td></tr>`;
         }).join('') + Object.entries(totAcum).filter(([reg]) => passaFiltro(reg))
             .sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
@@ -1142,7 +1150,10 @@ function loadRankingDashboard() {
             <div class="sec-body">
                 <div class="tbl-wrap"><table class="rank-table">
                     <thead><tr><th>#</th><th title="Variação de posição em relação ao ranking das rodadas anteriores (base)">Mov.</th><th class="l">Distrito</th><th class="l">Regional</th>
-                        <th>Média Base</th><th>Média Atual</th><th>Média Simulada</th><th>Pontos</th><th>% Aprov.</th></tr></thead>
+                        <th title="Pontuação média acumulada até a rodada ${rodadas} (ranking oficial)">Base (R1-${rodadas})</th>
+                        <th title="Pontos por jogo na rodada em andamento">Rodada ${state.semana}</th>
+                        <th title="Base + rodada atual, na mesma escala do ranking oficial">Simulada (R1-${state.semana})</th>
+                        <th>Pontos</th><th>% Aprov.</th></tr></thead>
                     <tbody>${linhasAcum}</tbody>
                 </table></div>
                 ${insightsR2Html(simulado)}
