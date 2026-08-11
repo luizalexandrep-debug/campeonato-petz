@@ -573,11 +573,12 @@ function calcularRankingSimulado() {
                 histAvg: histGm > 0 ? histPts / histGm : 0,
                 curAvg: cGm > 0 ? cPts / cGm : 0,
                 simAvg,
-                // Escala do Power BI: pontos ACUMULADOS por loja.
+                // Escala do Power BI: pontos ACUMULADOS ÷ nº de lojas.
                 // histAcum = o próprio número do ranking oficial (ex.: 12,42)
                 // simAcum  = como fica somando a rodada atual (ex.: 13,42)
                 histAcum: h ? h.pontuacaoMedia : 0,
-                simAcum: simAvg * (rodadasAnt + 1),
+                simAcum: n > 0 ? totPts / n : 0,
+                acumConq: totPts,   // pontos acumulados (histórico + rodada atual)
                 temHistorico: !!h
             });
         });
@@ -1107,18 +1108,18 @@ function loadRankingDashboard() {
         const totAcum = {};
         porSim.forEach(r => {
             const nLojas = state.estrutura[r.reg][r.dist].length;
-            const hConq = Math.round((r.sim.histAvg * rodadas * nLojas));
+            const hConq = Math.round(r.sim.histAcum * nLojas);   // pontos históricos
             const hDisp = rodadas * nLojas * 3;
-            const t = totAcum[r.reg] || (totAcum[r.reg] = { conq: 0, disp: 0 });
+            const t = totAcum[r.reg] || (totAcum[r.reg] = { conq: 0, disp: 0, lojas: 0 });
             t.conq += hConq + r.conq;
             t.disp += hDisp + r.disp;
+            t.lojas += nLojas;
             r.aConq = hConq + r.conq;
             r.aDisp = hDisp + r.disp;
         });
         Object.values(totAcum).forEach(t => {
-            // média por jogo × nº de rodadas = escala acumulada do ranking oficial
-            const porJogo = t.disp > 0 ? t.conq / (t.disp / 3) : 0;
-            t.media = porJogo * (rodadas + 1);
+            // Mesma definição do ranking oficial: pontos acumulados ÷ nº de lojas
+            t.media = t.lojas > 0 ? t.conq / t.lojas : 0;
             t.aprov = t.disp > 0 ? t.conq / t.disp * 100 : 0;
         });
 
