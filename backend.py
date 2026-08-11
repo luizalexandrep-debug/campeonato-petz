@@ -635,7 +635,10 @@ def historico_do_sharepoint():
            else max(arquivos, key=lambda f: f.stat().st_mtime))
 
     def norm(s):
-        return re.sub(r"[^a-z]", "", str(s or "").lower())
+        # precisa remover ACENTOS, senão 'Pontuação Média' não é reconhecida
+        import unicodedata
+        s = unicodedata.normalize('NFKD', str(s or '')).encode('ascii', 'ignore').decode()
+        return re.sub(r"[^a-z]", "", s.lower())
 
     try:
         wb = openpyxl.load_workbook(arq, data_only=True, read_only=True)
