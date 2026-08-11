@@ -12,6 +12,7 @@ baixa todos os .xlsx de dentro dela, sem necessidade de login:
 import re
 import uuid
 import urllib.parse as urlparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 import requests
 
@@ -79,40 +80,57 @@ def baixar_pasta(folder_link, dest_dir, timeout=40):
     lr.raise_for_status()
     files = lr.json().get("value", [])
 
-    baixados = []
-    for f in files:
-        nome = f.get("Name", "")
-        if not nome.lower().endswith(".xlsx") or nome.startswith("~"):
-            continue
-        srv = f.get("ServerRelativeUrl")
-        enc_file = urlparse.quote(srv)
+    alvos = [f for f in files
+             if f.get("Name", "").lower().endswith(".xlsx")
+             and not f.get("Name", "").startswith("~")]
+
+    def _baixar_um(f):
+        nome = f["Name"]
+        enc_file = urlparse.quote(f["ServerRelativeUrl"])
         # cache-buster: garante a versão MAIS RECENTE (sem ele o SharePoint já
         # devolveu arquivo antigo com valores zerados)
-        buster = uuid.uuid4().hex
         dl_url = (f"{host}{userpath}/_api/web/"
-                  f"GetFileByServerRelativeUrl('{enc_file}')/$value?nocache={buster}")
+                  f"GetFileByServerRelativeUrl('{enc_file}')/$value"
+                  f"?nocache={uuid.uuid4().hex}")
         dr = sess.get(dl_url, timeout=timeout)
         dr.raise_for_status()
         (dest / nome).write_bytes(dr.content)
-        baixados.append(nome)
+        return nome
 
+    # Downloads em paralelo: com 5 pastas (~30 arquivos) o sequencial estourava
+    # o limite de tempo da função no Vercel.
+    baixados = []
+    if alvos:
+        with ThreadPoolExecutor(max_workers=min(8, len(alvos))) as ex:
+            for fut in as_completed([ex.submit(_baixar_um, f) for f in alvos]):
+                try:
+                    baixados.append(fut.result())
+                except Exception as e:
+                    print(f"⚠️ Falha ao baixar arquivo: {e}")
     return baixados
 
 
 def baixar_todas_pastas(base_dest, timeout=40):
     """Baixa SEMANA ANTERIOR e SEMANA ATUAL para base_dest/<nome>.
     Retorna dict {pasta: [arquivos]}."""
+    pastas = [(n, l) for n, l in PASTAS_SHAREPOINT.items() if l]
     resultado = {}
-    for nome_pasta, link in PASTAS_SHAREPOINT.items():
-        if not link:
-            continue  # pasta ainda sem link configurado
-        alvo = Path(base_dest) / nome_pasta
+
+    def _uma(item):
+        nome_pasta, link = item
         try:
-            resultado[nome_pasta] = baixar_pasta(link, alvo, timeout=timeout)
+            return nome_pasta, baixar_pasta(link, Path(base_dest) / nome_pasta,
+                                            timeout=timeout)
         except Exception as e:
             # Uma pasta com problema não pode derrubar as demais
             print(f"⚠️ Falha ao baixar '{nome_pasta}': {e}")
-            resultado[nome_pasta] = []
+            return nome_pasta, []
+
+    # Pastas em paralelo (todas as 5 juntas cabem no limite de tempo do Vercel)
+    with ThreadPoolExecutor(max_workers=len(pastas) or 1) as ex:
+        for fut in as_completed([ex.submit(_uma, p) for p in pastas]):
+            nome, arqs = fut.result()
+            resultado[nome] = arqs
     return resultado
 
 

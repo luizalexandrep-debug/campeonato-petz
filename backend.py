@@ -770,10 +770,15 @@ def diagnostico():
     desatualizado/corrompido em /tmp."""
     try:
         garantir_arquivos_frescos()
+        pastas_tmp = {}
+        for nome in ("SEMANA ANTERIOR", "SEMANA ATUAL", "Confrontos", "Historico", "Estrutura"):
+            p = TMP_BASE / nome
+            pastas_tmp[nome] = sorted(f.name for f in p.glob("*.xlsx")) if p.exists() else "AUSENTE"
         out = {
             "base_ativa": str(active_base()),
             "tmp_existe": (TMP_BASE / "SEMANA ATUAL").exists(),
             "idade_download_s": round(_idade_tmp()) if _idade_tmp() is not None else None,
+            "pastas_tmp": pastas_tmp,
             "indicadores": {}
         }
         for arquivo, slots in mapear_indicadores().items():
