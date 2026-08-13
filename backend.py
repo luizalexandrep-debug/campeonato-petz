@@ -274,9 +274,17 @@ _TIPO_CACHE = {}
 
 
 def detectar_tipo(file_path):
-    """Detecta automaticamente se o indicador é percentual ou monetário,
-    lendo o FORMATO DE NÚMERO das células do Excel (ex.: '0.00%').
-    Fallback: se todos os valores estiverem entre -1 e 1, trata como %."""
+    """Detecta se o indicador é percentual ('%') ou monetário ('R$').
+
+    Regra (nesta ordem):
+      1. Se TODAS as células de dados têm formato de porcentagem -> '%'
+         (ex.: SHARE MOL, SHARE DE CLUBZ).
+      2. Senão, quem decide são os VALORES: fração (|v| < 1) -> '%',
+         caso contrário -> 'R$'. Isso evita classificar errado planilhas com
+         formatação mista/resquício de '%' (caso do MP AREIAS, cujos valores
+         são centenas/milhares).
+      3. Sem valores, cai no formato.
+    """
     if file_path is None:
         return "R$"
     chave = str(file_path)
@@ -286,29 +294,28 @@ def detectar_tipo(file_path):
     try:
         wb = openpyxl.load_workbook(file_path)  # sem data_only: preserva formato
         ws = wb.active
-        # Olha algumas células de dados (linhas 2-6, colunas C em diante)
         formatos = []
-        for row in ws.iter_rows(min_row=2, max_row=6, min_col=3, max_col=6):
+        for row in ws.iter_rows(min_row=2, max_row=30, min_col=3, max_col=9):
             for c in row:
                 if c.number_format:
                     formatos.append(str(c.number_format))
         wb.close()
-        if formatos and any('%' in f for f in formatos):
+        com_pct = sum(1 for f in formatos if '%' in f)
+        so_pct = bool(formatos) and com_pct == len(formatos)
+
+        wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
+        ws = wb.active
+        vals = [abs(v) for row in ws.iter_rows(min_row=2, min_col=3, max_col=9,
+                                               values_only=True) if row
+                for v in row if isinstance(v, (int, float)) and v != 0]
+        wb.close()
+
+        if so_pct:
             tipo = "%"
+        elif vals:
+            tipo = "%" if all(v < 1 for v in vals) else "R$"
         else:
-            # Fallback: valores todos no intervalo de fração (0..1)
-            wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
-            ws = wb.active
-            vals = []
-            for i, row in enumerate(ws.iter_rows(min_row=2, max_row=40,
-                                                 min_col=3, max_col=6,
-                                                 values_only=True)):
-                for v in row:
-                    if isinstance(v, (int, float)) and v != 0:
-                        vals.append(abs(v))
-            wb.close()
-            if vals and all(v < 1 for v in vals):
-                tipo = "%"
+            tipo = "%" if com_pct else "R$"
     except Exception as e:
         print(f"⚠️ detectar_tipo falhou para {file_path}: {e}")
     _TIPO_CACHE[chave] = tipo

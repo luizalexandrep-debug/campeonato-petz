@@ -61,27 +61,34 @@ def mapear_indicadores(semana_anterior, semana_atual):
 
 
 def detectar_tipo(file_path):
-    """Detecta se o indicador é percentual ('%') ou monetário ('R$') pelo
-    formato de número das células do Excel. Fallback: valores todos < 1."""
+    """Detecta se o indicador é percentual ('%') ou monetário ('R$').
+    1) Formato 100% percentual -> '%'; 2) senão os VALORES decidem (fração
+    -> '%', centenas/milhares -> 'R$'); 3) sem valores, usa o formato.
+    Mantém a mesma regra de backend.detectar_tipo."""
     if file_path is None:
         return "R$"
     try:
         wb = openpyxl.load_workbook(file_path)  # precisa do formato
         ws = wb.active
         formatos = [str(c.number_format) for row in
-                    ws.iter_rows(min_row=2, max_row=6, min_col=3, max_col=6)
+                    ws.iter_rows(min_row=2, max_row=30, min_col=3, max_col=9)
                     for c in row if c.number_format]
         wb.close()
-        if formatos and any('%' in f for f in formatos):
-            return "%"
+        com_pct = sum(1 for f in formatos if '%' in f)
+        so_pct = bool(formatos) and com_pct == len(formatos)
+
         wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
         ws = wb.active
-        vals = [abs(v) for row in ws.iter_rows(min_row=2, max_row=40, min_col=3,
-                                               max_col=6, values_only=True)
+        vals = [abs(v) for row in ws.iter_rows(min_row=2, min_col=3, max_col=9,
+                                               values_only=True) if row
                 for v in row if isinstance(v, (int, float)) and v != 0]
         wb.close()
-        if vals and all(v < 1 for v in vals):
+
+        if so_pct:
             return "%"
+        if vals:
+            return "%" if all(v < 1 for v in vals) else "R$"
+        return "%" if com_pct else "R$"
     except Exception as e:
         print(f"⚠️ detectar_tipo falhou ({file_path}): {e}")
     return "R$"
