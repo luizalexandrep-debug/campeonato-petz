@@ -254,6 +254,11 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
             score1 += 1;
         } else if (evolucao2Pct > evolucao1Pct) {
             score2 += 1;
+        } else {
+            // Evoluções iguais (nenhum tem base de comparação): desempata pelo
+            // maior valor na semana atual. Mesma regra do backend.
+            if (total1Atual > total2Atual) score1 += 1;
+            else if (total2Atual > total1Atual) score2 += 1;
         }
     });
 
