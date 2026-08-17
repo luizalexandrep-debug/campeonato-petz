@@ -94,23 +94,80 @@ def detectar_tipo(file_path):
     return "R$"
 
 
+DIAS_PT = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
+
+
+def _dia_da_celula(valor):
+    """Extrai o dia da semana ('Seg'...'Dom') de um cabeçalho de coluna.
+    Aceita os dois formatos usados nas planilhas:
+      - texto  '10/08/2026 (Seg)'   -> pega o que está entre parênteses
+      - data   datetime(2026,8,10)  -> calcula o dia da semana
+    Retorna None se a célula não representar um dia.
+    """
+    from datetime import datetime, date
+    if valor is None:
+        return None
+    if isinstance(valor, (datetime, date)):
+        return DIAS_PT[valor.weekday()]
+    s = str(valor).strip()
+    if '(' in s and ')' in s:
+        dia = s[s.index('(') + 1:s.rindex(')')].strip()
+        return dia if dia in DIAS_PT else None
+    # texto de data ISO ou dd/mm/aaaa (sem o dia entre parênteses)
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%d/%m/%Y", "%d/%m/%Y %H:%M:%S"):
+        try:
+            return DIAS_PT[datetime.strptime(s, fmt).weekday()]
+        except ValueError:
+            continue
+    return None
+
+
+def _achar_cabecalho(linhas):
+    """Encontra a linha de cabeçalho (a que tem mais colunas de dia) e as
+    colunas de dias. Suporta planilhas com título/linhas em branco antes,
+    como o SHARE CLUBZ (cabeçalho na 5ª linha). Ignora colunas 'Total'.
+    Retorna (indice_linha, [(col, dia)])."""
+    melhor = (None, [])
+    for i, row in enumerate(linhas[:15]):        # cabeçalho está nas 1ªs linhas
+        if not row:
+            continue
+        cols = []
+        for j in range(1, len(row)):             # col 0 = sigla da loja
+            if str(row[j] or '').strip().lower().startswith('total'):
+                continue                          # coluna de total: ignorar
+            dia = _dia_da_celula(row[j])
+            if dia:
+                cols.append((j, dia))
+        # mantém só o primeiro de cada dia (evita duplicidade)
+        vistos, únicos = set(), []
+        for c, d in cols:
+            if d not in vistos:
+                vistos.add(d)
+                únicos.append((c, d))
+        if len(únicos) > len(melhor[1]):
+            melhor = (i, únicos)
+    return melhor
+
+
 def _carregar_arquivo(file_path):
-    """Carrega TODAS as lojas de um arquivo de uma vez: {loja: {dia: valor}}."""
+    """Carrega TODAS as lojas de um arquivo de uma vez: {loja: {dia: valor}}.
+    Tolera layouts diferentes (cabeçalho fora da 1ª linha, datas reais,
+    dias em ordem invertida, coluna Total)."""
     wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
     ws = wb.active
+    linhas = list(ws.iter_rows(values_only=True))
+    wb.close()
+
+    idx_head, col_dias = _achar_cabecalho(linhas)
     dados = {}
-    header = None
-    col_dias = []  # lista de (col_idx, dia_nome)
-    for row_idx, row in enumerate(ws.iter_rows(values_only=True)):
-        if row_idx == 0:
-            header = row
-            for col_idx in range(2, len(header)):
-                if header[col_idx] and "202" in str(header[col_idx]):
-                    dia_nome = str(header[col_idx]).split("(")[1].rstrip(")")
-                    col_dias.append((col_idx, dia_nome))
+    if idx_head is None or not col_dias:
+        return dados
+
+    for row in linhas[idx_head + 1:]:
+        if not row:
             continue
         sigla = row[0]
-        if not sigla:
+        if not sigla or not str(sigla).strip():
             continue
         dias = {}
         for col_idx, dia_nome in col_dias:
@@ -124,8 +181,7 @@ def _carregar_arquivo(file_path):
                     dias[dia_nome] = round(float(valor), 6)
             except (ValueError, TypeError):
                 dias[dia_nome] = 0
-        dados[sigla] = dias
-    wb.close()
+        dados[str(sigla).strip()] = dias
     return dados
 
 

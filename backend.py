@@ -332,31 +332,20 @@ def indicador_meta(arquivo, file_path=None):
 
 
 def ler_dias_loja(file_path, sigla):
-    """Lê os valores dia a dia de uma loja em um arquivo. Retorna dict
-    {dia: valor} ou None se a loja não estiver no arquivo."""
-    wb = openpyxl.load_workbook(file_path, data_only=True)
-    ws = wb.active
-    header = list(ws.iter_rows(max_row=1, values_only=True))[0]
+    """Lê os valores dia a dia de uma loja. Retorna {dia: valor} ou None se a
+    loja não estiver no arquivo.
 
-    for row_idx, row in enumerate(ws.iter_rows(values_only=True)):
-        if row_idx == 0:
-            continue
-        if row[0] == sigla:
-            dias = {}
-            for col_idx in range(2, len(header)):
-                if header[col_idx] and "202" in str(header[col_idx]):
-                    dia_nome = str(header[col_idx]).split("(")[1].rstrip(")")
-                    valor = row[col_idx]
-                    try:
-                        if valor == "-" or valor is None:
-                            dias[dia_nome] = 0
-                        else:
-                            # 6 casas: preserva percentuais (0,21% = 0.0021)
-                            dias[dia_nome] = round(float(valor), 6)
-                    except (ValueError, TypeError):
-                        dias[dia_nome] = 0
-            return dias
-    return None
+    Usa o leitor de calculo_rapido, que tolera layouts diferentes (cabeçalho
+    fora da 1ª linha, datas reais em vez de '10/08/2026 (Seg)', dias em ordem
+    invertida e coluna 'Total') — caso do SHARE CLUBZ.
+    """
+    import calculo_rapido as cr
+    try:
+        dados = cr._carregar_arquivo(file_path)
+    except Exception as e:
+        print(f"⚠️ ler_dias_loja falhou ({file_path}): {e}")
+        return None
+    return dados.get(sigla)
 
 
 def calcular_placar(team1, team2, semana):
