@@ -421,6 +421,14 @@ body {
     flex-direction: column;
     gap: var(--s-8);
     padding: var(--s-2) 0 var(--s-6);
+    min-width: 0;
+}
+
+/* Itens de flex/grid encolhem até o container; quem rola é o .tbl-wrap. */
+.home-sections > .sec,
+.sec-body,
+.tbl-wrap {
+    min-width: 0;
 }
 
 .sec-head {
@@ -722,7 +730,14 @@ body {
 /* ============================ Jogos ============================ */
 .games-container {
     display: grid;
+    /* minmax(0, 1fr): sem isso a tabela larga estica a coluna da grade além do
+       container e os blocos de baixo ficam mais largos que o cabeçalho. */
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s-6);
+}
+
+.games-container > * {
+    min-width: 0;
 }
 
 .game-section {
