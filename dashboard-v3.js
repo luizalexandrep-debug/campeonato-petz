@@ -1532,8 +1532,9 @@ function criarCardJogo(jogoData, lojas) {
         return card;
     }
 
-    // Header com placar
-    const [score1, score2] = score && score.includes('x')
+    // Header com placar. Sem nenhum dia lançado na semana atual o placar não
+    // existe (0 x 0) — o cálculo local não deve inventar gols por desempate.
+    const [score1, score2] = (!semResultado(jogoData) && score && score.includes('x'))
         ? score.split('x').map(s => parseInt(s.trim()))
         : [0, 0];
 
@@ -1571,7 +1572,7 @@ function criarCardJogo(jogoData, lojas) {
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
                         <span style="font-size: 0.7em; color: #999; font-weight: 500;">Acumulado</span>
-                        <span style="font-size: 0.85em; color: #999; font-weight: 600;">${scoreAcumulado}</span>
+                        <span style="font-size: 0.85em; color: #999; font-weight: 600;">${semResultado(jogoData) ? '0 x 0' : scoreAcumulado}</span>
                     </div>
                 </div>
                 <span class="team-compact">${team2}</span>
