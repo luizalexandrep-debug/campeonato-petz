@@ -209,6 +209,21 @@ def _media_dias(dias_obj, dias_a_contar):
     return sum(vals) / len(vals) if vals else 0
 
 
+def evolucao_pct(anterior, atual):
+    """Evolução percentual usada no placar. Regras do campeonato:
+      - sem base (semana anterior = 0)  -> 0% (não dá para medir evolução)
+      - tinha valor e zerou nesta semana -> 0% (zero = sem dado, não queda de
+        100%; evita punir a loja por lacuna na planilha)
+      - caso normal -> (atual - anterior) / anterior * 100
+    Precisa casar exatamente com evolucaoPct() no frontend.
+    """
+    if anterior == 0:
+        return 0
+    if atual == 0:
+        return 0
+    return (atual - anterior) / anterior * 100
+
+
 def _placar(memoria, team1, team2, hoje_idx=None):
     """Retorna (score1, score2, gols) onde gols é {arquivo: 1|2|0}:
     1 = team1 venceu o indicador, 2 = team2, 0 = empate."""
@@ -232,8 +247,8 @@ def _placar(memoria, team1, team2, hoje_idx=None):
         t2_ant, t2_atu = agg(d2a), agg(d2t)
         # Evolução PERCENTUAL em relação à semana anterior (regra do campeonato).
         # Deve casar exatamente com calcularPlacarLocal() no frontend.
-        ev1 = ((t1_atu - t1_ant) / t1_ant * 100) if t1_ant != 0 else 0
-        ev2 = ((t2_atu - t2_ant) / t2_ant * 100) if t2_ant != 0 else 0
+        ev1 = evolucao_pct(t1_ant, t1_atu)
+        ev2 = evolucao_pct(t2_ant, t2_atu)
         if ev1 > ev2:
             score1 += 1
             gols[arquivo] = 1

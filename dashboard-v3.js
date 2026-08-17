@@ -25,6 +25,16 @@ const REGIONAL_DESTAQUE = 'R2 - Luiz';
 // UTILIDADES
 // ============================================================
 
+function evolucaoPct(anterior, atual) {
+    // Regras do campeonato (iguais às do backend, em calculo_rapido.evolucao_pct):
+    //  - sem base (semana anterior = 0)   -> 0%
+    //  - tinha valor e zerou nesta semana -> 0% (zero = sem dado, não -100%)
+    //  - caso normal -> variação percentual
+    if (anterior === 0) return 0;
+    if (atual === 0) return 0;
+    return (atual - anterior) / anterior * 100;
+}
+
 function formatarPercentual(valor) {
     // Valor vem como fração (0.0021 = 0,21%)
     return (valor * 100).toLocaleString('pt-BR', {
@@ -241,13 +251,9 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
         const total2Anterior = agregar(dias2Anterior);
         const total2Atual = agregar(dias2Atual);
 
-        // Calcular evolução percentual
-        const evolucao1Pct = total1Anterior !== 0
-            ? ((total1Atual - total1Anterior) / total1Anterior * 100)
-            : 0;
-        const evolucao2Pct = total2Anterior !== 0
-            ? ((total2Atual - total2Anterior) / total2Anterior * 100)
-            : 0;
+        // Calcular evolução percentual (mesma regra do backend)
+        const evolucao1Pct = evolucaoPct(total1Anterior, total1Atual);
+        const evolucao2Pct = evolucaoPct(total2Anterior, total2Atual);
 
         // Quem evoluiu mais percentualmente = 1 ponto
         if (evolucao1Pct > evolucao2Pct) {
@@ -1668,16 +1674,15 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     totalAnterior = agregar(dados.anterior?.dias);
     totalAtual = agregar(dados.atual?.dias);
 
-    const evolucaoTotal = totalAnterior !== 0 ? ((totalAtual - totalAnterior) / totalAnterior * 100) : 0;
+    // Mesma regra do placar (zerou nesta semana = 0%, não -100%)
+    const evolucaoTotal = evolucaoPct(totalAnterior, totalAtual);
     const evoluClassTotal = evolucaoTotal > 0 ? 'positive' : evolucaoTotal < 0 ? 'negative' : 'neutral';
 
     // Comparativo com adversário: aplicar cores apenas na célula de evolução
     let classeEvolucao = evoluClassTotal;
     let faltaVirar = null; // R$ que ESTE time precisa vender a mais p/ virar o indicador
     if (dadosAdversario) {
-        const evolucaoAdversario = totalAdversarioAnterior !== 0
-            ? ((totalAdversarioAtual - totalAdversarioAnterior) / totalAdversarioAnterior * 100)
-            : 0;
+        const evolucaoAdversario = evolucaoPct(totalAdversarioAnterior, totalAdversarioAtual);
 
         // Quem tiver evolução melhor (maior) fica verde, pior fica vermelho
         if (evolucaoTotal > evolucaoAdversario) {
