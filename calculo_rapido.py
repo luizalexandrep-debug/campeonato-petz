@@ -256,17 +256,23 @@ def _placar(memoria, team1, team2, hoje_idx=None):
             score2 += 1
             gols[arquivo] = 2
         else:
-            # Evoluções iguais — acontece quando NENHUM dos dois tem base de
-            # comparação (semana anterior sem dado, evolução tratada como 0).
-            # Desempate: vence quem tem o maior valor na semana atual.
+            # Evoluções iguais (nenhum dos dois tem base, ou os dois zeraram).
+            # Desempate em cascata: 1º maior valor na semana ATUAL;
+            # 2º maior valor na semana ANTERIOR.
             if t1_atu > t2_atu:
                 score1 += 1
                 gols[arquivo] = 1
             elif t2_atu > t1_atu:
                 score2 += 1
                 gols[arquivo] = 2
+            elif t1_ant > t2_ant:
+                score1 += 1
+                gols[arquivo] = 1
+            elif t2_ant > t1_ant:
+                score2 += 1
+                gols[arquivo] = 2
             else:
-                gols[arquivo] = 0   # empate real (sem dado nos dois lados)
+                gols[arquivo] = 0   # empate real (sem dado em nenhuma semana)
     return score1, score2, gols
 
 

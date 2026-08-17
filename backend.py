@@ -1139,10 +1139,15 @@ def calcularPlacarBackend(team1, team2, semana, hojeIdx=None):
                 score1 += 1
             elif evolucao2 > evolucao1:
                 score2 += 1
-            # Evoluções iguais (sem base): desempata pelo maior valor atual
+            # Evoluções iguais: desempate em cascata — maior valor atual,
+            # depois maior valor da semana anterior
             elif total1Atual > total2Atual:
                 score1 += 1
             elif total2Atual > total1Atual:
+                score2 += 1
+            elif total1Anterior > total2Anterior:
+                score1 += 1
+            elif total2Anterior > total1Anterior:
                 score2 += 1
 
         return score1, score2
