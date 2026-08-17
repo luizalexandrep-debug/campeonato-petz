@@ -381,6 +381,29 @@ body {
     padding-top: 8px;
 }
 
+/* Informativo (azul da marca): a rodada ainda não começou. Não é erro de
+   upload, por isso não usa o amarelo de alerta. */
+.alerta-info {
+    background: var(--brand-tint);
+    border: 1px solid #c6dbf2;
+    border-left: 5px solid var(--brand);
+    border-radius: var(--r-md);
+    padding: 14px 18px;
+    margin-bottom: var(--s-5);
+    color: var(--brand-ink);
+    font-size: 0.92em;
+}
+
+.alerta-info .alerta-titulo {
+    font-weight: 800;
+    margin-bottom: 6px;
+}
+
+.alerta-info ul {
+    margin: 0 0 0 18px;
+    line-height: 1.6;
+}
+
 .alerta-hist {
     background: #fff8e6;
     border: 1px solid #f5d67f;
@@ -1116,6 +1139,15 @@ body {
     th, td {
         padding: 7px 6px;
     }
+}
+
+/* No celular a tabela de ranking tem colunas demais para caber sem espremer.
+   A regional já aparece no filtro do topo, então some primeiro. */
+@media (max-width: 768px) {
+    .rank-table .reg { display: none; }
+    .rank-table .lg { display: none; }
+    .rank-table { font-size: 0.8em; }
+    .rank-table th, .rank-table td { padding: 7px 5px; }
 }
 
 @media (max-width: 480px) {

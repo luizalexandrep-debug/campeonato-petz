@@ -1417,6 +1417,7 @@ def _calcular_summary(semana):
             tem_valor = any(v for dias in lojas.values() for v in dias.values())
             if not tem_valor:
                 avisos.append({
+                    "tipo": "zerado",
                     "indicador": nome,
                     "semana": rotulo,
                     "mensagem": f"{nome} ({rotulo}) está sem dados — a planilha subiu zerada, "
@@ -1428,6 +1429,7 @@ def _calcular_summary(semana):
         # 1º dia da rodada: só existe a base de comparação. Mostramos a rodada
         # mesmo assim (semana anterior preenchida, semana atual zerada).
         avisos.append({
+            "tipo": "rodada",
             "indicador": "Dados de venda",
             "semana": f"rodada {semana}",
             "mensagem": f"A rodada {semana} está começando: só há a base da semana "
@@ -1437,6 +1439,7 @@ def _calcular_summary(semana):
         })
     if rod_dados != semana:
         avisos.append({
+            "tipo": "rodada",
             "indicador": "Dados de venda",
             "semana": f"rodada {semana}",
             "mensagem": f"A rodada {semana} ainda não tem planilhas de venda — "

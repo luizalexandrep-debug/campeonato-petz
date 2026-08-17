@@ -1170,11 +1170,11 @@ function loadRankingDashboard() {
             ${rodadas < state.semana - 1 ? `<div class="alerta-hist">⚠️ O histórico está com <b>${rodadas} rodada(s)</b>, mas a rodada atual é a <b>${state.semana}</b> — as rodadas ${rodadas + 1} a ${state.semana - 1} não estão sendo somadas. Atualize o ranking na pasta <b>Histórico ranking distritais</b> do SharePoint.</div>` : ''}
             <div class="sec-body">
                 <div class="tbl-wrap"><table class="rank-table">
-                    <thead><tr><th>#</th><th title="Variação de posição em relação ao ranking das rodadas anteriores (base)">Mov.</th><th class="l">Distrito</th><th class="l">Regional</th>
+                    <thead><tr><th>#</th><th title="Variação de posição em relação ao ranking das rodadas anteriores (base)">Mov.</th><th class="l">Distrito</th><th class="l reg">Regional</th>
                         <th title="Pontuação média acumulada até a rodada ${rodadas} (ranking oficial)">Base (R1-${rodadas})</th>
                         <th title="Pontos por jogo na rodada em andamento">Rodada ${state.semana}</th>
                         <th title="Base + rodada atual, na mesma escala do ranking oficial">Simulada (R1-${state.semana})</th>
-                        <th>Pontos</th><th>% Aprov.</th></tr></thead>
+                        <th>Pontos</th><th><span class="lg">% </span>Aprov.</th></tr></thead>
                     <tbody>${linhasAcum}</tbody>
                 </table></div>
                 ${insightsR2Html(simulado)}
@@ -1184,12 +1184,22 @@ function loadRankingDashboard() {
 
     // ---------- Alerta de indicador sem dados ----------
     const avisos = state.gamesSummary?.avisos || [];
-    const blocoAvisos = avisos.length ? `
+    // Dois tipos: 'rodada' (informativo, a rodada ainda não começou) e
+    // 'zerado' (planilha subiu sem valores — aí sim é erro de upload).
+    const avisosRodada = avisos.filter(a => a.tipo === 'rodada');
+    const avisosZerado = avisos.filter(a => a.tipo !== 'rodada');
+    const blocoRodada = avisosRodada.length ? `
+        <div class="alerta-info">
+            <div class="alerta-titulo">⏳ Rodada em preparação</div>
+            <ul>${avisosRodada.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
+        </div>` : '';
+    const blocoZerado = avisosZerado.length ? `
         <div class="alerta-dados">
             <div class="alerta-titulo">⚠️ Atenção: indicador sem dados</div>
-            <ul>${avisos.map(a => `<li><b>${a.indicador}</b> (${a.semana}) subiu zerado — esse gol não está sendo disputado, então os placares somam menos de 6.</li>`).join('')}</ul>
+            <ul>${avisosZerado.map(a => `<li><b>${a.indicador}</b> (${a.semana}) subiu zerado — esse gol não está sendo disputado, então os placares somam menos de 6.</li>`).join('')}</ul>
             <div class="alerta-dica">Dica: na planilha, use <b>Colar Especial → Somente Valores</b> antes de subir, para as fórmulas não zerarem ao fechar a origem.</div>
         </div>` : '';
+    const blocoAvisos = blocoRodada + blocoZerado;
 
     // ---------- Render ----------
     container.innerHTML = `
@@ -1199,8 +1209,8 @@ function loadRankingDashboard() {
             <div class="sec-head">📅 RODADA ATUAL <small>· desempenho desta semana, ao vivo</small></div>
             <div class="sec-body">
                 <div class="tbl-wrap"><table class="rank-table">
-                    <thead><tr><th>#</th><th class="l">Distrito</th><th class="l">Regional</th>
-                        <th>V</th><th>E</th><th>D</th><th>Pontuação Média</th><th>Pontos</th><th>% Aprov.</th></tr></thead>
+                    <thead><tr><th>#</th><th class="l">Distrito</th><th class="l reg">Regional</th>
+                        <th>V</th><th>E</th><th>D</th><th><span class="lg">Pontuação </span>Média</th><th>Pontos</th><th><span class="lg">% </span>Aprov.</th></tr></thead>
                     <tbody>${linhasAtual}</tbody>
                 </table></div>
                 <div class="panel">
