@@ -88,10 +88,16 @@ TMP_BASE = Path('/tmp/campeonato_data')
 
 
 def active_base():
-    """Retorna a base de dados ativa: /tmp se já houve reprocessamento, senão a
-    base empacotada."""
+    """Retorna a base de dados ativa: /tmp se já houve download do SharePoint,
+    senão a base empacotada no repositório.
+
+    Considera TAMBÉM as subpastas por rodada — com a estrutura nova os arquivos
+    ficam em 'SEMANA ATUAL/rodada N' e a raiz fica vazia; sem isso o app cairia
+    para a cópia antiga do repositório.
+    """
     atual = TMP_BASE / "SEMANA ATUAL"
-    if atual.exists() and any(atual.glob("*.xlsx")):
+    if atual.exists() and (any(atual.glob("*.xlsx")) or
+                           any(atual.glob("rodada */*.xlsx"))):
         return TMP_BASE
     return BUNDLED_BASE
 

@@ -119,6 +119,17 @@ def baixar_pasta(folder_link, dest_dir, timeout=40, subpasta=None):
                     baixados.append(fut.result())
                 except Exception as e:
                     print(f"⚠️ Falha ao baixar arquivo: {e}")
+
+    # Remove cópias locais de arquivos que não existem mais na origem — sem
+    # isso, um arquivo movido/renomeado no SharePoint continuaria sendo lido.
+    esperados = {f["Name"] for f in alvos}
+    for antigo in dest.glob("*.xlsx"):
+        if antigo.name not in esperados:
+            try:
+                antigo.unlink()
+                print(f"🗑️  removido obsoleto: {antigo.name}")
+            except Exception:
+                pass
     return baixados
 
 
