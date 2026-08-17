@@ -25,8 +25,16 @@ PASTAS_SHAREPOINT = {
     # Ranking acumulado das rodadas já encerradas (export do Power BI).
     # Ver leitura em backend.historico_do_sharepoint().
     "Historico": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAJLDGS_b2DSJri9CAzz6dBAWb5DNwKssFacdi6Y9gwm00?e=bcUoZf",
+    # Mesmo ranking, por REGIONAL. Acessível pela pasta raiz compartilhada,
+    # por isso é baixado via SUBPASTAS_RAIZ (abaixo) e não por link próprio.
     # Pasta raiz — contém estrutura.xlsx (Regional | Distrito | Sigla Loja)
     "Estrutura": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgBmj_M4lNJVT5A78h_MKThtAaUgbM2id9_uj_Zjjs-8I3g?e=KLPE4E",
+}
+
+# Subpastas acessíveis DENTRO do link da pasta raiz (não precisam de link
+# próprio): {nome_local: nome_da_subpasta_no_sharepoint}
+SUBPASTAS_RAIZ = {
+    "HistoricoRegional": "Histórico ranking regionais",
 }
 
 HEADERS = {
@@ -48,9 +56,11 @@ def _host_e_userpath(final_url):
     return host, userpath
 
 
-def baixar_pasta(folder_link, dest_dir, timeout=40):
+def baixar_pasta(folder_link, dest_dir, timeout=40, subpasta=None):
     """Baixa todos os .xlsx de uma pasta compartilhada para dest_dir.
-    Retorna a lista de nomes de arquivos baixados. Lança exceção em falha grave."""
+    Se `subpasta` for informada, baixa dessa subpasta (o link anônimo da pasta
+    raiz também dá acesso às subpastas dela).
+    Retorna a lista de nomes de arquivos baixados."""
     dest = Path(dest_dir)
     dest.mkdir(parents=True, exist_ok=True)
 
@@ -65,6 +75,8 @@ def baixar_pasta(folder_link, dest_dir, timeout=40):
     folder_path = q.get("id", [None])[0]
     if not folder_path:
         raise RuntimeError(f"Não foi possível descobrir o caminho da pasta (URL: {final_url})")
+    if subpasta:
+        folder_path = folder_path.rstrip('/') + '/' + subpasta
 
     host, userpath = _host_e_userpath(final_url)
     if not userpath:
@@ -113,14 +125,18 @@ def baixar_pasta(folder_link, dest_dir, timeout=40):
 def baixar_todas_pastas(base_dest, timeout=40):
     """Baixa SEMANA ANTERIOR e SEMANA ATUAL para base_dest/<nome>.
     Retorna dict {pasta: [arquivos]}."""
-    pastas = [(n, l) for n, l in PASTAS_SHAREPOINT.items() if l]
+    raiz = PASTAS_SHAREPOINT.get("Estrutura", "")
+    pastas = [(n, l, None) for n, l in PASTAS_SHAREPOINT.items() if l]
+    # subpastas alcançadas pelo link da raiz (ex.: histórico das regionais)
+    if raiz:
+        pastas += [(n, raiz, sub) for n, sub in SUBPASTAS_RAIZ.items()]
     resultado = {}
 
     def _uma(item):
-        nome_pasta, link = item
+        nome_pasta, link, sub = item
         try:
             return nome_pasta, baixar_pasta(link, Path(base_dest) / nome_pasta,
-                                            timeout=timeout)
+                                            timeout=timeout, subpasta=sub)
         except Exception as e:
             # Uma pasta com problema não pode derrubar as demais
             print(f"⚠️ Falha ao baixar '{nome_pasta}': {e}")

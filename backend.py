@@ -603,32 +603,72 @@ def _parear_com_estrutura(distritos_planilha):
     return resultado, pendentes, sem_historico
 
 
-def historico_do_sharepoint():
-    """Lê o histórico (ranking das rodadas encerradas) de uma planilha na pasta
-    'Histórico ranking distritais' do SharePoint, se existir.
+def _parear_regionais(regionais_planilha):
+    """Converte os nomes de regional do ranking para os nomes da estrutura.
+    Casa por nome exato, prefixo (R1/R2/R3) ou nome da pessoa."""
+    import unicodedata
 
-    Formato esperado (1ª linha = cabeçalho, nomes flexíveis):
-        Distrital | Pontuação Média | Vit. Média        (opcional: Rodadas)
-    O número de rodadas pode vir numa coluna 'Rodadas' ou no nome do arquivo
-    (ex.: 'Ranking apos rodada 6.xlsx'). Retorna None se não houver planilha.
+    def norm(s):
+        s = unicodedata.normalize('NFKD', str(s)).encode('ascii', 'ignore').decode().lower()
+        return re.sub(r'[^a-z0-9]', '', s)
+
+    def partes(nome):
+        p = str(nome).split(' - ', 1)
+        return norm(p[0]), (norm(p[1]) if len(p) > 1 else '')
+
+    alvos = list(estrutura_ativa().keys())
+    if not alvos:
+        return regionais_planilha, [], []
+    resultado, usados = {}, set()
+    criterios = [
+        lambda a, b: a == b,
+        lambda a, b: partes(a)[0] == partes(b)[0],
+        lambda a, b: partes(a)[1] and partes(a)[1] == partes(b)[1],
+    ]
+    pendentes = list(regionais_planilha.keys())
+    for cmp_ in criterios:
+        for nome in list(pendentes):
+            for alvo in alvos:
+                if alvo in usados:
+                    continue
+                if cmp_(nome, alvo):
+                    resultado[alvo] = regionais_planilha[nome]
+                    usados.add(alvo)
+                    pendentes.remove(nome)
+                    break
+    return resultado, pendentes, [a for a in alvos if a not in usados]
+
+
+def historico_do_sharepoint(nome_pasta="Historico", chave="distrito"):
+    """Lê o ranking acumulado das rodadas encerradas, do SharePoint.
+
+    nome_pasta: 'Historico' (distritais) ou 'HistoricoRegional' (regionais).
+    chave: 'distrito' ou 'regional' — define a coluna de identificação.
+
+    Formato esperado (cabeçalho em qualquer uma das primeiras linhas):
+        Rank | Distrital/Regional | Pontuação Média | Vit. Média
+    O nº de rodadas vem do nome do arquivo ('rodada 6.xlsx'). Cada arquivo é o
+    ranking ACUMULADO até aquela rodada. Retorna None se não houver planilha.
     """
-    pasta = TMP_BASE / "Historico"
+    pasta = TMP_BASE / nome_pasta
     if not pasta.exists():
         return None
-    arquivos = [f for f in pasta.glob("*.xlsx") if not f.name.startswith("~")]
+    # Só arquivos "rodada N" — a pasta pode conter outros itens por engano
+    # (ex.: um 'Semana 8.xlsx' de confrontos salvo no lugar errado).
+    def num_rodada(f):
+        m = re.match(r"\s*rodada\s*(\d+)", f.stem, re.IGNORECASE)
+        return int(m.group(1)) if m else -1
+
+    arquivos = [f for f in pasta.glob("*.xlsx")
+                if not f.name.startswith("~") and num_rodada(f) >= 0]
     if not arquivos:
         return None
 
-    # Escolhe a MAIOR rodada disponível (ex.: 'rodada 6.xlsx'), pois cada
-    # arquivo traz o ranking ACUMULADO até aquela rodada. Sem número no nome,
-    # cai para o mais recente por data.
-    def num_rodada(f):
-        m = re.search(r"(\d+)", f.stem)
-        return int(m.group(1)) if m else -1
-
-    com_numero = [f for f in arquivos if num_rodada(f) >= 0]
-    arq = (max(com_numero, key=num_rodada) if com_numero
-           else max(arquivos, key=lambda f: f.stat().st_mtime))
+    # A base é a rodada ANTERIOR à vigente (a atual ainda está em disputa e é
+    # somada ao vivo). Se não existir, usa a maior rodada disponível.
+    base_desejada = max(semana_atual() - 1, 1)
+    candidatos = [f for f in arquivos if num_rodada(f) <= base_desejada]
+    arq = max(candidatos or arquivos, key=num_rodada)
 
     def norm(s):
         # precisa remover ACENTOS, senão 'Pontuação Média' não é reconhecida
@@ -644,10 +684,14 @@ def historico_do_sharepoint():
         if not linhas:
             return None
 
-        # Descobrir a linha de cabeçalho (a que tem uma coluna de distrito)
+        # Prefixos da coluna de identificação, conforme o tipo de ranking
+        pref = (("regional",) if chave == "regional"
+                else ("distrital", "distrito"))
+
+        # Descobrir a linha de cabeçalho (a que tem a coluna de identificação)
         idx_head = None
         for i, row in enumerate(linhas[:10]):
-            if any(norm(c).startswith(("distrital", "distrito")) for c in row):
+            if any(norm(c).startswith(pref) for c in row):
                 idx_head = i
                 break
         if idx_head is None:
@@ -657,7 +701,7 @@ def historico_do_sharepoint():
         col_dist = col_pts = col_vit = col_rod = None
         for j, c in enumerate(head):
             n = norm(c)
-            if col_dist is None and n.startswith(("distrital", "distrito")):
+            if col_dist is None and n.startswith(pref):
                 col_dist = j
             elif col_pts is None and "pontuacaomedia" in n:
                 col_pts = j
@@ -701,7 +745,10 @@ def historico_do_sharepoint():
         # Os nomes no ranking podem diferir dos da estrutura do app
         # (ex.: 'CO-1 - Ana B.' x 'CO-1 - Ana'). Pareia por: nome exato →
         # mesmo prefixo (CO-1, SP5...) → mesma pessoa (Jessica C.).
-        distritos, nao_pareados, sem_historico = _parear_com_estrutura(distritos)
+        if chave == "regional":
+            distritos, nao_pareados, sem_historico = _parear_regionais(distritos)
+        else:
+            distritos, nao_pareados, sem_historico = _parear_com_estrutura(distritos)
 
         # Nº de rodadas: coluna > nome do arquivo > (semana vigente - 1)
         rodadas = rodadas_col
@@ -734,14 +781,24 @@ def get_historico():
         garantir_arquivos_frescos()
     except Exception:
         pass
+    # Ranking oficial das REGIONAIS (quando disponível, é a fonte preferida
+    # para os totais por regional — evita derivar a partir dos distritos).
+    hr = historico_do_sharepoint("HistoricoRegional", chave="regional")
+
     h = historico_do_sharepoint()
     if h:
+        if hr:
+            h["regionais"] = hr.get("distritos")
+            h["rodadasRegionais"] = hr.get("rodadasAnteriores")
         return jsonify(h)
     try:
         import json as _json
         with open(Path(__file__).parent / 'historico.json') as f:
             d = _json.load(f)
         d["origem"] = "arquivo"
+        if hr:
+            d["regionais"] = hr.get("distritos")
+            d["rodadasRegionais"] = hr.get("rodadasAnteriores")
         return jsonify(d)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
