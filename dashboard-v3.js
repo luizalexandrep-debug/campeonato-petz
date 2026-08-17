@@ -1158,10 +1158,22 @@ function loadRankingDashboard() {
                 <td class="c b">${f2(r.sim.simAcum)}</td><td class="c">${r.aConq}/${r.aDisp}</td>
                 <td class="c b">${fp(r.aConq / r.aDisp * 100)}</td></tr>`;
         }).join('') + Object.entries(totAcum).filter(([reg]) => passaFiltro(reg))
-            .sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
+            .map(([reg, t]) => {
+                // A base da regional vem do ranking oficial da pasta
+                // "Histórico ranking regionais" — não da soma dos distritos.
+                const hReg = state.historico.regionais?.[reg];
+                const base = hReg ? hReg.pontuacaoMedia : null;
+                const ptsRodada = totReg[reg] ? totReg[reg].conq : 0;
+                const simulada = base !== null
+                    ? base + (t.lojas > 0 ? ptsRodada / t.lojas : 0)
+                    : t.media;
+                return { reg, t, base, simulada };
+            })
+            .sort((a, b) => b.simulada - a.simulada).map(({ reg, t, base, simulada }) => `
             <tr class="tot"><td></td><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
-                <td class="c">—</td><td class="c">${f2(totReg[reg].media)}</td>
-                <td class="c b">${f2(t.media)}</td><td class="c">${t.conq}/${t.disp}</td>
+                <td class="c">${base !== null ? f2(base) : '—'}</td>
+                <td class="c">${f2(totReg[reg] ? totReg[reg].media : 0)}</td>
+                <td class="c b">${f2(simulada)}</td><td class="c">${t.conq}/${t.disp}</td>
                 <td class="c b">${fp(t.aprov)}</td></tr>`).join('');
 
         secaoAcumulado = `
