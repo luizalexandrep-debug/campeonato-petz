@@ -122,20 +122,54 @@ def baixar_pasta(folder_link, dest_dir, timeout=40, subpasta=None):
     return baixados
 
 
-def baixar_todas_pastas(base_dest, timeout=40):
+def baixar_rodada(semana, base_dest, timeout=25):
+    """Baixa as subpastas 'rodada N' de SEMANA ATUAL e SEMANA ANTERIOR.
+    Cada rodada guarda seus próprios dados (atual) e a base de comparação
+    (anterior), o que permite reabrir qualquer rodada passada.
+    Retorna {pasta: [arquivos]} — lista vazia se a subpasta não existir."""
+    sub = f"rodada {semana}"
+    out = {}
+
+    def _uma(nome):
+        link = PASTAS_SHAREPOINT.get(nome)
+        if not link:
+            return nome, []
+        dest = Path(base_dest) / nome / sub
+        try:
+            return nome, baixar_pasta(link, dest, timeout=timeout, subpasta=sub)
+        except Exception as e:
+            print(f"⚠️ '{nome}/{sub}' indisponível: {e}")
+            return nome, []
+
+    alvos = ["SEMANA ATUAL", "SEMANA ANTERIOR"]
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        for fut in as_completed([ex.submit(_uma, n) for n in alvos]):
+            nome, arqs = fut.result()
+            out[nome] = arqs
+    return out
+
+
+def baixar_todas_pastas(base_dest, timeout=40, semanas=None):
     """Baixa SEMANA ANTERIOR e SEMANA ATUAL para base_dest/<nome>.
     Retorna dict {pasta: [arquivos]}."""
     raiz = PASTAS_SHAREPOINT.get("Estrutura", "")
-    pastas = [(n, l, None) for n, l in PASTAS_SHAREPOINT.items() if l]
+    # (nome_local, link, subpasta_no_sharepoint, destino_relativo)
+    pastas = [(n, l, None, n) for n, l in PASTAS_SHAREPOINT.items() if l]
     # subpastas alcançadas pelo link da raiz (ex.: histórico das regionais)
     if raiz:
-        pastas += [(n, raiz, sub) for n, sub in SUBPASTAS_RAIZ.items()]
+        pastas += [(n, raiz, sub, n) for n, sub in SUBPASTAS_RAIZ.items()]
+    # subpastas por rodada (ex.: SEMANA ATUAL/rodada 8)
+    for s in (semanas or []):
+        for p in ("SEMANA ATUAL", "SEMANA ANTERIOR"):
+            if PASTAS_SHAREPOINT.get(p):
+                pastas.append((f"{p}/rodada {s}", PASTAS_SHAREPOINT[p],
+                               f"rodada {s}", f"{p}/rodada {s}"))
     resultado = {}
 
     def _uma(item):
-        nome_pasta, link, sub = item
+        nome_pasta, link, sub, destino = item
         try:
-            return nome_pasta, baixar_pasta(link, Path(base_dest) / nome_pasta,
+            return nome_pasta, baixar_pasta(link, Path(base_dest) / destino,
                                             timeout=timeout, subpasta=sub)
         except Exception as e:
             # Uma pasta com problema não pode derrubar as demais

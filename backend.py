@@ -96,12 +96,49 @@ def active_base():
     return BUNDLED_BASE
 
 
-def dir_anterior():
-    return active_base() / "SEMANA ANTERIOR"
+def _tem_xlsx(p):
+    return p.exists() and any(p.glob("*.xlsx"))
 
 
-def dir_atual():
-    return active_base() / "SEMANA ATUAL"
+def rodada_efetiva(semana=None):
+    """Qual rodada realmente tem dados de venda para exibir.
+
+    Ordem: a própria rodada -> estrutura antiga (arquivos na raiz) -> a rodada
+    anterior mais recente que tenha dados. Retorna (rodada, usou_raiz).
+    Isso mantém o app útil quando a rodada já começou (confrontos publicados)
+    mas as planilhas de venda dela ainda não subiram.
+    """
+    base = active_base()
+    if semana is None:
+        semana = semana_atual()
+    if _tem_xlsx(base / "SEMANA ATUAL" / f"rodada {semana}"):
+        return semana, False
+    if _tem_xlsx(base / "SEMANA ATUAL"):
+        return semana, True          # estrutura antiga (sem subpastas)
+    for n in range(semana - 1, 0, -1):
+        if _tem_xlsx(base / "SEMANA ATUAL" / f"rodada {n}"):
+            return n, False
+    return semana, True
+
+
+def _dir_semana(pasta, semana=None):
+    """Diretório dos dados de uma semana.
+
+    Estrutura preferida (por rodada):  <base>/SEMANA ATUAL/rodada 8
+    Cai para a pasta antiga (<base>/SEMANA ATUAL) ou para a última rodada com
+    dados, de modo que a migração dos arquivos possa ser feita aos poucos.
+    """
+    base = active_base()
+    rod, usou_raiz = rodada_efetiva(semana)
+    return (base / pasta) if usou_raiz else (base / pasta / f"rodada {rod}")
+
+
+def dir_anterior(semana=None):
+    return _dir_semana("SEMANA ANTERIOR", semana)
+
+
+def dir_atual(semana=None):
+    return _dir_semana("SEMANA ATUAL", semana)
 
 
 def dir_confrontos():
@@ -154,6 +191,35 @@ _fetch_lock = threading.Lock()
 _MARKER = TMP_BASE / ".fetched_at"
 
 
+def garantir_rodada(semana):
+    """Garante que os dados da rodada pedida estejam em /tmp.
+    Permite reabrir rodadas passadas: se a subpasta 'rodada N' ainda não foi
+    baixada nesta instância, busca sob demanda (uma vez)."""
+    if not semana:
+        return
+    alvo = TMP_BASE / "SEMANA ATUAL" / f"rodada {semana}"
+    if alvo.exists() and any(alvo.glob("*.xlsx")):
+        return
+    marcador = TMP_BASE / f".rodada_{semana}_tentada"
+    if marcador.exists():
+        return   # já tentamos; a rodada provavelmente não usa subpastas
+    with _fetch_lock:
+        if alvo.exists() and any(alvo.glob("*.xlsx")):
+            return
+        try:
+            import sharepoint
+            print(f"⏳ Baixando dados da rodada {semana}...")
+            sharepoint.baixar_rodada(semana, str(TMP_BASE), timeout=25)
+        except Exception as e:
+            print(f"⚠️ garantir_rodada({semana}) falhou: {e}")
+        finally:
+            try:
+                TMP_BASE.mkdir(parents=True, exist_ok=True)
+                marcador.write_text(str(time.time()))
+            except Exception:
+                pass
+
+
 def _idade_tmp():
     """Idade (segundos) dos dados em /tmp; None se nunca baixado."""
     try:
@@ -179,7 +245,15 @@ def garantir_arquivos_frescos(force=False):
         try:
             import sharepoint
             print("⏳ Atualizando dados do SharePoint (frescor)...")
-            sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40)
+            # Baixa também a subpasta da rodada vigente (SEMANA ATUAL/rodada N
+            # e SEMANA ANTERIOR/rodada N), quando a estrutura por rodada existir
+            try:
+                sem = semana_atual()
+            except Exception:
+                sem = None
+            sems = [sem, sem - 1] if sem else None
+            sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40,
+                                           semanas=[x for x in (sems or []) if x and x > 0])
             _MARKER.write_text(str(time.time()))
             print("✅ Dados do SharePoint atualizados em /tmp.")
         except Exception as e:
@@ -227,14 +301,14 @@ def _similaridade(nome_a, nome_b):
     return SequenceMatcher(None, _chave(nome_a), _chave(nome_b)).ratio()
 
 
-def mapear_indicadores():
+def mapear_indicadores(semana=None):
     """Descobre os indicadores e pareia cada arquivo da SEMANA ATUAL com o
     arquivo correspondente da SEMANA ANTERIOR, mesmo que os nomes tenham
     pequenas diferenças. Retorna dict:
         { nome_arquivo_atual: {"anterior": Path|None, "atual": Path|None} }
     Quando um novo .xlsx é adicionado, ele entra automaticamente."""
-    atual_files = _listar_xlsx(dir_atual())
-    anterior_files = _listar_xlsx(dir_anterior())
+    atual_files = _listar_xlsx(dir_atual(semana))
+    anterior_files = _listar_xlsx(dir_anterior(semana))
 
     indicadores = {}
     for af in atual_files:
@@ -1065,12 +1139,13 @@ def get_loja_dias(sigla, semana):
     """Retorna dados dia a dia de uma loja para uma semana"""
     try:
         garantir_arquivos_frescos()
+        garantir_rodada(semana)
         dados_dias = {}
 
         # Indicadores descobertos automaticamente, já pareando o arquivo da
         # semana anterior com o da semana atual (tolerando pequenas diferenças
         # de nome).
-        mapa = mapear_indicadores()
+        mapa = mapear_indicadores(semana)
 
         for arquivo, slots in mapa.items():
             # Tipo detectado do arquivo (prefere o da semana atual)
@@ -1304,7 +1379,8 @@ def _calcular_summary(semana):
     if not confrontos_path.exists():
         raise FileNotFoundError(f"Confrontos da semana {semana} não encontrados")
     confrontos = cr.ler_confrontos(confrontos_path)
-    memoria = cr.carregar_tudo(dir_anterior(), dir_atual())
+    garantir_rodada(semana)          # dados da rodada pedida (subpasta)
+    memoria = cr.carregar_tudo(dir_anterior(semana), dir_atual(semana))
     hoje_idx = (datetime.now().weekday() + 1) % 7
     jogos = cr.calcular_todos_jogos(confrontos, memoria, hoje_idx)
 
@@ -1326,8 +1402,17 @@ def _calcular_summary(semana):
                                 f"então esse gol não está sendo disputado."
                 })
 
+    rod_dados, _raiz = rodada_efetiva(semana)
+    if rod_dados != semana:
+        avisos.append({
+            "indicador": "Dados de venda",
+            "semana": f"rodada {semana}",
+            "mensagem": f"A rodada {semana} ainda não tem planilhas de venda — "
+                        f"os placares estão sendo calculados com os dados da rodada {rod_dados}."
+        })
     return {
         "week": semana,
+        "rodadaDados": rod_dados,
         "lastUpdated": datetime.now().isoformat(),
         "total": len(jogos),
         "games": jogos,
