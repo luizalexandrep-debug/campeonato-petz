@@ -1431,8 +1431,9 @@ def _calcular_summary(semana):
             "indicador": "Dados de venda",
             "semana": f"rodada {semana}",
             "mensagem": f"A rodada {semana} está começando: só há a base da semana "
-                        f"anterior. A semana atual ainda está zerada, então os gols "
-                        f"estão sendo definidos apenas pelos critérios de desempate."
+                        f"anterior. Sem nenhum dia lançado na semana atual não há "
+                        f"evolução para medir, então nenhum resultado está sendo "
+                        f"contabilizado (sem vitória, empate ou derrota)."
         })
     if rod_dados != semana:
         avisos.append({
