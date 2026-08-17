@@ -849,6 +849,22 @@ body {
     filter: brightness(1.06);
 }
 
+/* Sigla da loja + indicador. Empilhadas no mobile as tabelas ficam uma sob a
+   outra, então o título precisa dizer de quem é a tabela. */
+.table-title .tt-loja {
+    display: block;
+    font-size: 1.05em;
+    letter-spacing: 0.04em;
+}
+
+.table-title .tt-ind {
+    display: block;
+    font-weight: 600;
+    font-size: 0.82em;
+    opacity: 0.85;
+    margin-top: 2px;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;

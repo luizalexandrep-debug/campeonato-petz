@@ -1654,7 +1654,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
 
     let html = `
         <div class="table-container">
-            <div class="table-title">${displayName}</div>
+            <div class="table-title"><span class="tt-loja">${teamName}</span><span class="tt-ind">${displayName}</span></div>
             <table>
                 <thead>
                     <tr>
@@ -1671,7 +1671,9 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
         const valorAnterior = (dados && dados.anterior && dados.anterior.dias) ? (dados.anterior.dias[dia] || 0) : 0;
         const valorAtual = (dados && dados.atual && dados.atual.dias) ? (dados.atual.dias[dia] || 0) : 0;
 
-        const evolucao = valorAnterior !== 0 ? ((valorAtual - valorAnterior) / valorAnterior * 100) : 0;
+        // Mesma regra do placar e da linha de TOTAL: sem lançamento na semana
+        // atual a evolução é 0%, não -100%.
+        const evolucao = evolucaoPct(valorAnterior, valorAtual);
         const evoluClass = evolucao > 0 ? 'positive' : evolucao < 0 ? 'negative' : 'neutral';
 
         html += `
