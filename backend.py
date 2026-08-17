@@ -95,10 +95,10 @@ def active_base():
     ficam em 'SEMANA ATUAL/rodada N' e a raiz fica vazia; sem isso o app cairia
     para a cópia antiga do repositório.
     """
-    atual = TMP_BASE / "SEMANA ATUAL"
-    if atual.exists() and (any(atual.glob("*.xlsx")) or
-                           any(atual.glob("rodada */*.xlsx"))):
-        return TMP_BASE
+    for pasta in ("SEMANA ATUAL", "SEMANA ANTERIOR"):
+        p = TMP_BASE / pasta
+        if p.exists() and (any(p.glob("*.xlsx")) or any(p.glob("rodada */*.xlsx"))):
+            return TMP_BASE
     return BUNDLED_BASE
 
 
@@ -262,15 +262,19 @@ def garantir_arquivos_frescos(force=False):
         try:
             import sharepoint
             print("⏳ Atualizando dados do SharePoint (frescor)...")
-            # Baixa também a subpasta da rodada vigente (SEMANA ATUAL/rodada N
-            # e SEMANA ANTERIOR/rodada N), quando a estrutura por rodada existir
+            # Em duas fases: a rodada vigente é definida pelos Confrontos, que
+            # só ficam corretos DEPOIS do primeiro download. Perguntar antes
+            # devolveria a semana da cópia empacotada (desatualizada) e as
+            # subpastas certas nunca seriam baixadas.
+            sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40)
             try:
                 sem = semana_atual()
             except Exception:
                 sem = None
-            sems = [sem, sem - 1] if sem else None
-            sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40,
-                                           semanas=[x for x in (sems or []) if x and x > 0])
+            if sem:
+                for s in (sem, sem - 1):
+                    if s > 0:
+                        sharepoint.baixar_rodada(s, str(TMP_BASE), timeout=30)
             _MARKER.write_text(str(time.time()))
             print("✅ Dados do SharePoint atualizados em /tmp.")
         except Exception as e:
