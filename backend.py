@@ -1444,6 +1444,7 @@ def _calcular_summary(semana):
     return {
         "week": semana,
         "rodadaDados": rod_dados,
+        "semDadosAtual": cr.semana_atual_vazia(memoria),
         "lastUpdated": datetime.now().isoformat(),
         "total": len(jogos),
         "games": jogos,

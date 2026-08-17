@@ -57,12 +57,18 @@ function formatarMoedaBR(valor) {
 // FUNÇÕES DE ESTATÍSTICAS
 // ============================================================
 
+// Jogo sem resultado: a rodada ainda não tem nenhum dia lançado na semana
+// atual. Sem evolução para medir, não se atribui vitória, empate nem derrota.
+function semResultado(j) {
+    return !!(j && j.semDados) || !!(state.gamesSummary && state.gamesSummary.semDadosAtual);
+}
+
 function calcularEstatisticas(jogosComDados, lojas) {
     let vitórias = 0, empates = 0, derrotas = 0;
     const resultadosPorGol = {}; // Rastrear resultado por indicador
 
     jogosComDados.forEach(jogoData => {
-        if (jogoData.erro) return;
+        if (jogoData.erro || semResultado(jogoData)) return;
 
         const [score1, score2] = jogoData.score && jogoData.score.includes('x')
             ? jogoData.score.split('x').map(s => parseInt(s.trim()))
@@ -102,7 +108,7 @@ function calcularAnalisePorGol(jogosComDados, lojas) {
     const analise = {};
 
     jogosComDados.forEach(jogoData => {
-        if (jogoData.erro) return;
+        if (jogoData.erro || semResultado(jogoData)) return;
 
         const lojaDoDistrito = lojas.includes(jogoData.team1) ? jogoData.team1 : jogoData.team2;
         const isTeam1 = lojaDoDistrito === jogoData.team1;
@@ -152,6 +158,7 @@ function calcularAnaliseDoResumo(jogosFiltrados, lojas) {
      */
     const analise = {};
     jogosFiltrados.forEach(gameData => {
+        if (semResultado(gameData)) return;
         const gols = gameData.golsProjetados || {};
         [[gameData.team1, 1], [gameData.team2, 2]].forEach(([team, teamNum]) => {
             if (!lojas.includes(team)) return;
@@ -556,7 +563,7 @@ function calcularRankingSimulado() {
     // Pontos/jogos da rodada atual por distrito (a partir do resumo)
     const curPts = {}, curGm = {};
     Object.keys(N).forEach(d => { curPts[d] = 0; curGm[d] = 0; });
-    (state.gamesSummary?.games || []).forEach(g => {
+    (state.gamesSummary?.games || []).filter(g => !semResultado(g)).forEach(g => {
         const [s1, s2] = g.scoreProjected.split('x').map(s => parseInt(s.trim()));
         [[g.team1, s1, s2], [g.team2, s2, s1]].forEach(([team, me, other]) => {
             const info = loja2dist[team];
@@ -626,7 +633,7 @@ function insightsDistrito(distrito, lojas) {
     const porLoja = {}; // loja -> {pts, resultado}
     const analiseGol = {}; // indicador -> {v, d, e}
 
-    (state.gamesSummary?.games || []).forEach(g => {
+    (state.gamesSummary?.games || []).filter(g => !semResultado(g)).forEach(g => {
         const [s1, s2] = g.scoreProjected.split('x').map(s => parseInt(s.trim()));
         [[g.team1, 1, s1, s2], [g.team2, 2, s2, s1]].forEach(([team, num, me, other]) => {
             if (!lojasSet.has(team)) return;
@@ -966,7 +973,7 @@ function loadRankingDashboard() {
     });
 
     // Processar cada jogo
-    state.gamesSummary.games.forEach(game => {
+    state.gamesSummary.games.filter(g => !semResultado(g)).forEach(game => {
         const [score1, score2] = game.scoreProjected.split('x').map(s => parseInt(s.trim()));
         [[game.team1, score1, score2], [game.team2, score2, score1]].forEach(([team, meu, adv]) => {
             const info = loja2dist[team];
@@ -1241,6 +1248,7 @@ function loadGamesFromSummary(regional) {
     let vitórias = 0, empates = 0, derrotas = 0, totalLojas = 0;
 
     jogosFiltrados.forEach(gameData => {
+        if (semResultado(gameData)) return;
         const [score1, score2] = gameData.scoreProjected.split('x').map(s => parseInt(s.trim()));
 
         // Contar para team1 se está em lojas
@@ -1297,8 +1305,8 @@ function loadGamesFromSummary(regional) {
         const scoreAdversário = isTeam1 ? score2 : score1;
 
         let resultClass = 'empate';
-        let resultText = '⚖️ EMPATANDO';
-        if (scoreRegional > scoreAdversário) {
+        let resultText = semResultado(gameData) ? '⏳ AGUARDANDO DADOS DA RODADA' : '⚖️ EMPATANDO';
+        if (!semResultado(gameData) && scoreRegional > scoreAdversário) {
             resultClass = 'venceu';
             resultText = `✅ ${lojaDoRegional} ESTÁ VENCENDO`;
         } else if (scoreRegional < scoreAdversário) {
@@ -1353,6 +1361,7 @@ function loadGamesFromSummaryForDistrito(regional, distrito, lojas) {
     // Calcular estatísticas rápidas do resumo
     let vitórias = 0, empates = 0, derrotas = 0, totalLojas = 0;
     jogosFiltrados.forEach(gameData => {
+        if (semResultado(gameData)) return;
         const [score1, score2] = gameData.scoreProjected.split('x').map(s => parseInt(s.trim()));
 
         // Contar para team1 se está em lojas
@@ -1401,8 +1410,8 @@ function loadGamesFromSummaryForDistrito(regional, distrito, lojas) {
         const scoreAdversário = isTeam1 ? score2 : score1;
 
         let resultClass = 'empate';
-        let resultText = '⚖️ EMPATANDO';
-        if (scoreDistrito > scoreAdversário) {
+        let resultText = semResultado(gameData) ? '⏳ AGUARDANDO DADOS DA RODADA' : '⚖️ EMPATANDO';
+        if (!semResultado(gameData) && scoreDistrito > scoreAdversário) {
             resultClass = 'venceu';
             resultText = `✅ ${lojaDoDistrito} ESTÁ VENCENDO`;
         } else if (scoreDistrito < scoreAdversário) {
@@ -1538,8 +1547,10 @@ function criarCardJogo(jogoData, lojas) {
     const rodadaAcabou = hojeIdx === 6;
 
     let resultClass = 'empate';
-    let resultText = '⚖️ EMPATANDO';
-    if (scoreDistrito > scoreAdversário) {
+    let resultText = semResultado(jogoData) ? '⏳ AGUARDANDO DADOS DA RODADA' : '⚖️ EMPATANDO';
+    if (semResultado(jogoData)) {
+        // rodada sem nenhum dia lançado: nenhum resultado atribuído
+    } else if (scoreDistrito > scoreAdversário) {
         resultClass = 'venceu';
         resultText = rodadaAcabou ? `✅ ${lojaDoDistrito} VENCEU` : `✅ ${lojaDoDistrito} ESTÁ VENCENDO`;
     } else if (scoreDistrito < scoreAdversário) {

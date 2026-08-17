@@ -276,10 +276,36 @@ def _placar(memoria, team1, team2, hoje_idx=None):
     return score1, score2, gols
 
 
+def semana_atual_vazia(memoria):
+    """A semana ATUAL não tem nenhum valor em nenhum indicador?
+
+    Acontece no primeiro dia da rodada, quando só existe a base de comparação.
+    Sem nenhum dia lançado não há evolução para medir, então nenhum resultado
+    deve ser atribuído — nem vitória, nem empate, nem derrota.
+    """
+    for semanas in memoria.values():
+        for dias in (semanas.get("atual") or {}).values():
+            if any(dias.values()):
+                return False
+    return True
+
+
 def calcular_todos_jogos(confrontos, memoria, hoje_idx):
     """Calcula projetado + acumulado de todos os confrontos usando memória.
     Inclui 'golsProjetados' e 'golsAcumulados' (quem venceu cada indicador)."""
     jogos = []
+    if semana_atual_vazia(memoria):
+        # Rodada ainda não começou a receber vendas: jogos sem resultado.
+        return [{
+            "team1": c["team1"],
+            "team2": c["team2"],
+            "scoreProjected": "0 x 0",
+            "scoreAccumulated": "0 x 0",
+            "hojeIdx": hoje_idx,
+            "golsProjetados": {},
+            "golsAcumulados": {},
+            "semDados": True,
+        } for c in confrontos]
     for conf in confrontos:
         t1, t2 = conf["team1"], conf["team2"]
         s1p, s2p, gols_proj = _placar(memoria, t1, t2, None)
