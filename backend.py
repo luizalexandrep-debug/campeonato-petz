@@ -106,8 +106,19 @@ def _tem_xlsx(p):
     return p.exists() and any(p.glob("*.xlsx"))
 
 
+def _rodada_iniciada(base, n):
+    """A rodada n já tem base para ser exibida?
+
+    Basta a SEMANA ANTERIOR: no primeiro dia da rodada só existe a base de
+    comparação, e é assim que deve aparecer — semana anterior com os valores
+    e semana atual zerada, evoluindo conforme os dias entram.
+    """
+    return (_tem_xlsx(base / "SEMANA ATUAL" / f"rodada {n}")
+            or _tem_xlsx(base / "SEMANA ANTERIOR" / f"rodada {n}"))
+
+
 def rodada_efetiva(semana=None):
-    """Qual rodada realmente tem dados de venda para exibir.
+    """Qual rodada realmente tem dados para exibir.
 
     Ordem: a própria rodada -> estrutura antiga (arquivos na raiz) -> a rodada
     anterior mais recente que tenha dados. Retorna (rodada, usou_raiz).
@@ -117,12 +128,12 @@ def rodada_efetiva(semana=None):
     base = active_base()
     if semana is None:
         semana = semana_atual()
-    if _tem_xlsx(base / "SEMANA ATUAL" / f"rodada {semana}"):
+    if _rodada_iniciada(base, semana):
         return semana, False
     if _tem_xlsx(base / "SEMANA ATUAL"):
         return semana, True          # estrutura antiga (sem subpastas)
     for n in range(semana - 1, 0, -1):
-        if _tem_xlsx(base / "SEMANA ATUAL" / f"rodada {n}"):
+        if _rodada_iniciada(base, n):
             return n, False
     return semana, True
 
@@ -1409,6 +1420,16 @@ def _calcular_summary(semana):
                 })
 
     rod_dados, _raiz = rodada_efetiva(semana)
+    if rod_dados == semana and not _listar_xlsx(dir_atual(semana)):
+        # 1º dia da rodada: só existe a base de comparação. Mostramos a rodada
+        # mesmo assim (semana anterior preenchida, semana atual zerada).
+        avisos.append({
+            "indicador": "Dados de venda",
+            "semana": f"rodada {semana}",
+            "mensagem": f"A rodada {semana} está começando: só há a base da semana "
+                        f"anterior. A semana atual ainda está zerada, então os gols "
+                        f"estão sendo definidos apenas pelos critérios de desempate."
+        })
     if rod_dados != semana:
         avisos.append({
             "indicador": "Dados de venda",
