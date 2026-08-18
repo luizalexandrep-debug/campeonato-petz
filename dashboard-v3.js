@@ -16,7 +16,10 @@ const state = {
     gamesSummary: null, // Resumo pré-calculado de todos os jogos
     resumoCarregado: false, // Flag indicando se o resumo foi carregado
     historico: null, // Histórico das rodadas anteriores (ranking simulado)
-    filtroRegionalHome: null // Filtro de regional aplicado às tabelas da home
+    filtroRegionalHome: null, // Filtro de regional aplicado às tabelas da home
+    semanaVigente: null,      // Rodada mais recente com confrontos publicados
+    semanasDisponiveis: [],   // Rodadas que podem ser abertas no seletor
+    semanaEscolhida: false    // O usuário escolheu manualmente uma rodada?
 };
 
 const REGIONAL_DESTAQUE = 'R2 - Luiz';
@@ -351,6 +354,7 @@ async function initializeApp() {
         carregarResumJogos();
 
         // Attach listeners
+        document.getElementById('filterSemana').addEventListener('change', onSemanaChange);
         document.getElementById('filterRegional').addEventListener('change', onRegionalChange);
         document.getElementById('filterDistrito').addEventListener('change', onDistritoChange);
         document.getElementById('reprocessarBtn').addEventListener('click', reprocessarDoSharePoint);
@@ -507,14 +511,66 @@ async function loadSemana() {
         const r = await fetch('/api/semana', { cache: 'no-store' });
         const d = await r.json();
         if (d && d.semana) {
-            state.semana = d.semana;
-            const h1 = document.querySelector('.header h1');
-            if (h1) h1.textContent = `Campeonato Petz 2026 - Semana ${d.semana}`;
-            document.title = `Campeonato Petz - Semana ${d.semana}`;
+            state.semanaVigente = d.semana;
+            state.semanasDisponiveis = d.disponiveis || [d.semana];
+            // Só define a semana na primeira carga; se o usuário já escolheu
+            // uma rodada, respeitamos a escolha dele.
+            if (!state.semanaEscolhida) state.semana = d.semana;
+            preencherSeletorSemana();
+            atualizarTituloSemana();
             console.log(`📅 Semana vigente: ${d.semana} (disponíveis: ${d.disponiveis})`);
         }
     } catch (e) {
         console.error('Não foi possível detectar a semana; usando', state.semana, e);
+    }
+}
+
+function atualizarTituloSemana() {
+    const vigente = state.semana === state.semanaVigente;
+    const sufixo = vigente ? '' : ' (rodada anterior)';
+    const h1 = document.querySelector('.header h1');
+    if (h1) h1.textContent = `Campeonato Petz 2026 - Semana ${state.semana}${sufixo}`;
+    document.title = `Campeonato Petz - Semana ${state.semana}`;
+}
+
+function preencherSeletorSemana() {
+    const sel = document.getElementById('filterSemana');
+    if (!sel) return;
+    const lista = (state.semanasDisponiveis || []).slice().sort((a, b) => b - a);
+    sel.innerHTML = lista.map(n =>
+        `<option value="${n}"${n === state.semana ? ' selected' : ''}>Rodada ${n}${n === state.semanaVigente ? ' (atual)' : ''}</option>`
+    ).join('');
+}
+
+async function onSemanaChange(e) {
+    const nova = parseInt(e.target.value, 10);
+    if (!nova || nova === state.semana) return;
+
+    const sel = e.target;
+    const infoBar = document.getElementById('infoBar');
+    sel.disabled = true;
+    if (infoBar) infoBar.innerHTML = `<span>⏳ Carregando a rodada ${nova}...</span>`;
+
+    state.semana = nova;
+    state.semanaEscolhida = true;
+    // Tudo que é derivado da rodada precisa ser descartado
+    state.gamesSummary = null;
+    state.resumoCarregado = false;
+    state.todoCalculado = false;
+    state.jogosCalculados = {};
+    atualizarTituloSemana();
+
+    try {
+        await loadConfrontos();
+        await carregarResumJogos();
+        // loadGames() já decide entre ranking, regional ou distrito conforme
+        // o que estiver selecionado nos filtros.
+        loadGames();
+    } catch (err) {
+        console.error('Erro ao trocar de rodada:', err);
+        if (infoBar) infoBar.innerHTML = `<span>❌ Não foi possível carregar a rodada ${nova}</span>`;
+    } finally {
+        sel.disabled = false;
     }
 }
 
