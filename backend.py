@@ -1426,16 +1426,29 @@ def _calcular_summary(semana):
 
     rod_dados, _raiz = rodada_efetiva(semana)
     if rod_dados == semana and not _listar_xlsx(dir_atual(semana)):
-        # 1º dia da rodada: só existe a base de comparação. Mostramos a rodada
-        # mesmo assim (semana anterior preenchida, semana atual zerada).
+        # Sem planilhas na SEMANA ATUAL da rodada. Duas situações diferentes:
+        # a rodada vigente ainda não começou, ou uma rodada passada nunca teve
+        # os arquivos arquivados na subpasta.
+        tem_base = bool(_listar_xlsx(dir_anterior(semana)))
+        passada = semana < semana_atual()
+        if passada:
+            msg = (f"A rodada {semana} não tem planilhas de venda arquivadas em "
+                   f"'SEMANA ATUAL/rodada {semana}' no SharePoint, então não há "
+                   f"resultados para exibir. Suba os arquivos dessa rodada para "
+                   f"poder consultá-la.")
+        elif tem_base:
+            msg = (f"A rodada {semana} está começando: só há a base da semana "
+                   f"anterior. Sem nenhum dia lançado na semana atual não há "
+                   f"evolução para medir, então nenhum resultado está sendo "
+                   f"contabilizado (sem vitória, empate ou derrota).")
+        else:
+            msg = (f"A rodada {semana} ainda não tem planilhas no SharePoint — "
+                   f"nem a base da semana anterior, nem a semana atual.")
         avisos.append({
             "tipo": "rodada",
             "indicador": "Dados de venda",
             "semana": f"rodada {semana}",
-            "mensagem": f"A rodada {semana} está começando: só há a base da semana "
-                        f"anterior. Sem nenhum dia lançado na semana atual não há "
-                        f"evolução para medir, então nenhum resultado está sendo "
-                        f"contabilizado (sem vitória, empate ou derrota)."
+            "mensagem": msg
         })
     if rod_dados != semana:
         avisos.append({
