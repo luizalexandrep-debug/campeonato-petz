@@ -305,13 +305,19 @@ function panoramaHtml() {
 
     const selo = { entrou: 'ENTROU', saiu: 'SAIU', ficou: '' };
 
+    // Diferença 0 significa empate em pontos decidido no desempate — dizer
+    // "0 pts para sair do Z4" daria a impressão de que já está fora.
+    const gapTxt = (g, sufixo) => g === 0
+        ? `empatada em pontos ${sufixo}, atrás no desempate`
+        : `${g} pt(s) ${sufixo}`;
+
     const g4Html = g4.length ? g4.map(m => {
         const classe = m.situacao === 'entrou' ? 'ganho' : m.situacao === 'saiu' ? 'perda' : '';
         const ctx = m.situacao === 'saiu'
-            ? `<small>· ${m.gapG4} pt(s) do 4º lugar</small>`
+            ? `<small>· ${gapTxt(m.gapG4, 'do 4º lugar')}</small>`
             : m.para === 1
                 ? '<small>· liderando o grupo</small>'
-                : `<small>· ${m.gapLider} pt(s) do líder ${m.lider}</small>`;
+                : `<small>· ${gapTxt(m.gapLider, `do líder ${m.lider}`)}</small>`;
         return `<li class="${classe}">
             ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
             <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
@@ -322,8 +328,9 @@ function panoramaHtml() {
     const z4Html = z4.length ? z4.map(m => {
         const classe = m.situacao === 'saiu' ? 'ganho' : m.situacao === 'entrou' ? 'perda' : '';
         const ctx = m.situacao === 'saiu'
-            ? `<small>· ${m.margem} pt(s) de folga sobre o Z4</small>`
-            : `<small>· ${m.gapSalvacao} pt(s) para sair do Z4</small>`;
+            ? `<small>· ${m.margem === 0 ? 'empatada com o Z4, à frente só no desempate'
+                : `${m.margem} pt(s) de folga sobre o Z4`}</small>`
+            : `<small>· ${gapTxt(m.gapSalvacao, 'para sair do Z4')}</small>`;
         return `<li class="${classe}">
             ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
             <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
