@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Protótipo · Jogos por resultado</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="dashboard-v3-styles.css">
+<link rel="stylesheet" href="prototipo.css">
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <div class="header-brand">
+            <img src="logo.png" alt="" class="header-logo">
+            <div class="header-content">
+                <h1>Protótipo — jogos por resultado</h1>
+                <div class="subtitle">Ambiente de validação · não afeta o dashboard atual</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="/" class="btn-header" style="text-decoration:none">← Dashboard atual</a>
+        </div>
+    </header>
+
+    <div class="filters-section">
+        <div class="filter-group">
+            <label for="fSemana">Rodada:</label>
+            <select id="fSemana"><option>...</option></select>
+        </div>
+        <div class="filter-group">
+            <label for="fRegional">Regional:</label>
+            <select id="fRegional"><option value="">Selecione uma Regional...</option></select>
+        </div>
+        <div class="filter-group">
+            <label for="fDistrito">Distrito:</label>
+            <select id="fDistrito" disabled><option value="">Selecione um Distrito...</option></select>
+        </div>
+    </div>
+
+    <div class="info-bar" id="infoBar"><span>Carregando...</span></div>
+    <div id="painel"></div>
+</div>
+
+<script src="api-config.js"></script>
+<script src="prototipo.js"></script>
+<script src="exportar-imagem.js"></script>
+</body>
+</html>
