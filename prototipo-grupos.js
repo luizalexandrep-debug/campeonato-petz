@@ -4,8 +4,13 @@
 // Esquerda : classificação oficial até a rodada encerrada (Power BI)
 // Direita  : a mesma classificação + os placares projetados da rodada atual
 //
-// Critério de desempate: Pts > VIT > SG > GM — o mesmo do export oficial
-// (conferido: reproduz exatamente os 14 grupos da rodada 7).
+// Desempate (regra oficial, item 7 do regulamento): 1º vitórias, 2º saldo de
+// gols, 3º confronto direto, 4º crescimento de share MP, 5º turn over.
+// Confronto direto em diante depende de dados que o app não tem (histórico de
+// cada confronto, share da campanha, RH). Usamos Pts > VIT > SG > GM, que
+// reproduz EXATAMENTE os 14 grupos do export oficial da rodada 7, inclusive
+// nos 29 empates que chegam até o saldo de gols — ordem alfabética, citada no
+// regulamento para a parcial, reproduz apenas 4 dos 14.
 // ============================================================
 
 const st = {
@@ -151,7 +156,9 @@ function render() {
         <div class="quadro sim">
             <div class="quadro-head">🔮 Simulada <small>rodada ${st.rodadaBase} + projeção da ${st.semana}</small></div>
             <div class="tab-wrap">${tabela(simulado, posBase, true)}</div>
-            <div class="legenda">Desempate: Pts › VIT › SG › GM.${semJogo ? ` ${semJogo} loja(s) sem jogo nesta rodada.` : ''}</div>
+            <div class="legenda">Desempate: Pts › VIT › SG › GM — mesma ordem do
+                painel oficial. Pelo regulamento, empates que persistem no saldo vão a
+                confronto direto, share MP e turn over, que o app não calcula.${semJogo ? ` ${semJogo} loja(s) sem jogo nesta rodada.` : ''}</div>
         </div>
     </div>`;
 
