@@ -164,6 +164,7 @@ function calcularPanorama() {
 
     const movs = [];      // mudanças que envolvem lojas da minha regional
     const alvos = [];     // lojas minhas perto da liderança
+    const trocas = [];    // grupos onde o líder muda na projeção
 
     Object.entries(st.grupos).forEach(([grupo, linhas]) => {
         const { base, sim } = classificarGrupo(linhas, proj);
@@ -174,6 +175,17 @@ function calcularPanorama() {
 
         base.forEach((r, i) => { const g = st.lojaRegional[r.time]; if (tot[g]) { if (i === 0) tot[g].base.lider++; if (i < 4) tot[g].base.top4++; if (i >= n - 4) tot[g].base.ultimos4++; } });
         sim.forEach((r, i) => { const g = st.lojaRegional[r.time]; if (tot[g]) { if (i === 0) tot[g].sim.lider++; if (i < 4) tot[g].sim.top4++; if (i >= n - 4) tot[g].sim.ultimos4++; } });
+
+        // troca de liderança no grupo (qualquer regional)
+        if (base.length && sim.length && base[0].time !== sim[0].time) {
+            trocas.push({
+                grupo,
+                novo: sim[0].time, novoReg: st.lojaRegional[sim[0].time],
+                antigo: base[0].time, antigoReg: st.lojaRegional[base[0].time],
+                ptsNovo: sim[0].pts, ptsAntigo: (sim.find(x => x.time === base[0].time) || {}).pts,
+                posAntigo: sim.findIndex(x => x.time === base[0].time) + 1
+            });
+        }
 
         // movimentações das MINHAS lojas nas duas pontas
         linhas.forEach(r => {
@@ -201,7 +213,8 @@ function calcularPanorama() {
 
     movs.sort((a, b) => (a.grupo).localeCompare(b.grupo, 'pt', { numeric: true }));
     alvos.sort((a, b) => a.gap - b.gap || a.pos - b.pos);
-    return { tot, movs, alvos };
+    trocas.sort((a, b) => (a.grupo).localeCompare(b.grupo, 'pt', { numeric: true }));
+    return { tot, movs, alvos, trocas };
 }
 
 function nomeCurto(reg) {
@@ -219,8 +232,43 @@ function delta(a, b, menorEhMelhor) {
     return `<span class="mov ${bom ? 'sobe' : 'desce'}">${seta} ${Math.abs(d)}</span>`;
 }
 
+function textoTrocas(trocas) {
+    if (!trocas.length) {
+        return `<div class="pg-texto">Nenhuma liderança muda de dono com a projeção da rodada ${st.semana}:
+            os 14 líderes seguem os mesmos.</div>`;
+    }
+
+    const eu = (reg) => reg === REGIONAL_DESTAQUE;
+    const tag = (reg) => reg ? `<span class="tag${eu(reg) ? ' minha' : ''}">${nomeCurto(reg)}</span>` : '';
+
+    const itens = trocas.map(t => {
+        const ganho = eu(t.novoReg), perda = eu(t.antigoReg);
+        const classe = ganho && !perda ? 'ganho' : perda && !ganho ? 'perda' : '';
+        return `<li class="${classe}">
+            <b>${t.novo}</b> ${tag(t.novoReg)} assume a liderança do <b>${t.grupo}</b>
+            com ${t.ptsNovo} pts, no lugar de <b>${t.antigo}</b> ${tag(t.antigoReg)}
+            <small>· ${t.antigo} cai para ${t.posAntigo}º com ${t.ptsAntigo} pts</small>
+        </li>`;
+    }).join('');
+
+    const ganhas = trocas.filter(t => t.novoReg === REGIONAL_DESTAQUE && t.antigoReg !== REGIONAL_DESTAQUE).length;
+    const perdidas = trocas.filter(t => t.antigoReg === REGIONAL_DESTAQUE && t.novoReg !== REGIONAL_DESTAQUE).length;
+
+    let resumo;
+    if (ganhas && perdidas) resumo = `Sua regional <b>ganha ${ganhas}</b> e <b>perde ${perdidas}</b> liderança(s).`;
+    else if (ganhas) resumo = `Sua regional <b>ganha ${ganhas}</b> liderança(s) e não perde nenhuma.`;
+    else if (perdidas) resumo = `Sua regional <b>perde ${perdidas}</b> liderança(s) e não ganha nenhuma.`;
+    else resumo = 'Nenhuma das trocas envolve lojas da sua regional.';
+
+    return `<div class="pg-texto">
+        <b>${trocas.length}</b> ${trocas.length === 1 ? 'grupo troca' : 'grupos trocam'} de líder
+        com a projeção da rodada ${st.semana}. ${resumo}
+        <ul class="pg-lista pg-lista-trocas">${itens}</ul>
+    </div>`;
+}
+
 function panoramaHtml() {
-    const { tot, movs, alvos } = calcularPanorama();
+    const { tot, movs, alvos, trocas } = calcularPanorama();
     const regs = Object.keys(tot).sort();
 
     const linhas = regs.map(r => {
@@ -272,6 +320,7 @@ function panoramaHtml() {
                 </tr></thead>
                 <tbody>${linhas}</tbody>
             </table></div>
+            ${textoTrocas(trocas)}
         </div>
 
         <div class="pg-bloco">

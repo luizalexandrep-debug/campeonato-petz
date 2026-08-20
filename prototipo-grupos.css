@@ -147,3 +147,29 @@
 @media (max-width: 1200px) {
     .painel-geral { grid-template-columns: 1fr; }
 }
+
+/* Texto das trocas de liderança, abaixo da tabela do panorama */
+.pg-texto {
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid var(--border);
+    font-size: .86em;
+    color: var(--text-2);
+    line-height: 1.5;
+}
+
+.pg-texto b { color: var(--text); }
+.pg-lista-trocas { margin-top: 9px; max-height: 200px; }
+
+.pg-texto .tag {
+    display: inline-block;
+    font-size: .82em;
+    font-weight: 700;
+    padding: 1px 7px;
+    border-radius: 20px;
+    background: var(--bg);
+    color: var(--text-2);
+    border: 1px solid var(--border);
+}
+
+.pg-texto .tag.minha { background: var(--brand-tint); color: var(--brand-ink); border-color: #c6dbf2; }
