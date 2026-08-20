@@ -250,6 +250,7 @@ function expDesenharJogo(jogoData) {
 async function exportarJogoImagem(team1, team2, btn) {
     const chave = `${team1}_${team2}`;
     const txt = btn ? btn.innerHTML : null;
+    let avisou = false;
     if (btn) { btn.disabled = true; btn.innerHTML = '⏳'; }
     try {
         // O card do resumo não traz as tabelas; busca sob demanda.
@@ -265,22 +266,55 @@ async function exportarJogoImagem(team1, team2, btn) {
         const file = new File([blob], nome, { type: 'image/png' });
 
         // No celular abre o compartilhamento nativo (WhatsApp na lista);
-        // no desktop baixa o arquivo.
+        // no desktop copia para a área de transferência E baixa o arquivo.
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: `${team1} x ${team2}` });
+            expAviso(btn, '✅');
         } else {
+            const copiou = await expCopiarBlob(blob);
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = nome;
             a.click();
             setTimeout(() => URL.revokeObjectURL(url), 4000);
+            expAviso(btn, copiou ? '📋' : '⬇️',
+                copiou ? 'Imagem copiada — cole no WhatsApp com Cmd+V (o arquivo também foi baixado)'
+                       : 'Imagem baixada (o navegador não permitiu copiar para a área de transferência)');
         }
     } catch (e) {
         if (e && e.name === 'AbortError') return;   // usuário cancelou
         console.error('Falha ao exportar imagem:', e);
         alert('Não foi possível gerar a imagem.');
     } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = txt; }
+        // Não sobrescrever o ícone de confirmação que expAviso acabou de pôr.
+        if (btn) { btn.disabled = false; if (!avisou) btn.innerHTML = txt; }
+    }
+
+    function expAviso(b, icone, mensagem) {
+        avisou = true;
+        if (b) {
+            b.innerHTML = icone;
+            setTimeout(() => { b.innerHTML = txt; }, 2200);
+        }
+        if (!mensagem) return;
+        const infoBar = document.getElementById('infoBar');
+        if (!infoBar) return;
+        const antes = infoBar.innerHTML;
+        infoBar.innerHTML = `<span>${icone} ${mensagem}</span>`;
+        setTimeout(() => { if (infoBar.textContent.includes(mensagem)) infoBar.innerHTML = antes; }, 5000);
     }
 }
+
+async function expCopiarBlob(blob) {
+    // Só PNG é aceito na área de transferência dos navegadores.
+    try {
+        if (!navigator.clipboard || !window.ClipboardItem) return false;
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        return true;
+    } catch (e) {
+        console.warn('Não foi possível copiar a imagem:', e);
+        return false;
+    }
+}
+
