@@ -42,7 +42,9 @@ function formatarValor(v, tipo) {
         : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 }
 
-const api = (p) => fetch(`/api${p}`, { cache: 'no-store' }).then(r => {
+// Nome próprio: 'api' já é usado por api-config.js e a colisão de const
+// quebrava o arquivo inteiro na hora de interpretar.
+const apiGet = (p) => fetch(`/api${p}`, { cache: 'no-store' }).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
 });
@@ -51,8 +53,8 @@ const api = (p) => fetch(`/api${p}`, { cache: 'no-store' }).then(r => {
 async function carregarDadosJogo(jogo) {
     try {
         const [d1, d2] = await Promise.all([
-            api(`/loja-dias/${jogo.team1}/${state.semana}`),
-            api(`/loja-dias/${jogo.team2}/${state.semana}`)
+            apiGet(`/loja-dias/${jogo.team1}/${state.semana}`),
+            apiGet(`/loja-dias/${jogo.team2}/${state.semana}`)
         ]);
         const resumo = (state.gamesSummary?.games || [])
             .find(g => g.team1 === jogo.team1 && g.team2 === jogo.team2) || {};
@@ -80,12 +82,12 @@ async function iniciar() {
         const me = await fetch('/api/me', { cache: 'no-store' });
         if (!me.ok) { location.href = '/login.html'; return; }
 
-        const sem = await api('/semana');
+        const sem = await apiGet('/semana');
         state.semanaVigente = sem.semana;
         state.semana = sem.semana;
         state.semanasDisponiveis = sem.disponiveis || [sem.semana];
 
-        const est = await api('/estrutura');
+        const est = await apiGet('/estrutura');
         state.estrutura = est.estrutura || est;
 
         montarSelects();
@@ -134,7 +136,7 @@ function montarSelects() {
 }
 
 async function carregarResumo() {
-    state.gamesSummary = await api(`/games-summary/${state.semana}`);
+    state.gamesSummary = await apiGet(`/games-summary/${state.semana}`);
 }
 
 // ============================================================
