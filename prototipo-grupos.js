@@ -209,11 +209,14 @@ function nomeCurto(reg) {
     return p.length > 1 ? `${p[0]} (${p[1]})` : reg;
 }
 
-function delta(a, b) {
+// menorEhMelhor: na coluna "Últimos 4" (zona de queda) crescer é ruim, então
+// a seta acompanha o NÚMERO e a cor acompanha o BENEFÍCIO.
+function delta(a, b, menorEhMelhor) {
     const d = b - a;
-    if (d > 0) return `<span class="mov sobe">▲ ${d}</span>`;
-    if (d < 0) return `<span class="mov desce">▼ ${-d}</span>`;
-    return '<span class="mov igual">–</span>';
+    if (d === 0) return '<span class="mov igual">–</span>';
+    const seta = d > 0 ? '▲' : '▼';
+    const bom = menorEhMelhor ? d < 0 : d > 0;
+    return `<span class="mov ${bom ? 'sobe' : 'desce'}">${seta} ${Math.abs(d)}</span>`;
 }
 
 function panoramaHtml() {
@@ -227,7 +230,7 @@ function panoramaHtml() {
             <td class="l">${nomeCurto(r)}${eu ? ' ★' : ''}</td>
             <td>${t.base.lider}</td><td class="pts">${t.sim.lider}</td><td>${delta(t.base.lider, t.sim.lider)}</td>
             <td>${t.base.top4}</td><td class="pts">${t.sim.top4}</td><td>${delta(t.base.top4, t.sim.top4)}</td>
-            <td>${t.base.ultimos4}</td><td class="pts">${t.sim.ultimos4}</td><td>${delta(t.base.ultimos4, t.sim.ultimos4)}</td>
+            <td>${t.base.ultimos4}</td><td class="pts">${t.sim.ultimos4}</td><td>${delta(t.base.ultimos4, t.sim.ultimos4, true)}</td>
         </tr>`;
     }).join('');
 
@@ -260,7 +263,7 @@ function panoramaHtml() {
                     <th class="l">Regional</th>
                     <th colspan="3">Lideranças</th>
                     <th colspan="3">Top 4</th>
-                    <th colspan="3">Últimos 4</th>
+                    <th colspan="3" title="Zona de queda — quanto menos lojas, melhor">Últimos 4 ↓</th>
                 </tr><tr class="sub">
                     <th class="l"></th>
                     <th>R${st.rodadaBase}</th><th>Sim.</th><th></th>
