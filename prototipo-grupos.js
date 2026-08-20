@@ -84,7 +84,7 @@ function montarSelects() {
 
     const sG = document.getElementById('fGrupo');
     sG.innerHTML = nomes.map(n => `<option value="${n}">${n}</option>`).join('');
-    sG.onchange = (e) => { st.grupo = e.target.value; render(); };
+    sG.onchange = (e) => { st.grupo = e.target.value; st.lojaFoco = null; render(); };
 
     // Só rodadas POSTERIORES à base: projetar uma rodada que a base já inclui
     // somaria os mesmos pontos duas vezes.
@@ -261,19 +261,6 @@ function abrirGrupo(grupo, loja) {
 
     const alvo = document.querySelector('.comparacao');
     if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    if (st.lojaFoco) {
-        setTimeout(() => {
-            document.querySelectorAll('.tab-grupo tbody tr').forEach(tr => {
-                const sig = tr.querySelector('.sigla');
-                if (sig && sig.textContent.trim() === st.lojaFoco) tr.classList.add('foco');
-            });
-        }, 60);
-        setTimeout(() => {
-            document.querySelectorAll('.tab-grupo tr.foco').forEach(tr => tr.classList.remove('foco'));
-            st.lojaFoco = null;
-        }, 6000);
-    }
 }
 
 function textoTrocas(trocas) {
@@ -481,9 +468,10 @@ function tabela(linhas, posBase, ehSim) {
                     : '<span class="mov igual">–</span>';
         }
         const dest = st.destacar && st.minhasLojas.has(r.time) ? ' dest' : '';
+        const foco = st.lojaFoco === r.time ? ' foco' : '';
         const ganho = ehSim && r.ganhou !== undefined
             ? `<td class="c" title="Pontos ganhos na rodada ${st.semana}">+${r.ganhou}</td>` : (ehSim ? '<td class="c">—</td>' : '');
-        return `<tr class="${dest.trim()}">
+        return `<tr class="${(dest + foco).trim()}">
             <td>${pos}</td>
             ${posBase ? `<td>${mov}</td>` : ''}
             <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}">${r.time}</span></td>
