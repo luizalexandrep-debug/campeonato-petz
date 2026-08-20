@@ -35,6 +35,9 @@ PASTAS_SHAREPOINT = {
 # próprio): {nome_local: nome_da_subpasta_no_sharepoint}
 SUBPASTAS_RAIZ = {
     "HistoricoRegional": "Histórico ranking regionais",
+    # Classificação por LOJA dentro de cada grupo (export do Power BI),
+    # arquivos "Rodada N.xlsx". Ver backend.classificacao_lojas().
+    "ClassificacaoLojas": "Classificação Lojas",
 }
 
 HEADERS = {

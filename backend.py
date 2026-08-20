@@ -899,6 +899,74 @@ def get_historico():
         return jsonify({"error": str(e)}), 500
 
 
+# ============================================================
+# CLASSIFICAÇÃO POR LOJA (grupos)
+# ============================================================
+
+def classificacao_lojas():
+    """Lê a classificação por loja/grupo exportada do Power BI.
+
+    Pasta 'Classificação Lojas' no SharePoint, arquivos 'Rodada N.xlsx' com as
+    colunas SERIE_GRUPO | Rank | Time | Pts | Jogos | VIT | EMP | DER | GM | GS | SG.
+    Usa sempre o arquivo da rodada mais alta. Retorna (rodada, {grupo: [linhas]}).
+    """
+    base = TMP_BASE / "ClassificacaoLojas"
+    if not base.exists():
+        return None, {}
+
+    melhor, melhor_n = None, -1
+    for f in base.glob("*.xlsx"):
+        if f.name.startswith("~"):
+            continue
+        m = re.search(r"(\d+)", f.stem)
+        if m and int(m.group(1)) > melhor_n:
+            melhor, melhor_n = f, int(m.group(1))
+    if not melhor:
+        return None, {}
+
+    wb = openpyxl.load_workbook(melhor, data_only=True, read_only=True)
+    ws = wb.active
+    grupos = {}
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row or not row[0] or not row[2]:
+            continue
+        def _i(v):
+            try:
+                return int(v)
+            except (TypeError, ValueError):
+                return 0
+        grupos.setdefault(str(row[0]).strip(), []).append({
+            "rank": _i(row[1]), "time": str(row[2]).strip(),
+            "pts": _i(row[3]), "jogos": _i(row[4]),
+            "vit": _i(row[5]), "emp": _i(row[6]), "der": _i(row[7]),
+            "gm": _i(row[8]), "gs": _i(row[9]), "sg": _i(row[10]),
+        })
+    wb.close()
+    for linhas in grupos.values():
+        linhas.sort(key=lambda r: r["rank"])
+    return melhor_n, grupos
+
+
+@app.route('/api/classificacao', methods=['GET'])
+def get_classificacao():
+    """Classificação por loja/grupo até a última rodada encerrada."""
+    try:
+        garantir_arquivos_frescos()
+    except Exception:
+        pass
+    try:
+        rodada, grupos = classificacao_lojas()
+        return jsonify({
+            "rodada": rodada,
+            "grupos": grupos,
+            "totalGrupos": len(grupos),
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/semana', methods=['GET'])
 def get_semana():
     """Semana vigente, detectada pelos arquivos de confronto disponíveis.
