@@ -15,6 +15,9 @@ SIMILARIDADE_MIN = 0.6
 FILE_ALIASES = {}
 DIAS_ORDENADOS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 
+# Chave onde guardamos o valor da coluna 'Total' da planilha (não é um dia).
+CHAVE_TOTAL = '__total__'
+
 
 def _listar_xlsx(semana_path):
     if not semana_path.exists():
@@ -126,15 +129,20 @@ def _achar_cabecalho(linhas):
     """Encontra a linha de cabeçalho (a que tem mais colunas de dia) e as
     colunas de dias. Suporta planilhas com título/linhas em branco antes,
     como o SHARE CLUBZ (cabeçalho na 5ª linha). Ignora colunas 'Total'.
-    Retorna (indice_linha, [(col, dia)])."""
-    melhor = (None, [])
+    A coluna 'Total' é devolvida à parte: em indicadores de share ela traz o
+    percentual da semana calculado na origem (receita/receita), que NÃO é a
+    média dos dias. Sua posição muda conforme os dias avançam.
+    Retorna (indice_linha, [(col, dia)], col_total)."""
+    melhor = (None, [], None)
     for i, row in enumerate(linhas[:15]):        # cabeçalho está nas 1ªs linhas
         if not row:
             continue
         cols = []
+        col_total = None
         for j in range(1, len(row)):             # col 0 = sigla da loja
             if str(row[j] or '').strip().lower().startswith('total'):
-                continue                          # coluna de total: ignorar
+                col_total = j                     # guardada, não vira dia
+                continue
             dia = _dia_da_celula(row[j])
             if dia:
                 cols.append((j, dia))
@@ -145,7 +153,7 @@ def _achar_cabecalho(linhas):
                 vistos.add(d)
                 únicos.append((c, d))
         if len(únicos) > len(melhor[1]):
-            melhor = (i, únicos)
+            melhor = (i, únicos, col_total)
     return melhor
 
 
@@ -158,7 +166,7 @@ def _carregar_arquivo(file_path):
     linhas = list(ws.iter_rows(values_only=True))
     wb.close()
 
-    idx_head, col_dias = _achar_cabecalho(linhas)
+    idx_head, col_dias, col_total = _achar_cabecalho(linhas)
     dados = {}
     if idx_head is None or not col_dias:
         return dados
@@ -181,6 +189,14 @@ def _carregar_arquivo(file_path):
                     dias[dia_nome] = round(float(valor), 6)
             except (ValueError, TypeError):
                 dias[dia_nome] = 0
+        # Total da semana vindo da planilha (chave fora dos nomes de dia).
+        if col_total is not None and col_total < len(row):
+            try:
+                v = row[col_total]
+                if v not in (None, "-"):
+                    dias[CHAVE_TOTAL] = round(float(v), 6)
+            except (ValueError, TypeError):
+                pass
         dados[str(sigla).strip()] = dias
     return dados
 
@@ -199,6 +215,23 @@ def carregar_tudo(semana_anterior, semana_atual):
             if fp:
                 memoria[arquivo][semana_type] = _carregar_arquivo(fp)
     return memoria
+
+
+def agregar_pct(dias_obj, dias_a_contar):
+    """Agregação de indicador percentual.
+
+    Prefere a coluna 'Total' da planilha — em share ela é receita/receita da
+    semana, não a média dos dias, e é esse o número oficial. Só vale quando o
+    recorte pedido cobre todos os dias já lançados; para um recorte parcial
+    (placar acumulado até hoje) volta para a média dos dias.
+    """
+    o = dias_obj or {}
+    total = o.get(CHAVE_TOTAL)
+    if total:
+        com_dado = [d for d in DIAS_ORDENADOS if o.get(d)]
+        if com_dado and all(d in dias_a_contar for d in com_dado):
+            return total
+    return _media_dias(o, dias_a_contar)
 
 
 def _media_dias(dias_obj, dias_a_contar):
@@ -241,7 +274,7 @@ def _placar(memoria, team1, team2, hoje_idx=None):
         # Indicador percentual (ex.: SHARE) agrega por MÉDIA dos dias com dado;
         # indicador monetário agrega por SOMA.
         ehPct = semanas.get("tipo") == "%"
-        agg = (lambda o: _media_dias(o, dias_a_contar)) if ehPct else \
+        agg = (lambda o: agregar_pct(o, dias_a_contar)) if ehPct else \
               (lambda o: sum((o or {}).get(d, 0) for d in dias_a_contar))
         t1_ant, t1_atu = agg(d1a), agg(d1t)
         t2_ant, t2_atu = agg(d2a), agg(d2t)
@@ -285,7 +318,7 @@ def semana_atual_vazia(memoria):
     """
     for semanas in memoria.values():
         for dias in (semanas.get("atual") or {}).values():
-            if any(dias.values()):
+            if any(v for k, v in dias.items() if k != CHAVE_TOTAL):
                 return False
     return True
 

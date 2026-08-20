@@ -28,6 +28,24 @@ const REGIONAL_DESTAQUE = 'R2 - Luiz';
 // UTILIDADES
 // ============================================================
 
+// Chave da coluna 'Total' da planilha (vem do backend junto com os dias).
+const CHAVE_TOTAL = '__total__';
+const DIAS_SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+
+// Agregação de indicador percentual: prefere o 'Total' da planilha (em share
+// é receita/receita da semana, não a média dos dias). Só vale quando o recorte
+// cobre todos os dias já lançados; num recorte parcial volta para a média.
+function agregarPct(diasObj, diasAcontar, diasOrdenados) {
+    const o = diasObj || {};
+    const total = o[CHAVE_TOTAL];
+    if (total) {
+        const comDado = diasOrdenados.filter(d => o[d]);
+        if (comDado.length && comDado.every(d => diasAcontar.includes(d))) return total;
+    }
+    const vals = diasAcontar.map(d => o[d] || 0).filter(v => v);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+}
+
 function evolucaoPct(anterior, atual) {
     // Regras do campeonato (iguais às do backend, em calculo_rapido.evolucao_pct):
     //  - sem base (semana anterior = 0)   -> 0%
@@ -126,10 +144,12 @@ function calcularAnalisePorGol(jogosComDados, lojas) {
             const dados2 = jogoData.dadosTeam2[indicador];
 
             if (dados1 && dados2) {
-                const total1Anterior = Object.values(dados1.anterior?.dias || {}).reduce((a, b) => a + b, 0);
-                const total1Atual = Object.values(dados1.atual?.dias || {}).reduce((a, b) => a + b, 0);
-                const total2Anterior = Object.values(dados2.anterior?.dias || {}).reduce((a, b) => a + b, 0);
-                const total2Atual = Object.values(dados2.atual?.dias || {}).reduce((a, b) => a + b, 0);
+                // Somar só os dias — a chave de Total da planilha não entra.
+                const somaDias = (d) => DIAS_SEMANA.reduce((a, k) => a + ((d || {})[k] || 0), 0);
+                const total1Anterior = somaDias(dados1.anterior?.dias);
+                const total1Atual = somaDias(dados1.atual?.dias);
+                const total2Anterior = somaDias(dados2.anterior?.dias);
+                const total2Atual = somaDias(dados2.atual?.dias);
 
                 const evolucao1 = total1Anterior !== 0 ? ((total1Atual - total1Anterior) / total1Anterior * 100) : 0;
                 const evolucao2 = total2Anterior !== 0 ? ((total2Atual - total2Anterior) / total2Anterior * 100) : 0;
@@ -250,10 +270,8 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
         // monetário agrega por SOMA. Tipo vem detectado do backend.
         const ehPct = (dados1.atual?.type || dados1.anterior?.type) === '%';
         const agregar = (diasObj) => {
-            const vals = diasAcontar.map(d => diasObj[d] || 0);
-            if (!ehPct) return vals.reduce((a, b) => a + b, 0);
-            const comDado = vals.filter(v => v);
-            return comDado.length ? comDado.reduce((a, b) => a + b, 0) / comDado.length : 0;
+            if (ehPct) return agregarPct(diasObj, diasAcontar, diasOrdenados);
+            return diasAcontar.map(d => (diasObj || {})[d] || 0).reduce((a, b) => a + b, 0);
         };
 
         const total1Anterior = agregar(dias1Anterior);
@@ -1713,11 +1731,12 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     const fmt = (v) => formatarValor(v, tipo);
     // Percentual agrega por MÉDIA dos dias com dado; monetário por SOMA
     const agregar = (diasObj) => {
-        const vals = diasOrdenados.map(d => (diasObj || {})[d] || 0);
-        if (!ehPct) return vals.reduce((a, b) => a + b, 0);
-        const comDado = vals.filter(v => v);
-        return comDado.length ? comDado.reduce((a, b) => a + b, 0) / comDado.length : 0;
+        if (ehPct) return agregarPct(diasObj, diasOrdenados, diasOrdenados);
+        return diasOrdenados.map(d => (diasObj || {})[d] || 0).reduce((a, b) => a + b, 0);
     };
+    // A linha final é MÉDIA só quando não há coluna 'Total' na planilha.
+    const usaTotalPlanilha = ehPct && !!(dados.atual?.dias?.[CHAVE_TOTAL]
+                                         || dados.anterior?.dias?.[CHAVE_TOTAL]);
 
     let totalAnterior = 0;
     let totalAtual = 0;
@@ -1796,7 +1815,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
 
     html += `
                 <tr class="total-row">
-                    <td class="day-label">${ehPct ? 'MÉDIA' : 'TOTAL'}</td>
+                    <td class="day-label">${ehPct && !usaTotalPlanilha ? 'MÉDIA' : 'TOTAL'}</td>
                     <td style="text-align: center;">${fmt(totalAnterior)}</td>
                     <td style="text-align: center;">${fmt(totalAtual)}</td>
                     <td class="evolution ${classeEvolucao}" style="text-align: center;">${evolucaoTotal.toFixed(2)}%</td>
@@ -1804,7 +1823,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     `;
 
     if (faltaVirar !== null) {
-        const rotulo = ehPct ? 'Falta p/ virar (média)' : 'Falta p/ virar';
+        const rotulo = (ehPct && !usaTotalPlanilha) ? 'Falta p/ virar (média)' : 'Falta p/ virar';
         const dica = ehPct
             ? `${teamName} precisa subir +${fmt(faltaVirar)} na média para virar este gol`
             : `${teamName} precisa vender +${fmt(faltaVirar)} na S. Atual para virar este gol`;

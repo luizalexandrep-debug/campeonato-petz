@@ -1414,7 +1414,8 @@ def _calcular_summary(semana):
             lojas = sem.get(chave) or {}
             if not lojas:
                 continue  # arquivo ausente nessa semana (não é o mesmo problema)
-            tem_valor = any(v for dias in lojas.values() for v in dias.values())
+            tem_valor = any(v for dias in lojas.values()
+                            for k, v in dias.items() if k != cr.CHAVE_TOTAL)
             if not tem_valor:
                 avisos.append({
                     "tipo": "zerado",
