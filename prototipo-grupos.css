@@ -91,3 +91,59 @@
     pointer-events: none;
     box-shadow: 0 6px 18px rgba(0,0,0,.28);
 }
+
+/* ====== Panorama geral (acima da comparação) ====== */
+.painel-geral {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr 1fr;
+    gap: var(--s-4);
+    margin-bottom: var(--s-5);
+}
+
+.pg-bloco {
+    background: var(--surface);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-sm);
+    padding: var(--s-4);
+    min-width: 0;
+}
+
+.pg-bloco h3 {
+    font-size: .92em;
+    font-weight: 800;
+    color: var(--brand-ink);
+    margin-bottom: 10px;
+}
+
+.tab-pan thead th { font-size: .8em; padding: 6px 4px; }
+.tab-pan thead tr.sub th { background: #2b3a6b; font-weight: 600; }
+.tab-pan td { padding: 7px 4px; font-size: .95em; }
+
+.pg-lista {
+    list-style: none;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.pg-lista li {
+    font-size: .84em;
+    line-height: 1.45;
+    padding: 7px 10px;
+    border-radius: var(--r-sm);
+    background: var(--bg);
+    border-left: 3px solid var(--border);
+}
+
+.pg-lista li.ganho { background: #e8f6ef; border-left-color: #157347; }
+.pg-lista li.perda { background: #fdecea; border-left-color: #c0392b; }
+.pg-lista li small { color: var(--text-3); }
+.pg-lista li i { color: var(--text-2); font-style: normal; font-weight: 600; }
+.pg-nota { font-size: .78em; color: var(--text-3); margin-top: 8px; }
+
+@media (max-width: 1200px) {
+    .painel-geral { grid-template-columns: 1fr; }
+}
