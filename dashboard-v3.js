@@ -477,19 +477,7 @@ function onFiltroEstatísticas(resultado) {
         ? filtrarJogosPorResultado(state.jogosComDadosAtual, lojas, state.filtroResultado)
         : state.jogosComDadosAtual;
 
-    container.innerHTML = '';
-    jogosFinal.forEach(jogoData => {
-        try {
-            if (jogoData.erro) {
-                console.log(`Pulando jogo ${jogoData.team1} vs ${jogoData.team2} (erro ao carregar dados)`);
-                return;
-            }
-            const card = criarCardJogo(jogoData, lojas);
-            container.appendChild(card);
-        } catch (error) {
-            console.error(`Erro ao renderizar jogo ${jogoData.team1} vs ${jogoData.team2}:`, error);
-        }
-    });
+    renderJogosPorResultado(container, lojas);
 }
 
 // ============================================================
@@ -965,21 +953,7 @@ async function loadGames() {
             ? filtrarJogosPorResultado(jogosComDados, lojas, state.filtroResultado)
             : jogosComDados;
 
-        container.innerHTML = '';
-        jogosFinal.forEach(jogoData => {
-            try {
-                // Pular jogos com erro de carregamento
-                if (jogoData.erro) {
-                    console.log(`Pulando jogo ${jogoData.team1} vs ${jogoData.team2} (erro ao carregar dados)`);
-                    return;
-                }
-                const card = criarCardJogo(jogoData, lojas);
-                container.appendChild(card);
-            } catch (error) {
-                console.error(`Erro ao renderizar jogo ${jogoData.team1} vs ${jogoData.team2}:`, error);
-                // Continuar com próximo jogo se houver erro
-            }
-        });
+        renderJogosPorResultado(container, lojas);
 
     } catch (error) {
         infoBar.innerHTML = '<span style="color: red;">⚠️ Alguns jogos não puderam ser carregados (dados indisponíveis)</span>';
@@ -1387,54 +1361,8 @@ function loadGamesFromSummary(regional) {
 
     infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #2b5aa8; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button><span>📊 ${jogosFiltrados.length} jogos da regional (resumo rápido)</span>`;
 
-    // Renderizar cards simplificados (sem dados detalhados)
-    container.innerHTML = '';
-    jogosFiltrados.forEach(gameData => {
-        const [score1, score2] = gameData.scoreProjected.split('x').map(s => parseInt(s.trim()));
-        const lojaDoRegional = lojas.includes(gameData.team1) ? gameData.team1 : gameData.team2;
-        const isTeam1 = lojaDoRegional === gameData.team1;
-        const scoreRegional = isTeam1 ? score1 : score2;
-        const scoreAdversário = isTeam1 ? score2 : score1;
-
-        let resultClass = 'empate';
-        let resultText = semResultado(gameData) ? '⏳ AGUARDANDO DADOS DA RODADA' : '⚖️ EMPATANDO';
-        if (!semResultado(gameData) && scoreRegional > scoreAdversário) {
-            resultClass = 'venceu';
-            resultText = `✅ ${lojaDoRegional} ESTÁ VENCENDO`;
-        } else if (scoreRegional < scoreAdversário) {
-            resultClass = 'perdeu';
-            resultText = `❌ ${lojaDoRegional} ESTÁ PERDENDO`;
-        }
-
-        const card = document.createElement('div');
-        card.className = 'game-section';
-        card.innerHTML = `
-            <div class="game-header">
-                <div class="game-title-compact">
-                    <span class="team-compact">${gameData.team1}</span>
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                            <span style="font-size: 0.7em; color: #666; font-weight: 500;">Placar Projetado</span>
-                            <span class="score-compact">${score1} × ${score2}</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                            <span style="font-size: 0.7em; color: #999; font-weight: 500;">Acumulado</span>
-                            <span style="font-size: 0.85em; color: #999; font-weight: 600;">${gameData.scoreAccumulated}</span>
-                        </div>
-                    </div>
-                    <span class="team-compact">${gameData.team2}</span>
-                </div>
-                <div class="result-compact ${resultClass}">${resultText}</div>
-                <button class="btn-exportar" title="Exportar imagem para compartilhar"
-                    onclick="event.stopPropagation(); exportarJogoImagem('${gameData.team1}', '${gameData.team2}', this)">🖼️</button>
-                <div class="expand-icon">ℹ️</div>
-            </div>
-            <div style="padding: 15px; color: #999; text-align: center; font-size: 0.9em;">
-                💡 Selecione um distrito para ver os detalhes dos indicadores
-            </div>
-        `;
-        container.appendChild(card);
-    });
+    // Cards agrupados por resultado; detalhes abrem em janela.
+    renderJogosPorResultado(container, lojas);
 }
 
 function loadGamesFromSummaryForDistrito(regional, distrito, lojas) {
@@ -1494,55 +1422,8 @@ function loadGamesFromSummaryForDistrito(regional, distrito, lojas) {
 
     infoBar.innerHTML = `<button onclick="document.getElementById('filterRegional').value=''; document.getElementById('filterDistrito').value=''; document.getElementById('filterRegional').dispatchEvent(new Event('change', { bubbles: true }));" style="background: #2b5aa8; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; margin-right: 15px;">← Voltar ao Ranking</button><span>📊 ${jogosFiltrados.length} jogos carregando detalhes...</span>`;
 
-    // Renderizar cards do resumo
-    container.innerHTML = '';
-    jogosFiltrados.forEach(gameData => {
-        const [score1, score2] = gameData.scoreProjected.split('x').map(s => parseInt(s.trim()));
-        const lojaDoDistrito = lojas.includes(gameData.team1) ? gameData.team1 : gameData.team2;
-        const isTeam1 = lojaDoDistrito === gameData.team1;
-        const scoreDistrito = isTeam1 ? score1 : score2;
-        const scoreAdversário = isTeam1 ? score2 : score1;
-
-        let resultClass = 'empate';
-        let resultText = semResultado(gameData) ? '⏳ AGUARDANDO DADOS DA RODADA' : '⚖️ EMPATANDO';
-        if (!semResultado(gameData) && scoreDistrito > scoreAdversário) {
-            resultClass = 'venceu';
-            resultText = `✅ ${lojaDoDistrito} ESTÁ VENCENDO`;
-        } else if (scoreDistrito < scoreAdversário) {
-            resultClass = 'perdeu';
-            resultText = `❌ ${lojaDoDistrito} ESTÁ PERDENDO`;
-        }
-
-        const card = document.createElement('div');
-        card.className = 'game-section';
-        card.id = `game-${gameData.team1}-${gameData.team2}`;
-        card.innerHTML = `
-            <div class="game-header">
-                <div class="game-title-compact">
-                    <span class="team-compact">${gameData.team1}</span>
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                            <span style="font-size: 0.7em; color: #666; font-weight: 500;">Placar Projetado</span>
-                            <span class="score-compact">${score1} × ${score2}</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                            <span style="font-size: 0.7em; color: #999; font-weight: 500;">Acumulado</span>
-                            <span style="font-size: 0.85em; color: #999; font-weight: 600;">${gameData.scoreAccumulated}</span>
-                        </div>
-                    </div>
-                    <span class="team-compact">${gameData.team2}</span>
-                </div>
-                <div class="result-compact ${resultClass}">${resultText}</div>
-                <button class="btn-exportar" title="Exportar imagem para compartilhar"
-                    onclick="event.stopPropagation(); exportarJogoImagem('${gameData.team1}', '${gameData.team2}', this)">🖼️</button>
-                <div class="expand-icon">📋</div>
-            </div>
-            <div style="padding: 15px; color: #999; text-align: center; font-size: 0.9em;">
-                ⏳ Carregando detalhes dos indicadores...
-            </div>
-        `;
-        container.appendChild(card);
-    });
+    // Cards agrupados por resultado; detalhes abrem em janela.
+    renderJogosPorResultado(container, lojas);
 }
 
 async function carregarDetalhesDistrito(jogosFiltrados, lojas) {
@@ -1559,17 +1440,134 @@ async function carregarDetalhesDistrito(jogosFiltrados, lojas) {
             ? filtrarJogosPorResultado(jogosComDados, lojas, state.filtroResultado)
             : jogosComDados;
 
-        const container = document.getElementById('gamesContainer');
-        container.innerHTML = '';
-        jogosFinal.forEach(jogoData => {
-            if (jogoData.erro) return;
-            const card = criarCardJogo(jogoData, lojas);
-            container.appendChild(card);
-        });
+        // Os detalhes ficam em cache (a janela e a exportação usam); a lista
+        // continua sendo a de cards agrupados por resultado.
+        renderJogosPorResultado(document.getElementById('gamesContainer'), lojas);
     } catch (error) {
         infoBar.innerHTML = '<span style="color: red;">⚠️ Erro ao carregar detalhes</span>';
         console.error('Erro ao carregar detalhes:', error);
     }
+}
+
+// ============================================================
+// JOGOS AGRUPADOS POR RESULTADO (vitórias / empates / derrotas)
+// Os cards são compactos e os detalhes abrem em uma janela, o que evita
+// espremer as tabelas dentro de uma coluna estreita.
+// ============================================================
+
+function renderJogosPorResultado(container, lojas) {
+    const todos = state.gamesSummary?.games || [];
+    let jogos = todos.filter(g => lojas.includes(g.team1) || lojas.includes(g.team2));
+
+    const resultadoDe = (g) => {
+        if (semResultado(g)) return 'e';
+        const [s1, s2] = g.scoreProjected.split('x').map(v => parseInt(v.trim()));
+        const minha = lojas.includes(g.team1) ? g.team1 : g.team2;
+        const eu = minha === g.team1 ? s1 : s2;
+        const adv = minha === g.team1 ? s2 : s1;
+        return eu > adv ? 'v' : eu < adv ? 'd' : 'e';
+    };
+
+    // Filtro vindo dos cartões de estatística (Vitórias / Empates / Derrotas)
+    const mapa = { vitoria: 'v', empate: 'e', derrota: 'd' };
+    if (state.filtroResultado) {
+        const alvo = mapa[state.filtroResultado];
+        jogos = jogos.filter(g => resultadoDe(g) === alvo);
+    }
+
+    const grupos = { v: [], e: [], d: [] };
+    jogos.forEach(g => grupos[resultadoDe(g)].push(g));
+
+    const semDados = todos.length && semResultado(todos[0]);
+    const titulos = [
+        ['v', '✅ Vitórias'],
+        ['e', semDados ? '⏳ Sem resultado' : '⚖️ Empates'],
+        ['d', '❌ Derrotas']
+    ];
+
+    container.innerHTML = `<div class="colunas-resultado">${titulos.map(([k, titulo]) => `
+        <div class="col-res ${k}">
+            <div class="col-res-head"><span>${titulo}</span><span class="n">${grupos[k].length}</span></div>
+            <div class="lista">
+                ${grupos[k].length ? grupos[k].map(cardJogoCompacto).join('') : '<div class="vazio">nenhum jogo</div>'}
+            </div>
+        </div>`).join('')}</div>`;
+}
+
+function cardJogoCompacto(g) {
+    return `
+    <div class="jogo-card" onclick="abrirDetalhesJogo('${g.team1}','${g.team2}')">
+        <div class="lados">
+            <span class="sig">${g.team1}</span>
+            <span class="meio">
+                <span class="rot">Placar Projetado</span>
+                <span class="placar">${g.scoreProjected.replace('x', '×')}</span>
+                <span class="acum">Acumulado ${g.scoreAccumulated}</span>
+            </span>
+            <span class="sig">${g.team2}</span>
+        </div>
+        <button class="btn-exportar" title="Exportar imagem para compartilhar"
+            onclick="event.stopPropagation(); exportarJogoImagem('${g.team1}','${g.team2}', this)">🖼️</button>
+        <span class="lupa" title="Ver detalhes">🔍</span>
+    </div>`;
+}
+
+async function abrirDetalhesJogo(team1, team2) {
+    const resumo = (state.gamesSummary?.games || [])
+        .find(g => g.team1 === team1 && g.team2 === team2) || {};
+
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo';
+    fundo.innerHTML = `
+        <div class="modal-jogo">
+            <div class="modal-head">
+                <div class="times">
+                    <span class="t">${team1}</span>
+                    <span class="placar">
+                        <small>Placar Projetado</small>
+                        <b>${(resumo.scoreProjected || '0 x 0').replace('x', '×')}</b>
+                        <small>Acumulado ${resumo.scoreAccumulated || '0 x 0'}</small>
+                    </span>
+                    <span class="t">${team2}</span>
+                </div>
+                <div class="modal-acoes">
+                    <button class="modal-btn" id="btExpModal">🖼️ Exportar imagem</button>
+                    <button class="modal-btn" data-fechar>✕ Fechar</button>
+                </div>
+            </div>
+            <div class="modal-corpo"><div class="carregando">⏳ Carregando indicadores...</div></div>
+        </div>`;
+
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
+
+    const chave = `${team1}_${team2}`;
+    let jogo = state.jogosCalculados[chave];
+    if (!jogo || jogo.erro || !jogo.dadosTeam1) {
+        jogo = await carregarDadosJogo({ team1, team2 });
+        state.jogosCalculados[chave] = jogo;
+    }
+
+    const corpo = fundo.querySelector('.modal-corpo');
+    if (!corpo) return;   // fechado antes de carregar
+    if (jogo.erro) {
+        corpo.innerHTML = '<div class="carregando">❌ Não foi possível carregar os indicadores.</div>';
+        return;
+    }
+
+    corpo.innerHTML = Object.keys(jogo.dadosTeam1).map(ind => `
+        <div class="tables-wrapper">
+            ${criarTabelaIndicador(team1, jogo.dadosTeam1[ind], ind, jogo.dadosTeam2[ind])}
+            ${criarTabelaIndicador(team2, jogo.dadosTeam2[ind], ind, jogo.dadosTeam1[ind])}
+        </div>`).join('');
+
+    const bt = fundo.querySelector('#btExpModal');
+    if (bt) bt.onclick = (e) => exportarJogoImagem(team1, team2, e.currentTarget);
 }
 
 async function carregarDadosJogo(jogo) {
@@ -1606,111 +1604,6 @@ async function carregarDadosJogo(jogo) {
             erro: true
         };
     }
-}
-
-// ============================================================
-// CRIAR CARD DO JOGO
-// ============================================================
-
-function criarCardJogo(jogoData, lojas) {
-    const card = document.createElement('div');
-    card.className = 'game-section';
-
-    const { team1, team2, score, scoreAcumulado, dadosTeam1, dadosTeam2, erro, hojeIdx } = jogoData;
-
-    if (erro) {
-        card.innerHTML = `
-            <div class="game-header">
-                <div class="game-title">${team1} vs ${team2}</div>
-                <p style="color: red;">❌ Erro ao carregar dados</p>
-            </div>
-        `;
-        return card;
-    }
-
-    // Header com placar. Sem nenhum dia lançado na semana atual o placar não
-    // existe (0 x 0) — o cálculo local não deve inventar gols por desempate.
-    const [score1, score2] = (!semResultado(jogoData) && score && score.includes('x'))
-        ? score.split('x').map(s => parseInt(s.trim()))
-        : [0, 0];
-
-    // Determinar qual time é do distrito selecionado
-    const lojaDoDistrito = lojas.includes(team1) ? team1 : team2;
-    const isTeam1 = lojaDoDistrito === team1;
-    const scoreDistrito = isTeam1 ? score1 : score2;
-    const scoreAdversário = isTeam1 ? score2 : score1;
-
-    // Determinar se a rodada acabou (hojeIdx = 6 significa domingo, último dia)
-    const rodadaAcabou = hojeIdx === 6;
-
-    let resultClass = 'empate';
-    let resultText = semResultado(jogoData) ? '⏳ AGUARDANDO DADOS DA RODADA' : '⚖️ EMPATANDO';
-    if (semResultado(jogoData)) {
-        // rodada sem nenhum dia lançado: nenhum resultado atribuído
-    } else if (scoreDistrito > scoreAdversário) {
-        resultClass = 'venceu';
-        resultText = rodadaAcabou ? `✅ ${lojaDoDistrito} VENCEU` : `✅ ${lojaDoDistrito} ESTÁ VENCENDO`;
-    } else if (scoreDistrito < scoreAdversário) {
-        resultClass = 'perdeu';
-        resultText = rodadaAcabou ? `❌ ${lojaDoDistrito} PERDEU` : `❌ ${lojaDoDistrito} ESTÁ PERDENDO`;
-    } else {
-        resultText = rodadaAcabou ? '⚖️ EMPATOU' : '⚖️ EMPATANDO';
-    }
-
-    let header = `
-        <div class="game-header" onclick="this.closest('.game-section').classList.toggle('expanded')">
-            <div class="game-title-compact">
-                <span class="team-compact">${team1}</span>
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        <span style="font-size: 0.7em; color: #666; font-weight: 500;">Placar Projetado</span>
-                        <span class="score-compact">${score1} × ${score2}</span>
-                    </div>
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
-                        <span style="font-size: 0.7em; color: #999; font-weight: 500;">Acumulado</span>
-                        <span style="font-size: 0.85em; color: #999; font-weight: 600;">${semResultado(jogoData) ? '0 x 0' : scoreAcumulado}</span>
-                    </div>
-                </div>
-                <span class="team-compact">${team2}</span>
-            </div>
-            <div class="result-compact ${resultClass}">${resultText}</div>
-            <button class="btn-exportar" title="Exportar imagem para compartilhar"
-                onclick="event.stopPropagation(); exportarJogoImagem('${team1}', '${team2}', this)">🖼️</button>
-            <div class="expand-icon">▼</div>
-        </div>
-    `;
-
-    card.innerHTML = header;
-
-    // Container das tabelas (inicialmente escondido)
-    const tablesContainer = document.createElement('div');
-    tablesContainer.className = 'tables-container-hidden';
-
-    // Tabelas de indicadores
-    const indicadores = Object.keys(dadosTeam1);
-
-    indicadores.forEach(indicador => {
-        try {
-            const infoTeam1 = dadosTeam1[indicador];
-            const infoTeam2 = dadosTeam2[indicador];
-
-            const tablesWrapper = document.createElement('div');
-            tablesWrapper.className = 'tables-wrapper';
-
-            tablesWrapper.innerHTML = `
-                ${criarTabelaIndicador(team1, infoTeam1, indicador, infoTeam2)}
-                ${criarTabelaIndicador(team2, infoTeam2, indicador, infoTeam1)}
-            `;
-
-            tablesContainer.appendChild(tablesWrapper);
-        } catch (error) {
-            console.error(`Erro ao renderizar indicador ${indicador}:`, error);
-        }
-    });
-
-    card.appendChild(tablesContainer);
-
-    return card;
 }
 
 // ============================================================
@@ -1973,19 +1866,7 @@ async function loadGamesFromCache() {
         ? filtrarJogosPorResultado(jogosComDados, lojas, state.filtroResultado)
         : jogosComDados;
 
-    container.innerHTML = '';
-    jogosFinal.forEach(jogoData => {
-        try {
-            if (jogoData.erro) {
-                console.log(`Pulando jogo ${jogoData.team1} vs ${jogoData.team2} (erro ao carregar dados)`);
-                return;
-            }
-            const card = criarCardJogo(jogoData, lojas);
-            container.appendChild(card);
-        } catch (error) {
-            console.error(`Erro ao renderizar jogo ${jogoData.team1} vs ${jogoData.team2}:`, error);
-        }
-    });
+    renderJogosPorResultado(container, lojas);
 }
 
 function atualizarSeçãoEstatísticas(stats, analise) {
