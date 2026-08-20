@@ -1425,6 +1425,8 @@ function loadGamesFromSummary(regional) {
                     <span class="team-compact">${gameData.team2}</span>
                 </div>
                 <div class="result-compact ${resultClass}">${resultText}</div>
+                <button class="btn-exportar" title="Exportar imagem para compartilhar"
+                    onclick="event.stopPropagation(); exportarJogoImagem('${gameData.team1}', '${gameData.team2}', this)">🖼️</button>
                 <div class="expand-icon">ℹ️</div>
             </div>
             <div style="padding: 15px; color: #999; text-align: center; font-size: 0.9em;">
@@ -1531,6 +1533,8 @@ function loadGamesFromSummaryForDistrito(regional, distrito, lojas) {
                     <span class="team-compact">${gameData.team2}</span>
                 </div>
                 <div class="result-compact ${resultClass}">${resultText}</div>
+                <button class="btn-exportar" title="Exportar imagem para compartilhar"
+                    onclick="event.stopPropagation(); exportarJogoImagem('${gameData.team1}', '${gameData.team2}', this)">🖼️</button>
                 <div class="expand-icon">📋</div>
             </div>
             <div style="padding: 15px; color: #999; text-align: center; font-size: 0.9em;">
@@ -1670,6 +1674,8 @@ function criarCardJogo(jogoData, lojas) {
                 <span class="team-compact">${team2}</span>
             </div>
             <div class="result-compact ${resultClass}">${resultText}</div>
+            <button class="btn-exportar" title="Exportar imagem para compartilhar"
+                onclick="event.stopPropagation(); exportarJogoImagem('${team1}', '${team2}', this)">🖼️</button>
             <div class="expand-icon">▼</div>
         </div>
     `;

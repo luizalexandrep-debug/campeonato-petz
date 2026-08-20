@@ -404,6 +404,23 @@ body {
     line-height: 1.6;
 }
 
+/* Botão de exportar imagem do jogo */
+.btn-exportar {
+    background: var(--brand-tint);
+    border: 1px solid #c6dbf2;
+    color: var(--brand-ink);
+    border-radius: var(--r-sm);
+    padding: 6px 10px;
+    font-size: 1em;
+    line-height: 1;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background .15s var(--ease);
+}
+
+.btn-exportar:hover { background: #dbe6f7; }
+.btn-exportar:disabled { opacity: .6; cursor: default; }
+
 .alerta-hist {
     background: #fff8e6;
     border: 1px solid #f5d67f;
