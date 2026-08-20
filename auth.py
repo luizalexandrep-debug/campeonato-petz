@@ -10,6 +10,17 @@ from pathlib import Path
 db = SQLAlchemy()
 login_manager = LoginManager()
 
+class Deposito(db.Model):
+    """Caixa de texto temporária, usada para transferir dados grandes do
+    navegador para o servidor (ex.: a tabela de confrontos raspada do Power BI).
+    Uma linha por chave; sobrescreve."""
+    __tablename__ = 'deposito'
+
+    chave = db.Column(db.String(60), primary_key=True)
+    conteudo = db.Column(db.Text)
+    criado_em = db.Column(db.DateTime, default=db.func.now())
+
+
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuarios'
 
