@@ -443,6 +443,15 @@ function panoramaHtml() {
             <ul class="pg-lista">${g4Html}</ul>
         </div>
 
+        <div class="pg-bloco">
+            <h3>🔴 Movimentações no Z4 <small>· 4 últimos de cada grupo</small></h3>
+            <div class="pg-resumo">
+                ${cont(z4, 'entrou')} entrada(s) · ${cont(z4, 'saiu')} saída(s) · ${cont(z4, 'ficou')} mantida(s)
+            </div>
+            <ul class="pg-lista">${z4Html}</ul>
+            <div class="pg-nota">Lojas da ${nomeCurto(REGIONAL_DESTAQUE)}. Posições após a projeção da rodada ${st.semana}.</div>
+        </div>
+
         <div class="pg-bloco pg-largo">
             <h3>🤝 A regional jogando junto <small>· quando uma loja sua ajuda a outra</small></h3>
             <div class="pg-resumo">
@@ -451,15 +460,6 @@ function panoramaHtml() {
             <ul class="pg-lista pg-lista-combo">${combosHtml}</ul>
             <div class="pg-nota">Uma loja sua enfrentando o rival de outra loja sua. As duas precisam vencer
                 para a companheira ganhar terreno.</div>
-        </div>
-
-        <div class="pg-bloco">
-            <h3>🔴 Movimentações no Z4 <small>· 4 últimos de cada grupo</small></h3>
-            <div class="pg-resumo">
-                ${cont(z4, 'entrou')} entrada(s) · ${cont(z4, 'saiu')} saída(s) · ${cont(z4, 'ficou')} mantida(s)
-            </div>
-            <ul class="pg-lista">${z4Html}</ul>
-            <div class="pg-nota">Lojas da ${nomeCurto(REGIONAL_DESTAQUE)}. Posições após a projeção da rodada ${st.semana}.</div>
         </div>
     </div>`;
 }
