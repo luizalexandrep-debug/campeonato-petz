@@ -220,17 +220,15 @@ def carregar_tudo(semana_anterior, semana_atual):
 def agregar_pct(dias_obj, dias_a_contar):
     """Agregação de indicador percentual.
 
-    Prefere a coluna 'Total' da planilha — em share ela é receita/receita da
-    semana, não a média dos dias, e é esse o número oficial. Só vale quando o
-    recorte pedido cobre todos os dias já lançados; para um recorte parcial
-    (placar acumulado até hoje) volta para a média dos dias.
+    Sempre a coluna 'Total' da planilha quando ela existe — em share é
+    receita/receita, o número oficial do indicador. Vale inclusive com a semana
+    incompleta: o total já reflete só os dias lançados. A média dos dias é
+    apenas o plano B, para planilhas sem coluna de total.
     """
     o = dias_obj or {}
     total = o.get(CHAVE_TOTAL)
     if total:
-        com_dado = [d for d in DIAS_ORDENADOS if o.get(d)]
-        if com_dado and all(d in dias_a_contar for d in com_dado):
-            return total
+        return total
     return _media_dias(o, dias_a_contar)
 
 

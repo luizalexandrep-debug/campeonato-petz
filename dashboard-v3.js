@@ -32,16 +32,12 @@ const REGIONAL_DESTAQUE = 'R2 - Luiz';
 const CHAVE_TOTAL = '__total__';
 const DIAS_SEMANA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
-// Agregação de indicador percentual: prefere o 'Total' da planilha (em share
-// é receita/receita da semana, não a média dos dias). Só vale quando o recorte
-// cobre todos os dias já lançados; num recorte parcial volta para a média.
-function agregarPct(diasObj, diasAcontar, diasOrdenados) {
+// Agregação de indicador percentual: sempre o 'Total' da planilha quando ele
+// existe (em share é receita/receita, o número oficial), inclusive com a semana
+// incompleta. Média dos dias só como plano B, sem coluna de total.
+function agregarPct(diasObj, diasAcontar) {
     const o = diasObj || {};
-    const total = o[CHAVE_TOTAL];
-    if (total) {
-        const comDado = diasOrdenados.filter(d => o[d]);
-        if (comDado.length && comDado.every(d => diasAcontar.includes(d))) return total;
-    }
+    if (o[CHAVE_TOTAL]) return o[CHAVE_TOTAL];
     const vals = diasAcontar.map(d => o[d] || 0).filter(v => v);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
 }
@@ -270,7 +266,7 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
         // monetário agrega por SOMA. Tipo vem detectado do backend.
         const ehPct = (dados1.atual?.type || dados1.anterior?.type) === '%';
         const agregar = (diasObj) => {
-            if (ehPct) return agregarPct(diasObj, diasAcontar, diasOrdenados);
+            if (ehPct) return agregarPct(diasObj, diasAcontar);
             return diasAcontar.map(d => (diasObj || {})[d] || 0).reduce((a, b) => a + b, 0);
         };
 
@@ -1731,7 +1727,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     const fmt = (v) => formatarValor(v, tipo);
     // Percentual agrega por MÉDIA dos dias com dado; monetário por SOMA
     const agregar = (diasObj) => {
-        if (ehPct) return agregarPct(diasObj, diasOrdenados, diasOrdenados);
+        if (ehPct) return agregarPct(diasObj, diasOrdenados);
         return diasOrdenados.map(d => (diasObj || {})[d] || 0).reduce((a, b) => a + b, 0);
     };
     // A linha final é MÉDIA só quando não há coluna 'Total' na planilha.
