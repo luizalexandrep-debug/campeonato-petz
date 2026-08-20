@@ -75,7 +75,13 @@ async function carregarDadosJogo(jogo) {
 // ============================================================
 // INICIALIZAÇÃO
 // ============================================================
-document.addEventListener('DOMContentLoaded', iniciar);
+// Se o script for avaliado depois do DOM já pronto (cache, bfcache, ordem de
+// carregamento), o evento não dispara mais — nesse caso inicia direto.
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciar);
+} else {
+    iniciar();
+}
 
 async function iniciar() {
     try {
