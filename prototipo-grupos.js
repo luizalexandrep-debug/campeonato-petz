@@ -249,6 +249,33 @@ function delta(a, b, menorEhMelhor) {
     return `<span class="mov ${bom ? 'sobe' : 'desce'}">${seta} ${Math.abs(d)}</span>`;
 }
 
+// Clique num item do panorama: troca o grupo selecionado, rola até as tabelas
+// e destaca a loja por alguns segundos.
+function abrirGrupo(grupo, loja) {
+    if (!st.grupos[grupo]) return;
+    st.grupo = grupo;
+    st.lojaFoco = loja || null;
+    const sel = document.getElementById('fGrupo');
+    if (sel) sel.value = grupo;
+    render();
+
+    const alvo = document.querySelector('.comparacao');
+    if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    if (st.lojaFoco) {
+        setTimeout(() => {
+            document.querySelectorAll('.tab-grupo tbody tr').forEach(tr => {
+                const sig = tr.querySelector('.sigla');
+                if (sig && sig.textContent.trim() === st.lojaFoco) tr.classList.add('foco');
+            });
+        }, 60);
+        setTimeout(() => {
+            document.querySelectorAll('.tab-grupo tr.foco').forEach(tr => tr.classList.remove('foco'));
+            st.lojaFoco = null;
+        }, 6000);
+    }
+}
+
 function textoTrocas(trocas) {
     if (!trocas.length) {
         return `<div class="pg-texto">Nenhuma liderança muda de dono com a projeção da rodada ${st.semana}:
@@ -261,7 +288,8 @@ function textoTrocas(trocas) {
     const itens = trocas.map(t => {
         const ganho = eu(t.novoReg), perda = eu(t.antigoReg);
         const classe = ganho && !perda ? 'ganho' : perda && !ganho ? 'perda' : '';
-        return `<li class="${classe}">
+        return `<li class="${classe} clicavel" onclick="abrirGrupo('${t.grupo.replace(/'/g, "\\'")}','${t.novo}')"
+            title="Ver a tabela do ${t.grupo}">
             <b>${t.novo}</b> ${tag(t.novoReg)} assume a liderança do <b>${t.grupo}</b>
             com ${t.ptsNovo} pts, no lugar de <b>${t.antigo}</b> ${tag(t.antigoReg)}
             <small>· ${t.antigo} cai para ${t.posAntigo}º com ${t.ptsAntigo} pts</small>
@@ -318,7 +346,8 @@ function panoramaHtml() {
             : m.para === 1
                 ? '<small>· liderando o grupo</small>'
                 : `<small>· ${gapTxt(m.gapLider, `do líder ${m.lider}`)}</small>`;
-        return `<li class="${classe}">
+        return `<li class="${classe} clicavel" onclick="abrirGrupo('${m.grupo.replace(/'/g, "\\'")}','${m.time}')"
+            title="Ver a tabela do ${m.grupo}">
             ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
             <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
             ${ctx} ${linhaJogo(m)}
@@ -331,7 +360,8 @@ function panoramaHtml() {
             ? `<small>· ${m.margem === 0 ? 'empatada com o Z4, à frente só no desempate'
                 : `${m.margem} pt(s) de folga sobre o Z4`}</small>`
             : `<small>· ${gapTxt(m.gapSalvacao, 'para sair do Z4')}</small>`;
-        return `<li class="${classe}">
+        return `<li class="${classe} clicavel" onclick="abrirGrupo('${m.grupo.replace(/'/g, "\\'")}','${m.time}')"
+            title="Ver a tabela do ${m.grupo}">
             ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
             <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
             ${ctx} ${linhaJogo(m)}
