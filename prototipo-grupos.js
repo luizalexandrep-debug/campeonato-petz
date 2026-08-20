@@ -120,7 +120,8 @@ function projecaoDaRodada() {
             proj[time] = {
                 pts: gm > gs ? 3 : gm === gs ? 1 : 0,
                 vit: gm > gs ? 1 : 0, emp: gm === gs ? 1 : 0, der: gm < gs ? 1 : 0,
-                gm, gs
+                gm, gs,
+                adv: time === g.team1 ? g.team2 : g.team1
             };
         });
     });
@@ -131,6 +132,7 @@ function render() {
     const painel = document.getElementById('painel');
     const base = st.grupos[st.grupo] || [];
     const { proj, semDados } = projecaoDaRodada();
+    st.projAtual = proj;   // usado pelo tooltip da sigla
 
     const atual = ordenar(base);
     const posBase = {};
@@ -194,7 +196,7 @@ function tabela(linhas, posBase, ehSim) {
         return `<tr class="${dest.trim()}">
             <td>${pos}</td>
             ${posBase ? `<td>${mov}</td>` : ''}
-            <td class="l">${r.time}</td>
+            <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}">${r.time}</span></td>
             <td class="pts">${r.pts}</td>
             ${ganho}
             <td>${r.jogos}</td><td>${r.vit}</td><td>${r.emp}</td><td>${r.der}</td>
@@ -208,6 +210,38 @@ function tabela(linhas, posBase, ehSim) {
             <th>J</th><th>V</th><th>E</th><th>D</th><th>GM</th><th>GS</th><th>SG</th>
         </tr></thead><tbody>${corpo}</tbody></table>`;
 }
+
+function confrontoTexto(time) {
+    const p = (st.projAtual || {})[time];
+    if (!p) return `${time} · sem jogo na rodada ${st.semana || '-'}`;
+    return `${time} ${p.gm} × ${p.gs} ${p.adv}`;
+}
+
+// Tooltip próprio: o title nativo demora ~1s para aparecer.
+let _tip = null;
+function setupTooltipSigla() {
+    document.addEventListener('mouseover', (e) => {
+        const alvo = e.target.closest('.sigla[data-jogo]');
+        if (!alvo) return;
+        if (!_tip) {
+            _tip = document.createElement('div');
+            _tip.className = 'tip-jogo';
+            document.body.appendChild(_tip);
+        }
+        _tip.textContent = alvo.dataset.jogo;
+        _tip.style.display = 'block';
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (!_tip || _tip.style.display !== 'block') return;
+        _tip.style.left = (e.clientX + 14) + 'px';
+        _tip.style.top = (e.clientY + 16) + 'px';
+    });
+    document.addEventListener('mouseout', (e) => {
+        if (e.target.closest('.sigla[data-jogo]') && _tip) _tip.style.display = 'none';
+    });
+}
+
+setupTooltipSigla();
 
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', iniciar);

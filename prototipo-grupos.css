@@ -69,3 +69,25 @@
 @media (max-width: 1000px) {
     .comparacao { grid-template-columns: 1fr; }
 }
+
+/* Tooltip da sigla: mostra o confronto projetado da rodada em andamento */
+.tab-grupo .sigla {
+    cursor: help;
+    border-bottom: 1px dotted var(--text-3);
+}
+
+.tip-jogo {
+    position: fixed;
+    display: none;
+    z-index: 300;
+    background: #111827;
+    color: #fff;
+    padding: 7px 11px;
+    border-radius: 6px;
+    font-size: .84em;
+    font-weight: 700;
+    letter-spacing: .02em;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 6px 18px rgba(0,0,0,.28);
+}
