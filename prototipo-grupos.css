@@ -210,3 +210,18 @@
     background: #fff3cd !important;
     box-shadow: inset 0 0 0 2px #e0a800;
 }
+
+/* Bloco das combinações — ocupa a linha inteira, os itens têm 4 linhas */
+.painel-geral { grid-template-areas: none; }
+.pg-bloco.pg-largo { grid-column: 1 / -1; }
+
+.pg-lista-combo li { line-height: 1.5; }
+.pg-lista-combo .combo-topo { margin-bottom: 4px; }
+.pg-lista-combo .combo-passo { padding-left: 2px; }
+.pg-lista-combo .combo-status {
+    margin-top: 4px; font-size: .92em; font-weight: 600; color: var(--text-2);
+}
+
+.ck { display: inline-block; width: 15px; font-weight: 800; }
+.ck.sim { color: #157347; }
+.ck.nao { color: #c0392b; }

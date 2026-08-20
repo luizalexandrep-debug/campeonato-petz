@@ -162,6 +162,7 @@ function calcularPanorama() {
     const tot = {};
     regs.forEach(r => { tot[r] = { base: zero(), sim: zero() }; });
 
+    const combos = [];    // jogos de uma loja minha que ajudam outra loja minha
     const g4 = [];        // minhas lojas no top 4 (antes ou depois da projeção)
     const z4 = [];        // minhas lojas na zona de queda
     const trocas = [];    // grupos onde o líder muda na projeção
@@ -186,6 +187,40 @@ function calcularPanorama() {
                 posAntigo: sim.findIndex(x => x.time === base[0].time) + 1
             });
         }
+
+        // A regional como um só time: quando uma loja minha enfrenta um rival
+        // que está À FRENTE de outra loja minha, a vitória dela abre caminho
+        // para a companheira. Só vale se as duas vencerem.
+        sim.forEach((rival, iRival) => {
+            const pRival = proj[rival.time];
+            if (!pRival) return;
+            const carrasco = pRival.adv;                     // quem enfrenta o rival
+            if (!st.minhasLojas.has(carrasco)) return;       // precisa ser loja minha
+            if (st.minhasLojas.has(rival.time)) return;      // rival não pode ser minha
+
+            sim.forEach((minha, iMinha) => {
+                if (!st.minhasLojas.has(minha.time)) return;
+                if (minha.time === carrasco) return;         // a beneficiada é outra
+                if (iMinha <= iRival) return;                // só se estiver atrás
+                const gap = rival.pts - minha.pts;
+                if (gap > 6) return;                         // longe demais para importar
+
+                const pMinha = proj[minha.time];
+                const venceCarrasco = pRival.gm < pRival.gs; // rival perde o jogo
+                const venceMinha = pMinha && pMinha.gm > pMinha.gs;
+
+                combos.push({
+                    grupo,
+                    rival: rival.time, posRival: iRival + 1, ptsRival: rival.pts,
+                    carrasco, placarCarrasco: `${pRival.gs} x ${pRival.gm}`,
+                    beneficiada: minha.time, posBeneficiada: iMinha + 1, ptsBeneficiada: minha.pts,
+                    advBeneficiada: pMinha ? pMinha.adv : null,
+                    placarBeneficiada: pMinha ? `${pMinha.gm} x ${pMinha.gs}` : null,
+                    gap, venceCarrasco, venceMinha,
+                    completo: venceCarrasco && venceMinha
+                });
+            });
+        });
 
         // Minhas lojas nas duas pontas: G4 (4 primeiros) e Z4 (4 últimos).
         // Uma loja entra na lista se estiver na zona ANTES ou DEPOIS da projeção,
@@ -231,7 +266,11 @@ function calcularPanorama() {
     g4.sort((a, b) => ordemSit[a.situacao] - ordemSit[b.situacao] || a.para - b.para);
     z4.sort((a, b) => ordemSit[a.situacao] - ordemSit[b.situacao] || b.para - a.para);
     trocas.sort((a, b) => (a.grupo).localeCompare(b.grupo, 'pt', { numeric: true }));
-    return { tot, g4, z4, trocas };
+    // Combinações que já estão de pé primeiro, depois as que faltam pouco.
+    combos.sort((a, b) => (b.completo - a.completo)
+        || ((b.venceCarrasco + b.venceMinha) - (a.venceCarrasco + a.venceMinha))
+        || a.gap - b.gap);
+    return { tot, g4, z4, trocas, combos };
 }
 
 function nomeCurto(reg) {
@@ -300,7 +339,7 @@ function textoTrocas(trocas) {
 }
 
 function panoramaHtml() {
-    const { tot, g4, z4, trocas } = calcularPanorama();
+    const { tot, g4, z4, trocas, combos } = calcularPanorama();
     const regs = Object.keys(tot).sort();
 
     const linhas = regs.map(r => {
@@ -357,6 +396,24 @@ function panoramaHtml() {
 
     const cont = (lista, sit) => lista.filter(x => x.situacao === sit).length;
 
+    const check = (ok) => ok ? '<span class="ck sim">✔</span>' : '<span class="ck nao">✖</span>';
+    const combosHtml = combos.length ? combos.slice(0, 14).map(c => `
+        <li class="${c.completo ? 'ganho' : ''} clicavel" onclick="abrirGrupo('${c.grupo.replace(/'/g, "\\'")}','${c.beneficiada}')"
+            title="Ver a tabela do ${c.grupo}">
+            <div class="combo-topo">
+                <b>${c.beneficiada}</b> (${c.posBeneficiada}º) pode encostar em
+                <b>${c.rival}</b> (${c.posRival}º) — ${c.gap === 0 ? 'empatados em pontos' : `${c.gap} pt(s) de diferença`}
+            </div>
+            <div class="combo-passo">${check(c.venceCarrasco)}
+                <b>${c.carrasco}</b> vence ${c.rival} <small>· projetado ${c.placarCarrasco}</small></div>
+            <div class="combo-passo">${check(c.venceMinha)}
+                <b>${c.beneficiada}</b> vence ${c.advBeneficiada || '—'}
+                <small>· projetado ${c.placarBeneficiada || 's/ jogo'}</small></div>
+            <div class="combo-status">${c.completo
+                ? 'A combinação está de pé na projeção de agora.'
+                : 'Falta virar ' + [!c.venceCarrasco ? c.carrasco : null, !c.venceMinha ? c.beneficiada : null].filter(Boolean).join(' e ') + '.'}</div>
+        </li>`).join('') : '<li>Nenhuma loja sua enfrenta um rival que atrapalha outra loja sua nesta rodada.</li>';
+
     return `
     <div class="painel-geral">
         <div class="pg-bloco">
@@ -384,6 +441,16 @@ function panoramaHtml() {
                 ${cont(g4, 'entrou')} entrada(s) · ${cont(g4, 'saiu')} saída(s) · ${cont(g4, 'ficou')} mantida(s)
             </div>
             <ul class="pg-lista">${g4Html}</ul>
+        </div>
+
+        <div class="pg-bloco pg-largo">
+            <h3>🤝 A regional jogando junto <small>· quando uma loja sua ajuda a outra</small></h3>
+            <div class="pg-resumo">
+                ${combos.filter(c => c.completo).length} combinação(ões) já de pé · ${combos.length} no total
+            </div>
+            <ul class="pg-lista pg-lista-combo">${combosHtml}</ul>
+            <div class="pg-nota">Uma loja sua enfrentando o rival de outra loja sua. As duas precisam vencer
+                para a companheira ganhar terreno.</div>
         </div>
 
         <div class="pg-bloco">

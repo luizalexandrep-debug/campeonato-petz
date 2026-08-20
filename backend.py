@@ -13,7 +13,7 @@ import requests
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 from pathlib import Path
-from auth import db, login_manager, Usuario, Deposito, init_db
+from auth import db, login_manager, Usuario, init_db
 
 app = Flask(__name__)
 CORS(app)
@@ -965,46 +965,6 @@ def get_classificacao():
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-
-
-# ============================================================
-# DEPÓSITO — transferência de dados grandes vindos do navegador
-# ============================================================
-
-@app.route('/api/deposito/<chave>', methods=['POST', 'GET', 'OPTIONS'])
-def deposito(chave):
-    """Guarda/recupera um texto grande. Usado para trazer a tabela de
-    confrontos raspada do Power BI até o servidor, já que a resposta do
-    console do navegador é limitada a ~1 KB por chamada."""
-    if request.method == 'OPTIONS':
-        return ('', 204)
-    try:
-        if request.method == 'POST':
-            texto = request.get_data(as_text=True) or ''
-            reg = db.session.get(Deposito, chave)
-            if reg is None:
-                reg = Deposito(chave=chave)
-                db.session.add(reg)
-            reg.conteudo = texto
-            db.session.commit()
-            return jsonify({"ok": True, "chave": chave, "bytes": len(texto)})
-        reg = db.session.get(Deposito, chave)
-        if reg is None:
-            return jsonify({"error": "vazio"}), 404
-        return app.response_class(reg.conteudo or '', mimetype='text/plain')
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-
-@app.after_request
-def _cors_deposito(resp):
-    if request.path.startswith('/api/deposito/'):
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-    return resp
 
 
 @app.route('/api/semana', methods=['GET'])
