@@ -173,3 +173,28 @@
 }
 
 .pg-texto .tag.minha { background: var(--brand-tint); color: var(--brand-ink); border-color: #c6dbf2; }
+
+/* Selo de entrada/saída nas listas do G4 e do Z4 */
+.pg-bloco h3 small { font-weight: 500; color: var(--text-3); font-size: .82em; }
+
+.pg-resumo {
+    font-size: .8em;
+    color: var(--text-2);
+    font-weight: 600;
+    margin-bottom: 9px;
+}
+
+.pg-lista .selo {
+    display: inline-block;
+    font-size: .72em;
+    font-weight: 800;
+    letter-spacing: .04em;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--text-3);
+    color: #fff;
+    vertical-align: 1px;
+}
+
+.pg-lista li.ganho .selo { background: #157347; }
+.pg-lista li.perda .selo { background: #c0392b; }

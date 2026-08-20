@@ -162,8 +162,8 @@ function calcularPanorama() {
     const tot = {};
     regs.forEach(r => { tot[r] = { base: zero(), sim: zero() }; });
 
-    const movs = [];      // mudanças que envolvem lojas da minha regional
-    const alvos = [];     // lojas minhas perto da liderança
+    const g4 = [];        // minhas lojas no top 4 (antes ou depois da projeção)
+    const z4 = [];        // minhas lojas na zona de queda
     const trocas = [];    // grupos onde o líder muda na projeção
 
     Object.entries(st.grupos).forEach(([grupo, linhas]) => {
@@ -187,34 +187,51 @@ function calcularPanorama() {
             });
         }
 
-        // movimentações das MINHAS lojas nas duas pontas
+        // Minhas lojas nas duas pontas: G4 (4 primeiros) e Z4 (4 últimos).
+        // Uma loja entra na lista se estiver na zona ANTES ou DEPOIS da projeção,
+        // para que entradas e saídas apareçam junto de quem permaneceu.
+        const primeiroForaZ4 = sim[n - 5];      // referência de quem escapa do Z4
+        const quartoColocado = sim[3];          // referência de quem entra no G4
         linhas.forEach(r => {
             if (!st.minhasLojas.has(r.time)) return;
             const b = posB[r.time], s2 = posS[r.time];
-            const zonaB = b === 1 ? 'lider' : b <= 4 ? 'top4' : b > n - 4 ? 'queda' : 'meio';
-            const zonaS = s2 === 1 ? 'lider' : s2 <= 4 ? 'top4' : s2 > n - 4 ? 'queda' : 'meio';
-            if (zonaB === zonaS && b === s2) return;
-            if (zonaB === zonaS && zonaB === 'meio') return;
+            const noG4B = b <= 4, noG4S = s2 <= 4;
+            const noZ4B = b > n - 4, noZ4S = s2 > n - 4;
             const linhaSim = sim.find(x => x.time === r.time) || {};
-            movs.push({ grupo, time: r.time, de: b, para: s2, zonaB, zonaS, adv: linhaSim.adv, ganhou: linhaSim.ganhou });
-        });
+            const comum = {
+                grupo, time: r.time, de: b, para: s2,
+                adv: linhaSim.adv, ganhou: linhaSim.ganhou, pts: linhaSim.pts
+            };
 
-        // alvos: minhas lojas que não lideram, com a distância para o 1º
-        sim.forEach((r, i) => {
-            if (i === 0 || !st.minhasLojas.has(r.time)) return;
-            const lider = sim[0];
-            const gap = lider.pts - r.pts;
-            const restam = TOTAL_RODADAS - r.jogos;
-            if (gap <= 9 && restam > 0) {
-                alvos.push({ grupo, time: r.time, pos: i + 1, gap, restam, lider: lider.time });
+            if (noG4B || noG4S) {
+                g4.push({
+                    ...comum,
+                    situacao: noG4S && !noG4B ? 'entrou' : !noG4S && noG4B ? 'saiu' : 'ficou',
+                    lider: sim[0].time,
+                    gapLider: sim[0].pts - linhaSim.pts,
+                    // para quem está fora, quanto falta para alcançar o 4º
+                    gapG4: noG4S ? 0 : (quartoColocado ? quartoColocado.pts - linhaSim.pts : 0)
+                });
+            }
+            if (noZ4B || noZ4S) {
+                z4.push({
+                    ...comum,
+                    situacao: !noZ4S && noZ4B ? 'saiu' : noZ4S && !noZ4B ? 'entrou' : 'ficou',
+                    // quanto falta para sair do Z4 (alcançar o 1º fora da zona)
+                    gapSalvacao: noZ4S && primeiroForaZ4 ? primeiroForaZ4.pts - linhaSim.pts : 0,
+                    margem: !noZ4S && primeiroForaZ4 ? linhaSim.pts - (sim[n - 4] ? sim[n - 4].pts : 0) : 0
+                });
             }
         });
+
     });
 
-    movs.sort((a, b) => (a.grupo).localeCompare(b.grupo, 'pt', { numeric: true }));
-    alvos.sort((a, b) => a.gap - b.gap || a.pos - b.pos);
+    // Entradas e saídas primeiro — é o que muda a decisão; depois por posição.
+    const ordemSit = { entrou: 0, saiu: 1, ficou: 2 };
+    g4.sort((a, b) => ordemSit[a.situacao] - ordemSit[b.situacao] || a.para - b.para);
+    z4.sort((a, b) => ordemSit[a.situacao] - ordemSit[b.situacao] || b.para - a.para);
     trocas.sort((a, b) => (a.grupo).localeCompare(b.grupo, 'pt', { numeric: true }));
-    return { tot, movs, alvos, trocas };
+    return { tot, g4, z4, trocas };
 }
 
 function nomeCurto(reg) {
@@ -268,7 +285,7 @@ function textoTrocas(trocas) {
 }
 
 function panoramaHtml() {
-    const { tot, movs, alvos, trocas } = calcularPanorama();
+    const { tot, g4, z4, trocas } = calcularPanorama();
     const regs = Object.keys(tot).sort();
 
     const linhas = regs.map(r => {
@@ -282,25 +299,39 @@ function panoramaHtml() {
         </tr>`;
     }).join('');
 
-    const rotZona = { lider: 'liderança', top4: 'top 4', queda: 'zona de queda', meio: 'meio da tabela' };
-    const movHtml = movs.length ? movs.map(m => {
-        const subiu = m.para < m.de;
-        const destaque = (m.zonaS === 'lider' && m.zonaB !== 'lider') ? 'ganho'
-            : (m.zonaB === 'lider' && m.zonaS !== 'lider') ? 'perda'
-                : (m.zonaS === 'queda' && m.zonaB !== 'queda') ? 'perda'
-                    : (m.zonaB === 'queda' && m.zonaS !== 'queda') ? 'ganho' : '';
-        return `<li class="${destaque}">
-            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
-            ${m.zonaB !== m.zonaS ? `<i>(${rotZona[m.zonaB]} → ${rotZona[m.zonaS]})</i>` : ''}
-            ${m.adv ? `<small>· jogo da rodada contra ${m.adv}, +${m.ganhou} pt(s)</small>` : '<small>· sem jogo nesta rodada</small>'}
-        </li>`;
-    }).join('') : '<li>Nenhuma loja da sua regional muda de posição nas pontas nesta projeção.</li>';
+    const linhaJogo = (m) => m.adv
+        ? `<small>· ${m.adv} na rodada ${st.semana}, +${m.ganhou} pt(s)</small>`
+        : '<small>· sem jogo nesta rodada</small>';
 
-    const alvosHtml = alvos.length ? alvos.slice(0, 12).map(a => `
-        <li><b>${a.time}</b> · ${a.grupo} — ${a.pos}º, <b>${a.gap} pt${a.gap === 1 ? '' : 's'}</b>
-        atrás de ${a.lider} · faltam ${a.restam} rodadas
-        <small>· ${a.gap <= a.restam * 3 ? 'alcançável' : 'fora de alcance matemático'}</small></li>`).join('')
-        : '<li>Nenhuma loja sua a menos de 9 pontos da liderança.</li>';
+    const selo = { entrou: 'ENTROU', saiu: 'SAIU', ficou: '' };
+
+    const g4Html = g4.length ? g4.map(m => {
+        const classe = m.situacao === 'entrou' ? 'ganho' : m.situacao === 'saiu' ? 'perda' : '';
+        const ctx = m.situacao === 'saiu'
+            ? `<small>· ${m.gapG4} pt(s) do 4º lugar</small>`
+            : m.para === 1
+                ? '<small>· liderando o grupo</small>'
+                : `<small>· ${m.gapLider} pt(s) do líder ${m.lider}</small>`;
+        return `<li class="${classe}">
+            ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
+            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
+            ${ctx} ${linhaJogo(m)}
+        </li>`;
+    }).join('') : '<li>Nenhuma loja sua no G4 destes grupos.</li>';
+
+    const z4Html = z4.length ? z4.map(m => {
+        const classe = m.situacao === 'saiu' ? 'ganho' : m.situacao === 'entrou' ? 'perda' : '';
+        const ctx = m.situacao === 'saiu'
+            ? `<small>· ${m.margem} pt(s) de folga sobre o Z4</small>`
+            : `<small>· ${m.gapSalvacao} pt(s) para sair do Z4</small>`;
+        return `<li class="${classe}">
+            ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
+            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
+            ${ctx} ${linhaJogo(m)}
+        </li>`;
+    }).join('') : '<li>Nenhuma loja sua na zona de queda. 🎉</li>';
+
+    const cont = (lista, sit) => lista.filter(x => x.situacao === sit).length;
 
     return `
     <div class="painel-geral">
@@ -324,15 +355,20 @@ function panoramaHtml() {
         </div>
 
         <div class="pg-bloco">
-            <h3>🔀 Movimentações nas pontas — ${nomeCurto(REGIONAL_DESTAQUE)}</h3>
-            <ul class="pg-lista">${movHtml}</ul>
+            <h3>🟢 Movimentações no G4 <small>· 4 primeiros de cada grupo</small></h3>
+            <div class="pg-resumo">
+                ${cont(g4, 'entrou')} entrada(s) · ${cont(g4, 'saiu')} saída(s) · ${cont(g4, 'ficou')} mantida(s)
+            </div>
+            <ul class="pg-lista">${g4Html}</ul>
         </div>
 
         <div class="pg-bloco">
-            <h3>🎯 Onde dá para atacar a liderança</h3>
-            <ul class="pg-lista">${alvosHtml}</ul>
-            <div class="pg-nota">Distância em pontos após a projeção da rodada ${st.semana}.
-                “Alcançável” considera só a matemática (3 pontos por rodada restante).</div>
+            <h3>🔴 Movimentações no Z4 <small>· 4 últimos de cada grupo</small></h3>
+            <div class="pg-resumo">
+                ${cont(z4, 'entrou')} entrada(s) · ${cont(z4, 'saiu')} saída(s) · ${cont(z4, 'ficou')} mantida(s)
+            </div>
+            <ul class="pg-lista">${z4Html}</ul>
+            <div class="pg-nota">Lojas da ${nomeCurto(REGIONAL_DESTAQUE)}. Posições após a projeção da rodada ${st.semana}.</div>
         </div>
     </div>`;
 }
