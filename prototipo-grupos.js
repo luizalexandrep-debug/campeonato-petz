@@ -80,9 +80,16 @@ function montarSelects() {
     sG.innerHTML = nomes.map(n => `<option value="${n}">${n}</option>`).join('');
     sG.onchange = (e) => { st.grupo = e.target.value; render(); };
 
+    // Só rodadas POSTERIORES à base: projetar uma rodada que a base já inclui
+    // somaria os mesmos pontos duas vezes.
+    const projetaveis = st.semanas.filter(n => n > st.rodadaBase).sort((a, b) => b - a);
+    st.semana = projetaveis.includes(st.semanaVigente) ? st.semanaVigente : (projetaveis[0] ?? null);
+
     const sR = document.getElementById('fRodada');
-    sR.innerHTML = st.semanas.slice().sort((a, b) => b - a)
-        .map(n => `<option value="${n}"${n === st.semana ? ' selected' : ''}>Rodada ${n}${n === st.semanaVigente ? ' (atual)' : ''}</option>`).join('');
+    sR.innerHTML = projetaveis.length
+        ? projetaveis.map(n => `<option value="${n}"${n === st.semana ? ' selected' : ''}>Rodada ${n}${n === st.semanaVigente ? ' (atual)' : ''}</option>`).join('')
+        : '<option value="">nenhuma</option>';
+    sR.disabled = !projetaveis.length;
     sR.onchange = async (e) => {
         st.semana = parseInt(e.target.value, 10);
         info('⏳ Carregando rodada...');
@@ -97,7 +104,7 @@ function montarSelects() {
 }
 
 async function carregarSummary() {
-    st.summary = await pegar(`/games-summary/${st.semana}`);
+    st.summary = st.semana ? await pegar(`/games-summary/${st.semana}`) : null;
 }
 
 // ---- projeção da rodada atual, por loja ----
@@ -144,9 +151,14 @@ function render() {
     const semJogo = simulado.filter(r => r.semJogo).length;
 
     painel.innerHTML = `
-    ${semDados ? `<div class="alerta-info" style="margin-bottom:14px">
-        A rodada ${st.semana} ainda não tem vendas lançadas, então a projeção é igual à classificação atual.
-        Escolha a <b>rodada 7</b> para ver a simulação com placares reais.</div>` : ''}
+    ${!st.semana ? `<div class="alerta-info" style="margin-bottom:14px">
+        A classificação da pasta já vai até a rodada ${st.rodadaBase} e não há rodada
+        posterior publicada para projetar. Assim que a rodada ${st.rodadaBase + 1} tiver
+        confrontos, a simulação aparece aqui.</div>`
+    : semDados ? `<div class="alerta-info" style="margin-bottom:14px">
+        A rodada ${st.semana} ainda não tem vendas lançadas — nenhum resultado é atribuído,
+        então a coluna simulada repete a classificação atual. Ela passa a se mover
+        assim que o primeiro dia da rodada for lançado.</div>` : ''}
     <div class="comparacao">
         <div class="quadro atual">
             <div class="quadro-head">📋 Classificação atual <small>até a rodada ${st.rodadaBase}</small></div>
@@ -154,7 +166,7 @@ function render() {
             <div class="legenda">Fonte: pasta “Classificação Lojas” do SharePoint.</div>
         </div>
         <div class="quadro sim">
-            <div class="quadro-head">🔮 Simulada <small>rodada ${st.rodadaBase} + projeção da ${st.semana}</small></div>
+            <div class="quadro-head">🔮 Simulada <small>rodada ${st.rodadaBase}${st.semana ? ` + projeção da ${st.semana}` : ''}</small></div>
             <div class="tab-wrap">${tabela(simulado, posBase, true)}</div>
             <div class="legenda">Desempate: Pts › VIT › SG › GM — mesma ordem do
                 painel oficial. Pelo regulamento, empates que persistem no saldo vão a
@@ -162,7 +174,8 @@ function render() {
         </div>
     </div>`;
 
-    info(`📊 ${st.grupo} · ${base.length} lojas · base rodada ${st.rodadaBase} + projeção da rodada ${st.semana}`);
+    info(`📊 ${st.grupo} · ${base.length} lojas · base até a rodada ${st.rodadaBase}`
+        + (st.semana ? ` + projeção da rodada ${st.semana}` : ' · sem rodada a projetar'));
 }
 
 function tabela(linhas, posBase, ehSim) {
