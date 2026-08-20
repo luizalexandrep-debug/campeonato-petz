@@ -176,6 +176,13 @@ function render() {
         </div>
     </div>`;
 
+    // dados prontos para o exportador de imagem
+    window.__dadosExportGrupo = {
+        grupo: st.grupo, rodadaBase: st.rodadaBase, rodadaProj: st.semana,
+        atual: atual.map((r, i) => ({ ...r, pos: i + 1 })),
+        simulado: simulado.map((r, i) => ({ ...r, pos: i + 1, movNum: posBase[r.time] - (i + 1) }))
+    };
+
     info(`📊 ${st.grupo} · ${base.length} lojas · base até a rodada ${st.rodadaBase}`
         + (st.semana ? ` + projeção da rodada ${st.semana}` : ' · sem rodada a projetar'));
 }
