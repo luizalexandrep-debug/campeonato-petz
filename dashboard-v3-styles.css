@@ -1792,3 +1792,14 @@ body {
 /* Célula com texto de apoio no hover (distância para o colocado à frente) */
 .rank-table td.tem-tip { cursor: help; }
 .rank-table td.tem-tip:hover { text-decoration: underline dotted; }
+
+/* Alerta de posição apertada (só distritos da minha regional) */
+.alerta-pos {
+    cursor: help;
+    font-size: .95em;
+    margin-left: 3px;
+    vertical-align: middle;
+}
+
+.alerta-pos.risco { filter: saturate(1.2); }
+.alerta-pos:hover { transform: scale(1.15); display: inline-block; }

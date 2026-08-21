@@ -221,7 +221,7 @@ function setupGolTooltip() {
 
     document.addEventListener('mousemove', (e) => {
         // Célula com texto de apoio (ex.: distância para o colocado à frente)
-        const tip = e.target.closest && e.target.closest('.tem-tip[data-tip]');
+        const tip = e.target.closest && e.target.closest('.tem-tip[data-tip]');   // td ou span
         if (tip && tip.dataset.tip) {
             _golTip.innerHTML = tip.dataset.tip.split('\n').join('<br>');
             _golTip.style.borderLeft = '3px solid #2b5aa8';
@@ -1654,6 +1654,37 @@ function loadRankingDashboard() {
             ].filter(Boolean).join('\n');
         };
 
+        // Alerta de vizinhança apertada, só para os distritos da minha regional.
+        // 0,30 na escala acumulada é a ordem de grandeza de UM jogo (3 pontos
+        // divididos pelo nº de lojas do distrito), ou seja: a posição pode
+        // trocar já na próxima rodada.
+        const LIMITE_ALERTA = 0.30;
+        const alerta = (r) => {
+            if (r.reg !== REGIONAL_DESTAQUE) return '';
+            const i = porSim.indexOf(r);
+            const acima = porSim[i - 1], abaixo = porSim[i + 1];
+            const dAcima = acima ? acima.sim.simAcum - r.sim.simAcum : Infinity;
+            const dAbaixo = abaixo ? r.sim.simAcum - abaixo.sim.simAcum : Infinity;
+            const risco = dAbaixo <= LIMITE_ALERTA;
+            const chance = dAcima <= LIMITE_ALERTA;
+            if (!risco && !chance) return '';
+
+            const linhas = [];
+            if (risco) {
+                linhas.push(dAbaixo < 0.005
+                    ? `Empatado em pontos com o ${i + 2}º ${abaixo.dist} — a posição depende do desempate.`
+                    : `Só ${f2(dAbaixo)} pts de vantagem sobre o ${i + 2}º ${abaixo.dist} — pode perder a posição.`);
+            }
+            if (chance) {
+                linhas.push(dAcima < 0.005
+                    ? `Empatado em pontos com o ${i}º ${acima.dist} — dá para assumir a posição.`
+                    : `A ${f2(dAcima)} pts do ${i}º ${acima.dist} — dá para passar.`);
+            }
+            const icone = risco ? '⚠️' : '🎯';
+            return ` <span class="alerta-pos ${risco ? 'risco' : 'chance'} tem-tip"
+                data-tip="${linhas.join('\n')}">${icone}</span>`;
+        };
+
         const linhasAcum = porSim.filter(r => passaFiltro(r.reg)).map(r => {
             const dest = r.reg === REGIONAL_DESTAQUE;
             // Variação em relação ao ranking das RODADAS ANTERIORES (base),
@@ -1665,7 +1696,7 @@ function loadRankingDashboard() {
             return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
                 <td class="c b">${medalhaFn(r.sim.posicao - 1)}</td><td class="c">${movHtml}</td>
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
-                    onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
+                    onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span>${alerta(r)}</td><td class="l reg">${r.reg}</td>
                 <td class="c">${f2(r.sim.histAcum)}</td><td class="c">${f2(r.sim.curAvg)}</td>
                 <td class="c b tem-tip" data-tip="${distancia(r)}">${f2(r.sim.simAcum)}</td>
                 <td class="c b">${fp(r.aConq / r.aDisp * 100)}</td></tr>`;
