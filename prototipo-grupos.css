@@ -238,7 +238,17 @@
     border-radius: var(--r-md);
     padding: 10px 14px;
     margin-bottom: var(--s-5);
+    /* Acompanha a rolagem, logo abaixo da info-bar (que já é sticky em top:0).
+       z-index menor que o dela para passar por baixo, não por cima. */
+    position: sticky;
+    top: 53px;
+    z-index: 49;
+    box-shadow: 0 4px 14px rgba(16, 24, 40, .07);
 }
+
+/* Cabeçalhos das tabelas passam por baixo da barra ao rolar */
+.tab-grupo thead th { position: sticky; top: 103px; z-index: 3; }
+.modal-cal .tab-grupo thead th { position: static; }
 
 .chip-label {
     font-size: .8em;
