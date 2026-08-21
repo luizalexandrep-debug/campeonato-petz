@@ -1563,7 +1563,7 @@ function loadRankingDashboard() {
                     <thead><tr><th>#</th><th title="Variação de posição em relação ao ranking das rodadas anteriores (base)">Mov.</th><th class="l">Distrito</th><th class="l reg">Regional</th>
                         <th title="Pontuação média acumulada até a rodada ${rodadas} (ranking oficial)">Base<span class="lg"> R1-${rodadas}</span></th>
                         <th title="Pontos por jogo na rodada ${state.semana}, em andamento">Rod.<span class="lg"> ${state.semana}</span></th>
-                        <th title="Base + rodada atual, na mesma escala do ranking oficial">Simulada</th>
+                        <th title="Base + rodada atual, na mesma escala do ranking oficial">Sim.<span class="lg">ulada</span></th>
                         <th><span class="lg">% </span>Aprov.</th></tr></thead>
                     <tbody>${linhasAcum}</tbody>
                 </table></div>
@@ -1594,6 +1594,7 @@ function loadRankingDashboard() {
     container.innerHTML = `
     ${blocoAvisos}
     <div class="home-sections">
+        ${secaoBase}
         <section class="sec atual">
             <div class="sec-head">📅 RODADA SIMULADA <small>· desempenho da rodada ${state.semana}, ao vivo</small></div>
             <div class="sec-body">
@@ -1604,7 +1605,6 @@ function loadRankingDashboard() {
                 </table></div>
             </div>
         </section>
-        ${secaoBase}
         ${secaoAcumulado}
     </div>
 
