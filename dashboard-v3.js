@@ -1850,7 +1850,10 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
 
     let html = `
         <div class="table-container">
-            <div class="table-title"><span class="tt-loja">${teamName}</span><span class="tt-ind">${displayName}</span></div>
+            <div class="table-title${classeEvolucao === 'evolution-melhor' ? ' marcou' : ''}">
+                <span class="tt-loja">${teamName}</span><span class="tt-ind">${displayName}</span>
+                ${classeEvolucao === 'evolution-melhor'
+                    ? '<span class="tt-gol" title="Está fazendo este gol">⚽</span>' : ''}</div>
             <table>
                 <thead>
                     <tr>

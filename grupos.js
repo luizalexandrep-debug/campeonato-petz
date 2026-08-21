@@ -766,7 +766,10 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario) {
     }
 
     return `<div class="table-container">
-        <div class="table-title"><span class="tt-loja">${loja}</span><span class="tt-ind">${indicador.replace(/\.xlsx$/i, '')}</span></div>
+        <div class="table-title${classe === 'evolution-melhor' ? ' marcou' : ''}">
+            <span class="tt-loja">${loja}</span><span class="tt-ind">${indicador.replace(/\.xlsx$/i, '')}</span>
+            ${classe === 'evolution-melhor'
+                ? '<span class="tt-gol" title="Está fazendo este gol">⚽</span>' : ''}</div>
         <table>
             <thead><tr><th>Dia</th><th>S. Anterior</th><th>S. Atual</th><th>Evolução</th></tr></thead>
             <tbody>
