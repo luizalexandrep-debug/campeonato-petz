@@ -1557,7 +1557,7 @@ function loadRankingDashboard() {
     const passaFiltro = (reg) => !state.filtroRegionalHome || reg === state.filtroRegionalHome;
     const linhasAtual = porMediaAtual.filter(r => passaFiltro(r.reg)).map(r => {
         const dest = r.reg === REGIONAL_DESTAQUE;
-        return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
+        return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}">
             <td class="c b">${medalhaFn(r.rankAtual - 1)}</td>
             <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
                 onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
@@ -1583,7 +1583,7 @@ function loadRankingDashboard() {
         const linhasBase = porBase.filter(r => passaFiltro(r.reg)).map((r, i) => {
             const dest = r.reg === REGIONAL_DESTAQUE;
             const h = state.historico.distritos?.[r.dist] || {};
-            return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
+            return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}">
                 <td class="c b">${medalhaFn(porBase.indexOf(r))}</td>
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
                     onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
@@ -1693,7 +1693,7 @@ function loadRankingDashboard() {
             const movHtml = mov > 0 ? `<span style="color:#16a34a;font-weight:700;">▲${mov}</span>`
                 : mov < 0 ? `<span style="color:#dc2626;font-weight:700;">▼${-mov}</span>`
                 : '<span style="color:#cbd5e1;">—</span>';
-            return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
+            return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}">
                 <td class="c b">${medalhaFn(r.sim.posicao - 1)}</td><td class="c">${movHtml}</td>
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
                     onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span>${alerta(r)}</td><td class="l reg">${r.reg}</td>
