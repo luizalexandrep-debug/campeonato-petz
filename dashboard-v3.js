@@ -1838,7 +1838,7 @@ function renderJogosPorResultado(container, lojas) {
 }
 
 // Loja -> regional, com cache (a estrutura não muda durante a sessão).
-let _lojaRegMap = null;
+let _lojaRegMap = null, _lojaDistMap = null;
 function regionalDaLoja(loja) {
     if (!_lojaRegMap) {
         _lojaRegMap = {};
@@ -1850,6 +1850,16 @@ function regionalDaLoja(loja) {
 
 // Lojas de outras regionais saem em vermelho: num card de jogo é sempre a
 // adversária, e a cor deixa isso óbvio sem precisar decorar as siglas.
+function distritoDaLoja(loja) {
+    if (!_lojaDistMap) {
+        _lojaDistMap = {};
+        Object.entries(state.estrutura || {}).forEach(([, dists]) =>
+            Object.entries(dists).forEach(([dist, ls]) =>
+                ls.forEach(l => { _lojaDistMap[l] = dist; })));
+    }
+    return _lojaDistMap[loja];
+}
+
 function classeSigla(loja) {
     const reg = regionalDaLoja(loja);
     return reg && reg !== REGIONAL_DESTAQUE ? 'sig outra-reg' : 'sig';
@@ -1903,15 +1913,17 @@ async function abrirDetalhesJogo(team1, team2) {
         <div class="modal-jogo">
             <div class="modal-head">
                 <div class="times">
-                    <span class="t"><button class="bt-cal" title="Próximos jogos de ${team1}"
+                    <span class="t"><span class="t-nome"><button class="bt-cal" title="Próximos jogos de ${team1}"
                         onclick="abrirCalendarioLoja('${team1}')">📅</button>${team1}</span>
+                        <small class="t-dist">${distritoDaLoja(team1) || ''}</small></span>
                     <span class="placar">
                         <small>Placar Projetado</small>
                         <b>${placarProj.replace('x', '×')}</b>
                         <small>Acumulado ${placarAcum}</small>
                     </span>
-                    <span class="t">${team2}<button class="bt-cal" title="Próximos jogos de ${team2}"
+                    <span class="t"><span class="t-nome">${team2}<button class="bt-cal" title="Próximos jogos de ${team2}"
                         onclick="abrirCalendarioLoja('${team2}')">📅</button></span>
+                        <small class="t-dist">${distritoDaLoja(team2) || ''}</small></span>
                 </div>
                 <div class="modal-acoes">
                     <button class="modal-btn" id="btExpModal">📋 Copiar imagem</button>
