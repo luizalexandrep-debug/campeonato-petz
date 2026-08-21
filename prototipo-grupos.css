@@ -225,3 +225,65 @@
 .ck { display: inline-block; width: 15px; font-weight: 800; }
 .ck.sim { color: #157347; }
 .ck.nao { color: #c0392b; }
+
+/* ====== Chips de grupo ====== */
+.grupo-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    background: var(--brand-tint);
+    border: 1px solid #c6dbf2;
+    border-left: 4px solid var(--brand);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    margin-bottom: var(--s-5);
+}
+
+.chip-label {
+    font-size: .8em;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--text-2);
+    margin-right: 4px;
+}
+
+.chip-grupo {
+    background: var(--surface);
+    border: 1px solid #c6dbf2;
+    color: var(--brand-ink);
+    border-radius: 20px;
+    padding: 5px 13px;
+    font-size: .84em;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .15s var(--ease), color .15s var(--ease);
+}
+
+.chip-grupo:hover { background: #dbe6f7; }
+.chip-grupo.ativo { background: var(--navy, #1e2a5a); color: #fff; border-color: var(--navy, #1e2a5a); }
+
+/* ====== Cartões de insight do topo ====== */
+.bloco-insights { margin-bottom: var(--s-5); }
+.pg-lista-ins { max-height: none; }
+.pg-lista-ins li { line-height: 1.55; }
+.pg-lista-ins .ins-topo { margin-bottom: 5px; font-size: 1.02em; }
+.pg-lista-ins .ins-linha { padding-left: 2px; margin-top: 3px; }
+.pg-lista-ins .ins-sub { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 0 18px; }
+
+.tatica {
+    display: inline-block;
+    font-size: .92em;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.tatica.dir { background: #fff3cd; border-color: #f0dca0; color: #6b4d00; }
+.tatica.ajuda { background: #e8f6ef; border-color: #b7e2ce; color: #157347; }
+.tatica.sem { color: var(--text-3); }
+.pg-lista-ins .tag.minha { background: var(--brand-tint); color: var(--brand-ink); border: 1px solid #c6dbf2;
+    border-radius: 20px; padding: 1px 7px; font-size: .82em; font-weight: 700; }

@@ -17,8 +17,12 @@ const st = {
     semana: null, semanaVigente: null, semanas: [],
     rodadaBase: null, grupos: {}, summary: null,
     estrutura: {}, minhasLojas: new Set(),
-    grupo: '', destacar: false
+    grupo: '', destacar: false,
+    calendario: [], lojaFoco: null
 };
+
+// Foco dos insights: disputa da parte de cima da tabela.
+const CORTE_TOPO = 8;
 
 const REGIONAL_DESTAQUE = 'R2 - Luiz';
 
@@ -40,9 +44,11 @@ function ordenar(linhas) {
 
 async function iniciar() {
     try {
-        const [sem, cls, est] = await Promise.all([
-            pegar('/semana'), pegar('/classificacao'), pegar('/estrutura')
+        const [sem, cls, est, cal] = await Promise.all([
+            pegar('/semana'), pegar('/classificacao'), pegar('/estrutura'),
+            pegar('/jogos').catch(() => ({ jogos: [] }))
         ]);
+        st.calendario = cal.jogos || [];
 
         st.semanaVigente = sem.semana;
         st.semana = sem.semana;
@@ -80,11 +86,9 @@ function montarSelects() {
         const nb = parseInt((b.match(/Grupo\s+(\d+)/) || [])[1] || 0, 10);
         return na - nb;
     });
-    st.grupo = nomes[0];
-
-    const sG = document.getElementById('fGrupo');
-    sG.innerHTML = nomes.map(n => `<option value="${n}">${n}</option>`).join('');
-    sG.onchange = (e) => { st.grupo = e.target.value; st.lojaFoco = null; render(); };
+    st.nomesGrupos = nomes;
+    st.grupo = '';                 // '' = todos os grupos
+    montarChipsGrupo();
 
     // Só rodadas POSTERIORES à base: projetar uma rodada que a base já inclui
     // somaria os mesmos pontos duas vezes.
@@ -202,6 +206,7 @@ function calcularPanorama() {
                 if (!st.minhasLojas.has(minha.time)) return;
                 if (minha.time === carrasco) return;         // a beneficiada é outra
                 if (iMinha <= iRival) return;                // só se estiver atrás
+                if (iMinha + 1 > CORTE_TOPO) return;          // foco na parte de cima
                 const gap = rival.pts - minha.pts;
                 if (gap > 6) return;                         // longe demais para importar
 
@@ -273,6 +278,165 @@ function calcularPanorama() {
     return { tot, g4, z4, trocas, combos };
 }
 
+// ============================================================
+// INSIGHTS DA PARTE DE CIMA DA TABELA (top 8)
+// Combina a rodada em andamento com o calendário das 19 rodadas
+// ("TODOS OS JOGOS.xlsx", via /api/jogos).
+// ============================================================
+
+function jogosFuturos() {
+    return (st.calendario || []).filter(j => j.rodada > st.semana);
+}
+
+// Em que rodada duas lojas ainda se enfrentam (null se não se cruzam mais).
+function proximoEncontro(a, b) {
+    const j = jogosFuturos().find(x =>
+        (x.mandante === a && x.visitante === b) || (x.mandante === b && x.visitante === a));
+    return j ? j.rodada : null;
+}
+
+// Rodadas em que a loja ainda enfrenta alguém da minha regional.
+function encontrosComMinhas(time) {
+    return jogosFuturos()
+        .filter(j => j.mandante === time || j.visitante === time)
+        .map(j => ({ rodada: j.rodada, adv: j.mandante === time ? j.visitante : j.mandante }))
+        .filter(x => st.minhasLojas.has(x.adv));
+}
+
+// Próximos adversários da loja, com a posição atual de cada um.
+function proximosAdversarios(time, posDe, quantos) {
+    return jogosFuturos()
+        .filter(j => j.mandante === time || j.visitante === time)
+        .sort((a, b) => a.rodada - b.rodada)
+        .slice(0, quantos)
+        .map(j => {
+            const adv = j.mandante === time ? j.visitante : j.mandante;
+            return { rodada: j.rodada, adv, pos: posDe[adv] || null };
+        });
+}
+
+function calcularInsightsTopo() {
+    const { proj } = projecaoDaRodada();
+    const itens = [];
+
+    Object.entries(st.grupos).forEach(([grupo, linhas]) => {
+        const { sim } = classificarGrupo(linhas, proj);
+        const posDe = {};
+        sim.forEach((r, i) => posDe[r.time] = i + 1);
+
+        sim.forEach((minha, i) => {
+            const pos = i + 1;
+            if (pos > CORTE_TOPO) return;
+            if (!st.minhasLojas.has(minha.time)) return;
+
+            const restam = TOTAL_RODADAS - minha.jogos;
+            const emJogo = restam * 3;
+
+            // rivais à frente, dentro da zona de interesse
+            const rivais = sim.slice(0, i).map((r, j) => {
+                const gap = r.pts - minha.pts;
+                return {
+                    time: r.time, pos: j + 1, pts: r.pts, gap,
+                    daRegional: st.minhasLojas.has(r.time),
+                    confronto: proximoEncontro(minha.time, r.time),
+                    tropecos: encontrosComMinhas(r.time),
+                    alcancavel: gap <= emJogo
+                };
+            });
+
+            const p = proj[minha.time];
+            itens.push({
+                grupo, time: minha.time, pos, pts: minha.pts, restam, emJogo,
+                jogoDaRodada: p ? { adv: p.adv, placar: `${p.gm} x ${p.gs}`, venceu: p.gm > p.gs, pts: p.pts } : null,
+                lider: sim[0].time, gapLider: sim[0].pts - minha.pts,
+                rivais,
+                proximos: proximosAdversarios(minha.time, posDe, 3)
+            });
+        });
+    });
+
+    // primeiro quem está mais perto de subir
+    itens.sort((a, b) => a.pos - b.pos || (a.rivais[0]?.gap ?? 99) - (b.rivais[0]?.gap ?? 99));
+    return itens;
+}
+
+function insightsTopoHtml(itens) {
+    if (!itens.length) {
+        return `<li>Nenhuma loja sua entre os ${CORTE_TOPO} primeiros ${st.grupo ? 'deste grupo' : 'dos grupos'}.</li>`;
+    }
+
+    const posTxt = (p) => p ? `${p}º` : '—';
+
+    return itens.map(it => {
+        const alvo = it.rivais[it.rivais.length - 1];   // o rival logo acima
+        const linhas = [];
+
+        if (it.jogoDaRodada) {
+            linhas.push(`<div class="ins-linha">${it.jogoDaRodada.venceu ? '<span class="ck sim">✔</span>' : '<span class="ck nao">✖</span>'}
+                Rodada ${st.semana}: <b>${it.jogoDaRodada.adv}</b> · projetado ${it.jogoDaRodada.placar}
+                <small>(${it.jogoDaRodada.pts} pt)</small></div>`);
+        }
+
+        if (alvo) {
+            const sub = [];
+            if (alvo.confronto) {
+                sub.push(`<span class="tatica dir">⚔ Confronto direto na rodada ${alvo.confronto}</span>`);
+            } else {
+                sub.push(`<span class="tatica sem">Já se enfrentaram — depende de terceiros</span>`);
+            }
+            if (alvo.tropecos.length) {
+                sub.push(`<span class="tatica ajuda">🛡 ${alvo.time} ainda pega
+                    ${alvo.tropecos.length} loja(s) sua(s): ${alvo.tropecos.map(t => `${t.adv} (R${t.rodada})`).join(', ')}</span>`);
+            }
+            linhas.push(`<div class="ins-linha">🎯 Alvo <b>${alvo.time}</b> (${posTxt(alvo.pos)}) —
+                ${alvo.gap === 0 ? 'empatados em pontos' : `${alvo.gap} pt(s) à frente`}
+                ${alvo.daRegional ? '<span class="tag minha">loja sua</span>' : ''}
+                <div class="ins-sub">${sub.join('')}</div></div>`);
+        }
+
+        if (it.pos > 1) {
+            const l = it.rivais[0];
+            if (l && l.time !== (alvo && alvo.time)) {
+                linhas.push(`<div class="ins-linha">👑 Líder <b>${it.lider}</b> — ${it.gapLider} pt(s)
+                    <small>· ${it.gapLider <= it.emJogo ? 'alcançável' : 'fora de alcance'} com ${it.emJogo} pts em jogo</small>
+                    ${l.confronto ? `<span class="tatica dir">⚔ vocês se enfrentam na rodada ${l.confronto}</span>` : ''}</div>`);
+            }
+        }
+
+        if (it.proximos.length) {
+            linhas.push(`<div class="ins-linha">📅 Próximos:
+                ${it.proximos.map(x => `<b>${x.adv}</b> <small>(${posTxt(x.pos)}, R${x.rodada})</small>`).join(' · ')}</div>`);
+        }
+
+        return `<li class="clicavel ${it.pos === 1 ? 'ganho' : ''}"
+            onclick="abrirGrupo('${it.grupo.replace(/'/g, "\\'")}','${it.time}')" title="Ver a tabela do ${it.grupo}">
+            <div class="ins-topo"><b>${it.time}</b> · ${it.grupo} —
+                <b>${it.pos}º</b> com ${it.pts} pts <small>· faltam ${it.restam} rodadas (${it.emJogo} pts em jogo)</small></div>
+            ${linhas.join('')}
+        </li>`;
+    }).join('');
+}
+
+// Chips de grupo, no mesmo espírito do filtro de regionais do dashboard.
+function montarChipsGrupo() {
+    const bar = document.getElementById('grupoBar');
+    if (!bar) return;
+    const curto = (g) => g.replace(/S[ée]rie\s+([A-D])\s+-\s+Grupo\s+(\d+)/i, '$1$2');
+    const chip = (valor, rotulo, titulo) =>
+        `<button class="chip-grupo${st.grupo === valor ? ' ativo' : ''}" title="${titulo}"
+            onclick="selecionarGrupo('${valor.replace(/'/g, "\\'")}')">${rotulo}</button>`;
+    bar.innerHTML = `<span class="chip-label">Grupo:</span>`
+        + chip('', 'Todos', 'Insights de todos os grupos')
+        + (st.nomesGrupos || []).map(g => chip(g, curto(g), g)).join('');
+}
+
+function selecionarGrupo(g) {
+    st.grupo = g;
+    st.lojaFoco = null;
+    montarChipsGrupo();
+    render();
+}
+
 function nomeCurto(reg) {
     const p = reg.split(' - ');
     return p.length > 1 ? `${p[0]} (${p[1]})` : reg;
@@ -294,8 +458,7 @@ function abrirGrupo(grupo, loja) {
     if (!st.grupos[grupo]) return;
     st.grupo = grupo;
     st.lojaFoco = loja || null;
-    const sel = document.getElementById('fGrupo');
-    if (sel) sel.value = grupo;
+    montarChipsGrupo();
     render();
 
     const alvo = document.querySelector('.comparacao');
@@ -488,7 +651,22 @@ function render() {
 
     const semJogo = simulado.filter(r => r.semJogo).length;
 
+    // Insights: todos os grupos, ou só o escolhido nos chips.
+    const todosItens = calcularInsightsTopo();
+    const itens = st.grupo ? todosItens.filter(x => x.grupo === st.grupo) : todosItens;
+    const blocoInsights = `
+    <div class="pg-bloco pg-largo bloco-insights">
+        <h3>🎯 Oportunidades no topo <small>· lojas suas do ${CORTE_TOPO}º para cima${st.grupo ? ' · ' + st.grupo : ' · todos os grupos'}</small></h3>
+        <div class="pg-resumo">${itens.length} loja(s) sua(s) na disputa da parte de cima</div>
+        <ul class="pg-lista pg-lista-ins">${insightsTopoHtml(itens)}</ul>
+        <div class="pg-nota">Confrontos futuros vindos de “TODOS OS JOGOS.xlsx”.
+            ⚔ marca jogo direto contra o alvo; 🛡 marca rodadas em que o rival ainda enfrenta lojas suas.</div>
+    </div>`;
+
+    const semTabela = !st.grupo;
+
     painel.innerHTML = `
+    ${blocoInsights}
     ${panoramaHtml()}
     ${!st.semana ? `<div class="alerta-info" style="margin-bottom:14px">
         A classificação da pasta já vai até a rodada ${st.rodadaBase} e não há rodada
@@ -498,6 +676,7 @@ function render() {
         A rodada ${st.semana} ainda não tem vendas lançadas — nenhum resultado é atribuído,
         então a coluna simulada repete a classificação atual. Ela passa a se mover
         assim que o primeiro dia da rodada for lançado.</div>` : ''}
+    ${semTabela ? `<div class="alerta-info">Escolha um grupo acima para ver as duas tabelas lado a lado.</div>` : `
     <div class="comparacao">
         <div class="quadro atual">
             <div class="quadro-head">📋 Classificação atual <small>até a rodada ${st.rodadaBase}</small></div>
@@ -511,7 +690,7 @@ function render() {
                 painel oficial. Pelo regulamento, empates que persistem no saldo vão a
                 confronto direto, share MP e turn over, que o app não calcula.${semJogo ? ` ${semJogo} loja(s) sem jogo nesta rodada.` : ''}</div>
         </div>
-    </div>`;
+    </div>`}`;
 
     // dados prontos para o exportador de imagem
     window.__dadosExportGrupo = {
@@ -520,8 +699,11 @@ function render() {
         simulado: simulado.map((r, i) => ({ ...r, pos: i + 1, movNum: posBase[r.time] - (i + 1) }))
     };
 
-    info(`📊 ${st.grupo} · ${base.length} lojas · base até a rodada ${st.rodadaBase}`
-        + (st.semana ? ` + projeção da rodada ${st.semana}` : ' · sem rodada a projetar'));
+    info(st.grupo
+        ? `📊 ${st.grupo} · ${base.length} lojas · base até a rodada ${st.rodadaBase}`
+          + (st.semana ? ` + projeção da rodada ${st.semana}` : ' · sem rodada a projetar')
+        : `📊 Todos os 14 grupos · base até a rodada ${st.rodadaBase}`
+          + (st.semana ? ` + projeção da rodada ${st.semana}` : ''));
 }
 
 function tabela(linhas, posBase, ehSim) {
