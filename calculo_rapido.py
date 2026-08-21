@@ -6,6 +6,7 @@ abrir os arquivos repetidamente.
 Este módulo é usado tanto pelo gerador de cache local quanto pelo endpoint de
 reprocessamento no servidor.
 """
+import os
 import re
 from pathlib import Path
 from difflib import SequenceMatcher
@@ -157,10 +158,41 @@ def _achar_cabecalho(linhas):
     return melhor
 
 
+# Planilhas já lidas nesta instância, por (caminho, mtime, tamanho). Sem isso
+# cada consulta de loja reabre os 12 arquivos da rodada — abrir a janela de um
+# jogo relia 24 vezes o mesmo conteúdo.
+_ARQ_CACHE = {}
+_ARQ_CACHE_MAX = 48
+
+
+def _guardar_cache(chave, dados):
+    if chave is None:
+        return
+    if len(_ARQ_CACHE) >= _ARQ_CACHE_MAX:
+        _ARQ_CACHE.pop(next(iter(_ARQ_CACHE)), None)
+    _ARQ_CACHE[chave] = dados
+
+
+def _chave_arquivo(file_path):
+    try:
+        st = os.stat(file_path)
+        return (str(file_path), st.st_mtime_ns, st.st_size)
+    except OSError:
+        return None
+
+
 def _carregar_arquivo(file_path):
     """Carrega TODAS as lojas de um arquivo de uma vez: {loja: {dia: valor}}.
     Tolera layouts diferentes (cabeçalho fora da 1ª linha, datas reais,
-    dias em ordem invertida, coluna Total)."""
+    dias em ordem invertida, coluna Total).
+
+    O resultado fica em cache enquanto o arquivo não mudar (mtime/tamanho),
+    então reprocessar ou baixar de novo do SharePoint invalida sozinho.
+    """
+    chave = _chave_arquivo(file_path)
+    if chave is not None and chave in _ARQ_CACHE:
+        return _ARQ_CACHE[chave]
+
     wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
     ws = wb.active
     linhas = list(ws.iter_rows(values_only=True))
@@ -169,6 +201,7 @@ def _carregar_arquivo(file_path):
     idx_head, col_dias, col_total = _achar_cabecalho(linhas)
     dados = {}
     if idx_head is None or not col_dias:
+        _guardar_cache(chave, dados)
         return dados
 
     for row in linhas[idx_head + 1:]:
@@ -198,6 +231,7 @@ def _carregar_arquivo(file_path):
             except (ValueError, TypeError):
                 pass
         dados[str(sigla).strip()] = dias
+    _guardar_cache(chave, dados)
     return dados
 
 

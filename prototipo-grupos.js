@@ -102,6 +102,7 @@ function montarSelects() {
     sR.disabled = !projetaveis.length;
     sR.onchange = async (e) => {
         st.semana = parseInt(e.target.value, 10);
+        _cacheDias.clear();
         info('⏳ Carregando rodada...');
         await carregarSummary();
         render();
@@ -648,6 +649,26 @@ function fmtValor(v, tipo) {
         : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 }
 
+// Cache das leituras de loja e pré-carga ao passar o mouse: quando o clique
+// acontece, a resposta normalmente já chegou.
+const _cacheDias = new Map();
+
+function buscarDias(loja) {
+    const chave = `${loja}/${st.semana}`;
+    if (!_cacheDias.has(chave)) {
+        _cacheDias.set(chave, pegar(`/loja-dias/${loja}/${st.semana}`)
+            .catch(e => { _cacheDias.delete(chave); throw e; }));
+    }
+    return _cacheDias.get(chave);
+}
+
+function prefetchJogo(loja) {
+    const p = (st.projAtual || {})[loja];
+    if (!p) return;
+    buscarDias(loja);
+    if (p.adv) buscarDias(p.adv);
+}
+
 async function abrirDetalhesJogo(loja) {
     const p = (st.projAtual || {})[loja];
     if (!p) return;
@@ -680,10 +701,7 @@ async function abrirDetalhesJogo(loja) {
 
     let d1, d2;
     try {
-        [d1, d2] = await Promise.all([
-            pegar(`/loja-dias/${loja}/${st.semana}`),
-            pegar(`/loja-dias/${adv}/${st.semana}`)
-        ]);
+        [d1, d2] = await Promise.all([buscarDias(loja), buscarDias(adv)]);
     } catch (e) {
         const c = fundo.querySelector('.modal-corpo');
         if (c) c.innerHTML = '<div class="carregando">❌ Não foi possível carregar os indicadores.</div>';
@@ -1188,6 +1206,7 @@ function setupTooltipSigla() {
     document.addEventListener('mouseover', (e) => {
         const alvo = e.target.closest('.sigla[data-jogo]');
         if (!alvo) return;
+        prefetchJogo(alvo.textContent.trim());
         if (!_tip) {
             _tip = document.createElement('div');
             _tip.className = 'tip-jogo';
