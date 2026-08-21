@@ -1279,13 +1279,13 @@ function loadRankingDashboard() {
             <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
                 onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
             <td class="c">${r.V}</td><td class="c">${r.E}</td><td class="c">${r.D}</td>
-            <td class="c b">${f2(r.media)}</td><td class="c">${r.conq}/${r.disp}</td>
+            <td class="c b">${f2(r.media)}</td>
             <td class="c b">${fp(r.aprov)}</td></tr>`;
     }).join('') + Object.entries(totReg).filter(([reg]) => passaFiltro(reg))
         .sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
         <tr class="tot"><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
             <td class="c">${t.V}</td><td class="c">${t.E}</td><td class="c">${t.D}</td>
-            <td class="c b">${f2(t.media)}</td><td class="c">${t.conq}/${t.disp}</td>
+            <td class="c b">${f2(t.media)}</td>
             <td class="c b">${fp(t.aprov)}</td></tr>`).join('');
 
     // ---------- TABELA 2: acumulado simulado ----------
@@ -1325,7 +1325,7 @@ function loadRankingDashboard() {
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
                     onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
                 <td class="c">${f2(r.sim.histAcum)}</td><td class="c">${f2(r.sim.curAvg)}</td>
-                <td class="c b">${f2(r.sim.simAcum)}</td><td class="c">${r.aConq}/${r.aDisp}</td>
+                <td class="c b">${f2(r.sim.simAcum)}</td>
                 <td class="c b">${fp(r.aConq / r.aDisp * 100)}</td></tr>`;
         }).join('') + Object.entries(totAcum).filter(([reg]) => passaFiltro(reg))
             .map(([reg, t]) => {
@@ -1343,7 +1343,7 @@ function loadRankingDashboard() {
             <tr class="tot"><td></td><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
                 <td class="c">${base !== null ? f2(base) : '—'}</td>
                 <td class="c">${f2(totReg[reg] ? totReg[reg].media : 0)}</td>
-                <td class="c b">${f2(simulada)}</td><td class="c">${t.conq}/${t.disp}</td>
+                <td class="c b">${f2(simulada)}</td>
                 <td class="c b">${fp(t.aprov)}</td></tr>`).join('');
 
         secaoAcumulado = `
@@ -1356,7 +1356,7 @@ function loadRankingDashboard() {
                         <th title="Pontuação média acumulada até a rodada ${rodadas} (ranking oficial)">Base (R1-${rodadas})</th>
                         <th title="Pontos por jogo na rodada em andamento">Rodada ${state.semana}</th>
                         <th title="Base + rodada atual, na mesma escala do ranking oficial">Simulada (R1-${state.semana})</th>
-                        <th>Pontos</th><th><span class="lg">% </span>Aprov.</th></tr></thead>
+                        <th><span class="lg">% </span>Aprov.</th></tr></thead>
                     <tbody>${linhasAcum}</tbody>
                 </table></div>
                 ${insightsR2Html(simulado)}
@@ -1392,7 +1392,7 @@ function loadRankingDashboard() {
             <div class="sec-body">
                 <div class="tbl-wrap"><table class="rank-table">
                     <thead><tr><th>#</th><th class="l">Distrito</th><th class="l reg">Regional</th>
-                        <th>V</th><th>E</th><th>D</th><th><span class="lg">Pontuação </span>Média</th><th>Pontos</th><th><span class="lg">% </span>Aprov.</th></tr></thead>
+                        <th>V</th><th>E</th><th>D</th><th><span class="lg">Pontuação </span>Média</th><th><span class="lg">% </span>Aprov.</th></tr></thead>
                     <tbody>${linhasAtual}</tbody>
                 </table></div>
                 <div class="panel">
