@@ -548,3 +548,14 @@
     }
     .modal-jogo .modal-head { justify-content: space-between; }
 }
+
+/* Letra do resultado ao lado dos pontos da rodada */
+.res-letra {
+    font-weight: 800;
+    font-size: .92em;
+    margin-left: 2px;
+}
+
+.res-letra.v { color: #157347; }
+.res-letra.e { color: #b8860b; }
+.res-letra.d { color: #c0392b; }

@@ -1198,8 +1198,12 @@ function tabela(linhas, posBase, ehSim) {
         }
         const dest = st.destacar && st.minhasLojas.has(r.time) ? ' dest' : '';
         const foco = st.lojaFoco === r.time ? ' foco' : '';
+        // Letra do resultado ao lado dos pontos: 3 = V, 1 = E, 0 = D.
+        const letra = { 3: ['V', 'v'], 1: ['E', 'e'], 0: ['D', 'd'] }[r.ganhou];
         const ganho = ehSim && r.ganhou !== undefined
-            ? `<td class="c" title="Pontos ganhos na rodada ${st.semana}">+${r.ganhou}</td>` : (ehSim ? '<td class="c">—</td>' : '');
+            ? `<td class="c" title="Pontos ganhos na rodada ${st.semana}">+${r.ganhou}${
+                letra ? ` <span class="res-letra ${letra[1]}">${letra[0]}</span>` : ''}</td>`
+            : (ehSim ? '<td class="c">—</td>' : '');
         return `<tr class="${(dest + foco).trim()}">
             <td>${pos}</td>
             ${posBase ? `<td>${mov}</td>` : ''}
