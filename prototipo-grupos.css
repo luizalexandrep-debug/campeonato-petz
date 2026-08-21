@@ -166,7 +166,6 @@
 
 .pg-texto b { color: var(--text); }
 .pg-lista-trocas { margin-top: 9px; }
-.pg-texto { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
 
 .pg-texto .tag {
     display: inline-block;
