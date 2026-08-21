@@ -106,6 +106,10 @@
     box-shadow: var(--shadow-sm);
     padding: var(--s-4);
     min-width: 0;
+    /* Coluna flexível: a lista ocupa toda a altura que sobrar da caixa, que
+       por sua vez acompanha a mais alta das três (o panorama). */
+    display: flex;
+    flex-direction: column;
 }
 
 .pg-bloco h3 {
@@ -125,7 +129,8 @@
     display: flex;
     flex-direction: column;
     gap: 7px;
-    max-height: 260px;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
 }
 
@@ -142,7 +147,8 @@
 .pg-lista li.perda { background: #fdecea; border-left-color: #c0392b; }
 .pg-lista li small { color: var(--text-3); }
 .pg-lista li i { color: var(--text-2); font-style: normal; font-weight: 600; }
-.pg-nota { font-size: .78em; color: var(--text-3); margin-top: 8px; }
+.pg-nota { font-size: .78em; color: var(--text-3); margin-top: 8px; flex: 0 0 auto; }
+.pg-bloco h3, .pg-resumo { flex: 0 0 auto; }
 
 @media (max-width: 1200px) {
     .painel-geral { grid-template-columns: 1fr; }
@@ -159,7 +165,8 @@
 }
 
 .pg-texto b { color: var(--text); }
-.pg-lista-trocas { margin-top: 9px; max-height: 200px; }
+.pg-lista-trocas { margin-top: 9px; }
+.pg-texto { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
 
 .pg-texto .tag {
     display: inline-block;
