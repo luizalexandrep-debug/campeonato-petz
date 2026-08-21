@@ -425,3 +425,8 @@
 .selo-lider.ganhou { background: #fbbf24; color: #4a3200; box-shadow: 0 1px 3px rgba(180,130,0,.35); }
 .selo-lider.perdeu { background: #c0392b; color: #fff; }
 .selo-lider.segue { background: #fff3cd; color: #6b4d00; border: 1px solid #f0dca0; }
+
+/* Item de movimento: título + frase explicativa */
+.pg-lista .mov-topo { margin-bottom: 3px; }
+.pg-lista .mov-frase { font-size: .95em; color: var(--text-2); line-height: 1.5; }
+.pg-lista .mov-frase b { color: var(--text); }

@@ -250,9 +250,12 @@ function calcularPanorama() {
             const noG4B = b <= 4, noG4S = s2 <= 4;
             const noZ4B = b > n - 4, noZ4S = s2 > n - 4;
             const linhaSim = sim.find(x => x.time === r.time) || {};
+            const p = proj[r.time];
             const comum = {
                 grupo, time: r.time, de: b, para: s2,
-                adv: linhaSim.adv, ganhou: linhaSim.ganhou, pts: linhaSim.pts
+                adv: linhaSim.adv, ganhou: linhaSim.ganhou, pts: linhaSim.pts,
+                gm: p ? p.gm : null, gs: p ? p.gs : null,
+                resultado: p ? (p.gm > p.gs ? 'vencendo' : p.gm < p.gs ? 'perdendo' : 'empatando') : null
             };
 
             if (noG4B || noG4S) {
@@ -261,6 +264,11 @@ function calcularPanorama() {
                     situacao: noG4S && !noG4B ? 'entrou' : !noG4S && noG4B ? 'saiu' : 'ficou',
                     lider: sim[0].time,
                     gapLider: sim[0].pts - linhaSim.pts,
+                    // liderando: a folga é sobre o 2º colocado
+                    folga: s2 === 1 && sim[1] ? linhaSim.pts - sim[1].pts : null,
+                    vice: s2 === 1 && sim[1] ? sim[1].time : null,
+                    // confronto direto com a referência (líder, ou vice se eu lidero)
+                    ref: s2 === 1 ? (sim[1] ? sim[1].time : null) : sim[0].time,
                     // para quem está fora, quanto falta para alcançar o 4º
                     gapG4: noG4S ? 0 : (quartoColocado ? quartoColocado.pts - linhaSim.pts : 0)
                 });
@@ -271,11 +279,22 @@ function calcularPanorama() {
                     situacao: !noZ4S && noZ4B ? 'saiu' : noZ4S && !noZ4B ? 'entrou' : 'ficou',
                     // quanto falta para sair do Z4 (alcançar o 1º fora da zona)
                     gapSalvacao: noZ4S && primeiroForaZ4 ? primeiroForaZ4.pts - linhaSim.pts : 0,
-                    margem: !noZ4S && primeiroForaZ4 ? linhaSim.pts - (sim[n - 4] ? sim[n - 4].pts : 0) : 0
+                    margem: !noZ4S && primeiroForaZ4 ? linhaSim.pts - (sim[n - 4] ? sim[n - 4].pts : 0) : 0,
+                    // referência do Z4: a loja logo fora da zona
+                    ref: primeiroForaZ4 ? primeiroForaZ4.time : null
                 });
             }
         });
 
+    });
+
+    // Confronto direto com a referência de cada item (líder, vice ou 1º fora
+    // do Z4) — é o 3º critério de desempate e muda a leitura do que falta.
+    [...g4, ...z4].forEach(m => {
+        if (!m.ref) return;
+        m.refPassados = encontrosPassados(m.time, m.ref);
+        m.refSaldo = m.refPassados.length ? saldoDireto(m.refPassados) : null;
+        m.refProximo = proximoEncontro(m.time, m.ref);
     });
 
     // Entradas e saídas primeiro — é o que muda a decisão; depois por posição.
@@ -744,23 +763,66 @@ function panoramaHtml() {
         return defs.map(([titulo, fn]) => ({ titulo, itens: pega(fn) })).filter(x => x.itens.length);
     };
 
+    // Frase do confronto direto com a referência — critério de desempate.
+    const fraseDireto = (m) => {
+        if (!m.ref) return '';
+        if (m.refPassados && m.refPassados.length) {
+            const sd = m.refSaldo;
+            const placares = m.refPassados.map(j => `rodada ${j.rodada} (${j.meus} x ${j.dele})`).join(' e ');
+            const lado = sd.vantagem === 'a favor' ? 'o desempate está <b>a seu favor</b>'
+                : sd.vantagem === 'contra' ? 'o desempate está <b>contra você</b>'
+                    : 'o desempate segue <b>empatado</b>';
+            return ` No confronto direto já se enfrentaram na ${placares} — ${lado}.`;
+        }
+        if (m.refProximo) {
+            return ` Ainda se enfrentam na <b>rodada ${m.refProximo}</b> — confronto direto valendo o desempate.`;
+        }
+        return ' Não se enfrentam mais no campeonato.';
+    };
+
+    const fraseJogo = (m) => {
+        if (!m.adv) return `Não joga na rodada ${st.semana}.`;
+        return `Está jogando a rodada ${st.semana} contra <b>${m.adv}</b> e
+            <b>${m.resultado}</b> por ${m.gm} x ${m.gs} (${m.ganhou} pt).`;
+    };
+
+    const fraseG4 = (m) => {
+        if (m.para === 1) {
+            const f = m.folga === null ? ''
+                : m.folga > 0 ? ` Com esse resultado <b>lidera o grupo</b> com ${m.folga} pt(s) de folga sobre ${m.vice}.`
+                    : ` Com esse resultado <b>lidera o grupo</b>, empatado em pontos com ${m.vice} e à frente no desempate.`;
+            return fraseJogo(m) + f + fraseDireto(m);
+        }
+        if (m.situacao === 'saiu') {
+            return fraseJogo(m) + ` Com esse resultado <b>cai para ${m.para}º</b> e fica
+                ${m.gapG4 === 0 ? 'empatado em pontos com o 4º, atrás no desempate' : `a ${m.gapG4} pt(s) do 4º lugar`}.`
+                + fraseDireto(m);
+        }
+        return fraseJogo(m) + ` Com esse resultado fica em <b>${m.para}º</b>,
+            ${m.gapLider === 0 ? 'empatado em pontos com o líder ' + m.lider + ' e atrás no desempate'
+                : `a ${m.gapLider} pt(s) do líder <b>${m.lider}</b>`}.`
+            + fraseDireto(m);
+    };
+
+    const fraseZ4 = (m) => {
+        if (m.situacao === 'saiu') {
+            return fraseJogo(m) + ` Com esse resultado <b>sai da zona de queda</b> para ${m.para}º,
+                ${m.margem === 0 ? 'empatado em pontos com o Z4 e à frente só no desempate'
+                    : `com ${m.margem} pt(s) de folga`}.` + fraseDireto(m);
+        }
+        return fraseJogo(m) + ` Com esse resultado fica em <b>${m.para}º</b>, dentro do Z4, e precisa
+            ${m.gapSalvacao === 0 ? 'apenas do desempate' : `de ${m.gapSalvacao} pt(s)`}
+            para alcançar ${m.ref ? `<b>${m.ref}</b>, o 1º fora da zona` : 'a saída da zona'}.`
+            + fraseDireto(m);
+    };
+
     const itemMov = (m, entrarEhBom) => {
         const classe = corMov(m, entrarEhBom);
-        const lider = seloLideranca(m);
-        const ctx = entrarEhBom
-            ? (m.situacao === 'saiu'
-                ? `<small>· ${gapTxt(m.gapG4, 'do 4º lugar')}</small>`
-                : m.para === 1 ? '<small>· liderando o grupo</small>'
-                    : `<small>· ${gapTxt(m.gapLider, `do líder ${m.lider}`)}</small>`)
-            : (m.situacao === 'saiu'
-                ? `<small>· ${m.margem === 0 ? 'empatada com o Z4, à frente só no desempate'
-                    : `${m.margem} pt(s) de folga sobre o Z4`}</small>`
-                : `<small>· ${gapTxt(m.gapSalvacao, 'para sair do Z4')}</small>`);
         return `<li class="${classe} clicavel" onclick="abrirGrupo('${m.grupo.replace(/'/g, "\\'")}','${m.time}')"
             title="Ver a tabela do ${m.grupo}">
-            ${lider}
-            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b> ${setaMov(m)}
-            ${ctx} ${linhaJogo(m)}
+            <div class="mov-topo">${seloLideranca(m)}
+                <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b> ${setaMov(m)}</div>
+            <div class="mov-frase">${entrarEhBom ? fraseG4(m) : fraseZ4(m)}</div>
         </li>`;
     };
 
