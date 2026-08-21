@@ -1553,3 +1553,9 @@ body {
 @media (max-width: 700px) {
     .dist-grid { grid-template-columns: 1fr; }
 }
+
+/* Números de V/E/D com placares no hover */
+.ved-n.tem-jogos {
+    cursor: help;
+    border-bottom: 1px dotted currentColor;
+}

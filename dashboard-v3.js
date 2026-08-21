@@ -209,6 +209,23 @@ function setupGolTooltip() {
     document.body.appendChild(_golTip);
 
     document.addEventListener('mousemove', (e) => {
+        // Números de V/E/D dos cards de distrito: lista os placares projetados
+        const ved = e.target.closest && e.target.closest('.ved-n[data-jogos]');
+        if (ved) {
+            _golTip.innerHTML = `<b>${ved.dataset.titulo}</b><br>`
+                + ved.dataset.jogos.split('\n').join('<br>');
+            _golTip.style.borderLeft = `3px solid ${ved.classList.contains('v') ? '#2ecc71'
+                : ved.classList.contains('d') ? '#e74c3c' : '#e0a800'}`;
+            _golTip.style.display = 'block';
+            let x = e.clientX + 14, y = e.clientY + 14;
+            const r = _golTip.getBoundingClientRect();
+            if (x + r.width > window.innerWidth) x = e.clientX - r.width - 14;
+            if (y + r.height > window.innerHeight) y = e.clientY - r.height - 14;
+            _golTip.style.left = x + 'px';
+            _golTip.style.top = y + 'px';
+            return;
+        }
+
         const bar = e.target.closest && e.target.closest('.gol-item-bar-win, .gol-item-bar-loss');
         if (bar && bar.dataset.lojas) {
             const isWin = bar.classList.contains('gol-item-bar-win');
@@ -760,15 +777,16 @@ function vedDistrito(regional, distrito) {
     Object.entries(state.estrutura || {}).forEach(([reg, dists]) =>
         Object.values(dists).forEach(ls => ls.forEach(l => { lojaReg[l] = reg; })));
 
-    const tot = { V: 0, E: 0, D: 0 }, fora = { V: 0, E: 0, D: 0 };
+    const tot = { V: [], E: [], D: [] }, fora = { V: [], E: [], D: [] };
     (state.gamesSummary?.games || []).forEach(g => {
         if (semResultado(g)) return;
         const [a1, b1] = g.scoreProjected.split('x').map(v => parseInt(v.trim()));
         [[g.team1, a1, b1, g.team2], [g.team2, b1, a1, g.team1]].forEach(([loja, meu, adv, outra]) => {
             if (!lojas.includes(loja)) return;
             const r = meu > adv ? 'V' : meu === adv ? 'E' : 'D';
-            tot[r]++;
-            if (lojaReg[outra] !== regional) fora[r]++;
+            const placar = `${loja} ${meu} × ${adv} ${outra}`;
+            tot[r].push(placar);
+            if (lojaReg[outra] !== regional) fora[r].push(placar);
         });
     });
     return { tot, fora };
@@ -796,11 +814,15 @@ function insightsR2Html(simulado) {
             </div>
             ${(() => {
                 const v = vedDistrito(r.regional, r.distrito);
+                const num = (cls, lista, rot, escopo) => lista.length
+                    ? `<span class="ved-n ${cls} tem-jogos" data-jogos="${lista.join('\n')}"
+                        data-titulo="${rot} · ${escopo}">${lista.length}</span>`
+                    : `<span class="ved-n ${cls}">0</span>`;
                 const bloco = (t, o) => `<div class="ved-bloco">
                     <span class="ved-rot">${t}</span>
-                    <span class="ved-n v">${o.V}</span><span class="ved-l">V</span>
-                    <span class="ved-n e">${o.E}</span><span class="ved-l">E</span>
-                    <span class="ved-n d">${o.D}</span><span class="ved-l">D</span>
+                    ${num('v', o.V, 'Vitórias', t)}<span class="ved-l">V</span>
+                    ${num('e', o.E, 'Empates', t)}<span class="ved-l">E</span>
+                    ${num('d', o.D, 'Derrotas', t)}<span class="ved-l">D</span>
                 </div>`;
                 return `<div class="ved">
                     ${bloco('Total', v.tot)}
