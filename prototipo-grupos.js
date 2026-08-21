@@ -1103,8 +1103,9 @@ function render() {
     const g4Resumo = `${pan.g4.filter(m => m.para === 1).length} liderança(s) no G4`;
     const combosResumo = `${pan.combos.filter(c => c.completo).length} combinação(ões) de pé`;
 
-    // Estado do box de insights sobrevive ao redesenho.
-    const aberto = st.insightsAberto === undefined ? !st.grupo : st.insightsAberto;
+    // Aberto por padrão; se o usuário recolher, a escolha dele é mantida
+    // ao trocar de grupo ou de rodada.
+    const aberto = st.insightsAberto !== false;
 
     painel.innerHTML = `
     ${!st.semana ? `<div class="alerta-info" style="margin-bottom:14px">
