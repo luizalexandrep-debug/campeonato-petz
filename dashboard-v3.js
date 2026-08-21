@@ -329,6 +329,101 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
 // AUTENTICAÇÃO
 // ============================================================
 
+// ============================================================
+// PRESENÇA — quantos usuários online (visível só para o admin)
+// ============================================================
+
+let _presencaTimer = null;
+
+async function atualizarPresenca() {
+    const badge = document.getElementById('onlineBadge');
+    if (!badge) return;
+    try {
+        const r = await fetch('/api/acessos', { cache: 'no-store' });
+        if (!r.ok) { badge.style.display = 'none'; return; }
+        const d = await r.json();
+        badge.style.display = 'inline-flex';
+        badge.innerHTML = `<span class="ponto"></span>${d.online} online`;
+        badge.dataset.detalhe = JSON.stringify(d);
+    } catch (e) {
+        badge.style.display = 'none';
+    }
+}
+
+function iniciarPresenca() {
+    const badge = document.getElementById('onlineBadge');
+    if (!badge) return;
+    badge.onclick = abrirPainelAcessos;
+    atualizarPresenca();
+    if (_presencaTimer) clearInterval(_presencaTimer);
+    _presencaTimer = setInterval(atualizarPresenca, 60000);
+}
+
+function _quando(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const min = Math.floor((Date.now() - d.getTime()) / 60000);
+    const rel = min < 1 ? 'agora' : min < 60 ? `há ${min} min`
+        : min < 1440 ? `há ${Math.floor(min / 60)} h` : `há ${Math.floor(min / 1440)} d`;
+    return `${d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} <small>(${rel})</small>`;
+}
+
+async function abrirPainelAcessos() {
+    await atualizarPresenca();
+    const badge = document.getElementById('onlineBadge');
+    const d = JSON.parse(badge.dataset.detalhe || '{}');
+
+    const linha = (a, online) => `<tr>
+        <td class="l"><b>${a.username}</b>${online ? ' <span class="ponto-min"></span>' : ''}</td>
+        <td class="l">${a.local}</td>
+        <td class="l"><small>${a.ip}</small></td>
+        <td class="l"><small>${a.dispositivo}</small></td>
+        <td class="l">${_quando(a.entrouEm)}</td>
+        <td class="l">${_quando(a.vistoEm)}</td>
+    </tr>`;
+
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo';
+    fundo.innerHTML = `
+        <div class="modal-acessos">
+            <div class="modal-head">
+                <div class="cal-titulo">
+                    <b>👥 Acessos</b>
+                    <small>${d.online} usuário(s) online · ${d.sessoesOnline} sessão(ões) ativas
+                        · considera atividade nos últimos ${d.janelaMinutos} min</small>
+                </div>
+                <button class="modal-btn" data-fechar>✕ Fechar</button>
+            </div>
+            <div class="modal-corpo">
+                <h4 class="ac-titulo">Online agora</h4>
+                <div class="tbl-wrap"><table class="md-tabela ac-tabela">
+                    <thead><tr><th class="l">Usuário</th><th class="l">Local</th><th class="l">IP</th>
+                        <th class="l">Dispositivo</th><th class="l">Entrou</th><th class="l">Visto</th></tr></thead>
+                    <tbody>${d.sessoes?.length ? d.sessoes.map(a => linha(a, true)).join('')
+                        : '<tr><td colspan="6">Ninguém online no momento.</td></tr>'}</tbody>
+                </table></div>
+
+                <h4 class="ac-titulo">Histórico de entradas <small>· últimas 60</small></h4>
+                <div class="tbl-wrap"><table class="md-tabela ac-tabela">
+                    <thead><tr><th class="l">Usuário</th><th class="l">Local</th><th class="l">IP</th>
+                        <th class="l">Dispositivo</th><th class="l">Entrou</th><th class="l">Visto</th></tr></thead>
+                    <tbody>${d.historico?.length ? d.historico.map(a => linha(a, false)).join('')
+                        : '<tr><td colspan="6">Sem registros ainda.</td></tr>'}</tbody>
+                </table></div>
+                <div class="ac-nota">O local vem do IP, com precisão de cidade — serve para
+                    reconhecer de onde partiu o acesso, não para localizar a pessoa.</div>
+            </div>
+        </div>`;
+
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
+}
+
 async function checkAuthentication() {
     try {
         const response = await fetch('/api/me');
@@ -347,6 +442,7 @@ async function checkAuthentication() {
         // Mostrar link de admin se for admin
         if (data.user.é_admin) {
             document.getElementById('adminLink').style.display = 'inline-block';
+            iniciarPresenca();   // contador de online é só para o master
         }
 
         // Armazenar usuário no localStorage

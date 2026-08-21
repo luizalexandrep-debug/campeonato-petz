@@ -13,7 +13,7 @@ import requests
 from datetime import datetime, timedelta
 from difflib import SequenceMatcher
 from pathlib import Path
-from auth import db, login_manager, Usuario, init_db
+from auth import db, login_manager, Usuario, Acesso, init_db
 
 app = Flask(__name__)
 CORS(app)
@@ -1061,6 +1061,126 @@ def get_jogos():
         return jsonify({"error": str(e)}), 500
 
 
+# ============================================================
+# PRESENÇA: quem está online, de onde e desde quando
+# ============================================================
+
+MINUTOS_ONLINE = 5          # sem atividade por mais que isso = offline
+INTERVALO_HEARTBEAT = 60    # só grava "visto agora" a cada N segundos
+
+
+def _ip_do_cliente():
+    """IP real do visitante. Atrás da Vercel o IP vem no X-Forwarded-For."""
+    xff = request.headers.get('X-Forwarded-For', '')
+    if xff:
+        return xff.split(',')[0].strip()
+    return request.remote_addr or '—'
+
+
+def _local_do_cliente():
+    """Cidade/região/país que a Vercel deduz do IP, sem chamar serviço externo."""
+    from urllib.parse import unquote
+    def h(nome):
+        v = request.headers.get(nome, '')
+        return unquote(v) if v else ''
+    return h('x-vercel-ip-city'), h('x-vercel-ip-country-region'), h('x-vercel-ip-country')
+
+
+def registrar_entrada(user):
+    """Cria a sessão de acesso no login."""
+    try:
+        cidade, regiao, pais = _local_do_cliente()
+        ac = Acesso(
+            usuario_id=user.id, username=user.username, ip=_ip_do_cliente(),
+            cidade=cidade, regiao=regiao, pais=pais,
+            user_agent=(request.headers.get('User-Agent') or '')[:300],
+        )
+        db.session.add(ac)
+        db.session.commit()
+        session['acesso_id'] = ac.id
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ registrar_entrada falhou: {e}")
+
+
+@app.before_request
+def _marcar_presenca():
+    """Atualiza 'visto_em' da sessão atual, no máximo uma vez por minuto."""
+    try:
+        if not request.path.startswith('/api/'):
+            return
+        if not current_user.is_authenticated:
+            return
+        agora = time.time()
+        if agora - session.get('ultimo_ping', 0) < INTERVALO_HEARTBEAT:
+            return
+        session['ultimo_ping'] = agora
+        aid = session.get('acesso_id')
+        ac = db.session.get(Acesso, aid) if aid else None
+        if ac is None:
+            # Sessão anterior ao registro (ou perdida): abre uma nova.
+            registrar_entrada(current_user)
+            return
+        ac.visto_em = datetime.now()
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ _marcar_presenca falhou: {e}")
+
+
+@app.route('/api/acessos', methods=['GET'])
+@login_required
+def get_acessos():
+    """Sessões online e histórico de entradas. Só para administradores."""
+    if not getattr(current_user, 'é_admin', False):
+        return jsonify({"error": "Apenas administradores"}), 403
+    try:
+        limite = datetime.now() - timedelta(minutes=MINUTOS_ONLINE)
+
+        def fmt(a):
+            partes = [p for p in (a.cidade, a.regiao, a.pais) if p]
+            return {
+                "username": a.username,
+                "ip": a.ip,
+                "local": " · ".join(partes) or "—",
+                "dispositivo": _dispositivo(a.user_agent or ''),
+                "entrouEm": a.entrou_em.isoformat() if a.entrou_em else None,
+                "vistoEm": a.visto_em.isoformat() if a.visto_em else None,
+            }
+
+        online = (Acesso.query.filter(Acesso.visto_em >= limite)
+                  .order_by(Acesso.visto_em.desc()).all())
+        historico = (Acesso.query.order_by(Acesso.entrou_em.desc()).limit(60).all())
+
+        # Uma pessoa pode ter mais de uma aba/dispositivo: contamos usuários
+        # distintos, não sessões.
+        usuarios_online = sorted({a.username for a in online})
+
+        return jsonify({
+            "online": len(usuarios_online),
+            "sessoesOnline": len(online),
+            "usuarios": usuarios_online,
+            "janelaMinutos": MINUTOS_ONLINE,
+            "sessoes": [fmt(a) for a in online],
+            "historico": [fmt(a) for a in historico],
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+def _dispositivo(ua):
+    """Resumo legível do User-Agent."""
+    u = ua.lower()
+    so = ('iPhone' if 'iphone' in u else 'iPad' if 'ipad' in u else
+          'Android' if 'android' in u else 'Mac' if 'macintosh' in u else
+          'Windows' if 'windows' in u else 'Linux' if 'linux' in u else '—')
+    nav = ('Edge' if 'edg/' in u else 'Chrome' if 'chrome' in u and 'edg/' not in u else
+           'Safari' if 'safari' in u else 'Firefox' if 'firefox' in u else '')
+    return f"{so}{' · ' + nav if nav else ''}"
+
+
 @app.route('/api/semana', methods=['GET'])
 def get_semana():
     """Semana vigente, detectada pelos arquivos de confronto disponíveis.
@@ -1746,6 +1866,7 @@ def login():
 
     login_user(user, remember=True)
     session.permanent = True
+    registrar_entrada(user)
 
     return jsonify({
         "message": "Login realizado com sucesso",

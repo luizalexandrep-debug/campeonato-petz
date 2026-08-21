@@ -10,6 +10,27 @@ from pathlib import Path
 db = SQLAlchemy()
 login_manager = LoginManager()
 
+class Acesso(db.Model):
+    """Uma sessão de acesso: quem entrou, de onde e quando foi visto por último.
+
+    A localização vem dos cabeçalhos que a própria Vercel injeta a partir do IP
+    (x-vercel-ip-city / -country-region / -country) — nenhum dado é enviado a
+    serviço de terceiros para geolocalizar.
+    """
+    __tablename__ = 'acessos'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, index=True)
+    username = db.Column(db.String(80), index=True)
+    ip = db.Column(db.String(60))
+    cidade = db.Column(db.String(80))
+    regiao = db.Column(db.String(80))
+    pais = db.Column(db.String(8))
+    user_agent = db.Column(db.String(300))
+    entrou_em = db.Column(db.DateTime, default=db.func.now())
+    visto_em = db.Column(db.DateTime, default=db.func.now(), index=True)
+
+
 class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuarios'
 
