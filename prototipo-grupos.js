@@ -295,6 +295,29 @@ function proximoEncontro(a, b) {
     return j ? j.rodada : null;
 }
 
+// Confrontos diretos JÁ realizados entre duas lojas, na ótica de `a`.
+// Vale como critério de desempate (item 3 do regulamento) e, nos grupos 13 e
+// 14, onde há jogo de volta, conta a soma dos dois resultados.
+function encontrosPassados(a, b) {
+    return (st.calendario || [])
+        .filter(j => j.realizado &&
+            ((j.mandante === a && j.visitante === b) || (j.mandante === b && j.visitante === a)))
+        .map(j => {
+            const souMandante = j.mandante === a;
+            const meus = souMandante ? j.golsMandante : j.golsVisitante;
+            const dele = souMandante ? j.golsVisitante : j.golsMandante;
+            return { rodada: j.rodada, meus, dele, resultado: meus > dele ? 'V' : meus < dele ? 'D' : 'E' };
+        })
+        .sort((x, y) => x.rodada - y.rodada);
+}
+
+// Saldo do confronto direto: como fica a soma dos jogos entre as duas.
+function saldoDireto(jogos) {
+    const meus = jogos.reduce((t, j) => t + j.meus, 0);
+    const dele = jogos.reduce((t, j) => t + j.dele, 0);
+    return { meus, dele, vantagem: meus > dele ? 'a favor' : meus < dele ? 'contra' : 'igual' };
+}
+
 // Rodadas em que a loja ainda enfrenta alguém da minha regional.
 function encontrosComMinhas(time) {
     return jogosFuturos()
@@ -335,10 +358,12 @@ function calcularInsightsTopo() {
             // rivais à frente, dentro da zona de interesse
             const rivais = sim.slice(0, i).map((r, j) => {
                 const gap = r.pts - minha.pts;
+                const passados = encontrosPassados(minha.time, r.time);
                 return {
                     time: r.time, pos: j + 1, pts: r.pts, gap,
                     daRegional: st.minhasLojas.has(r.time),
                     confronto: proximoEncontro(minha.time, r.time),
+                    passados, saldo: passados.length ? saldoDireto(passados) : null,
                     tropecos: encontrosComMinhas(r.time),
                     alcancavel: gap <= emJogo
                 };
@@ -385,9 +410,19 @@ function insightsTopoHtml(itens) {
             if (alvo.confronto) {
                 sub.push(`<span class="tatica dir cal" ${cal(alvo.time)}
                     title="Ver o calendário">⚔ Confronto direto na rodada ${alvo.confronto}</span>`);
+            } else if (alvo.passados.length) {
+                // Já jogaram: o resultado vale como 3º critério de desempate.
+                const s2 = alvo.saldo;
+                const cls = s2.vantagem === 'a favor' ? 'ajuda' : s2.vantagem === 'contra' ? 'contra' : 'sem';
+                const rot = s2.vantagem === 'a favor' ? 'desempate a seu favor'
+                    : s2.vantagem === 'contra' ? 'desempate contra você' : 'desempate empatado';
+                const detalhe = alvo.passados.map(j => `R${j.rodada}: ${j.meus} x ${j.dele}`).join(' · ');
+                sub.push(`<span class="tatica ${cls} cal" ${cal(alvo.time)} title="Ver o calendário">
+                    ⚔ Já se enfrentaram — ${detalhe}${alvo.passados.length > 1 ? ` (soma ${s2.meus} x ${s2.dele})` : ''}
+                    · ${rot}</span>`);
             } else {
                 sub.push(`<span class="tatica sem cal" ${cal(alvo.time)}
-                    title="Ver o calendário">Já se enfrentaram — depende de terceiros</span>`);
+                    title="Ver o calendário">Não se enfrentam mais — depende de terceiros</span>`);
             }
             if (alvo.tropecos.length) {
                 sub.push(`<span class="tatica ajuda cal" ${cal(alvo.time)} title="Ver o calendário">🛡 ${alvo.time} ainda pega
@@ -494,6 +529,19 @@ function abrirCalendario(loja, rival, grupo) {
     const nDireto = rodadas.filter(r => { const a = jogoDaRodada(loja, r); return a && rival && a.adv === rival; }).length;
     const nTropeco = rodadas.filter(r => { const b = rival && jogoDaRodada(rival, r); return b && st.minhasLojas.has(b.adv) && !(jogoDaRodada(loja, r) || {}).adv === rival; }).length;
 
+    // Confronto direto já realizado — é critério de desempate, então aparece
+    // no topo da janela mesmo não sendo mais um jogo futuro.
+    const passados = rival ? encontrosPassados(loja, rival) : [];
+    const sd = passados.length ? saldoDireto(passados) : null;
+    const blocoPassado = passados.length ? `
+        <div class="cal-passado ${sd.vantagem === 'a favor' ? 'bom' : sd.vantagem === 'contra' ? 'ruim' : ''}">
+            <b>⚔ Confronto direto já realizado</b>
+            <div>${passados.map(j => `Rodada ${j.rodada}: <b>${loja} ${j.meus} x ${j.dele} ${rival}</b>`).join(' · ')}
+            ${passados.length > 1 ? ` · soma <b>${sd.meus} x ${sd.dele}</b>` : ''}</div>
+            <small>Em caso de empate em pontos e vitórias e saldo, este resultado é o 3º critério de
+            desempate — hoje ele está ${sd.vantagem === 'a favor' ? 'a seu favor' : sd.vantagem === 'contra' ? 'contra você' : 'empatado'}.</small>
+        </div>` : '';
+
     const fundo = document.createElement('div');
     fundo.className = 'modal-fundo';
     fundo.innerHTML = `
@@ -506,6 +554,7 @@ function abrirCalendario(loja, rival, grupo) {
                 <button class="modal-btn" data-fechar>✕ Fechar</button>
             </div>
             <div class="modal-corpo">
+                ${blocoPassado}
                 <div class="cal-legenda">
                     <span class="tatica dir">⚔ confronto direto</span>
                     <span class="tatica ajuda">🛡 o rival enfrenta uma loja sua</span>

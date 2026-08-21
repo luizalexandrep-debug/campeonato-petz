@@ -343,3 +343,21 @@
     .modal-cal { border-radius: 0; min-height: 100vh; }
     .modal-cal .modal-corpo { max-height: none; }
 }
+
+/* Confronto direto já realizado, no topo da janela do calendário */
+.cal-passado {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--text-3);
+    border-radius: var(--r-md);
+    padding: 11px 14px;
+    margin-bottom: 12px;
+    font-size: .9em;
+    line-height: 1.5;
+}
+
+.cal-passado.bom { background: #e8f6ef; border-color: #b7e2ce; border-left-color: #157347; }
+.cal-passado.ruim { background: #fdecea; border-color: #f5c6c0; border-left-color: #c0392b; }
+.cal-passado small { color: var(--text-2); display: block; margin-top: 4px; }
+
+.tatica.contra { background: #fdecea; border-color: #f5c6c0; color: #c0392b; }
