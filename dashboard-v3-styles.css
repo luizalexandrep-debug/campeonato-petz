@@ -459,7 +459,9 @@ body {
        acumulado + simulado. minmax(0,1fr) impede que a tabela larga estique
        a coluna e estoure a página. */
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    /* Larguras proporcionais ao nº de colunas de cada tabela: a acumulada tem
+       5 colunas e as outras 8. Divisão igual espremia as duas da direita. */
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.03fr) minmax(0, 1.07fr);
     gap: var(--s-5);
     /* stretch: os três cartões terminam na mesma altura. */
     align-items: stretch;
@@ -499,9 +501,9 @@ body {
 
 /* Tela larga: cabe tudo por extenso, com a coluna Regional de volta. */
 @media (min-width: 1700px) {
-    .home-sections .rank-table { font-size: 0.86em; }
+    .home-sections .rank-table { font-size: 0.82em; }
     .home-sections .rank-table th,
-    .home-sections .rank-table td { padding: 8px 6px; }
+    .home-sections .rank-table td { padding: 8px 5px; }
 }
 
 .sec.base .sec-head { background: linear-gradient(135deg, #6b4d9e, #4a3270); }
