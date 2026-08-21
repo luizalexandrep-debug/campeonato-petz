@@ -470,6 +470,15 @@ body {
     }
 }
 
+/* Lado a lado cada tabela tem metade da largura: os complementos dos títulos
+   ("Pontuação ", " R1-7") saem para as colunas caberem sem rolagem. */
+@media (min-width: 1201px) {
+    .home-sections .rank-table .lg { display: none; }
+    .home-sections .rank-table { font-size: 0.84em; }
+    .home-sections .rank-table th,
+    .home-sections .rank-table td { padding: 8px 6px; }
+}
+
 /* Itens de flex/grid encolhem até o container; quem rola é o .tbl-wrap. */
 .home-sections > .sec,
 .sec-body,
