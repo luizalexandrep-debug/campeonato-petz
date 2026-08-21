@@ -70,7 +70,9 @@ body {
 }
 
 .container {
-    max-width: 1400px;
+    /* Em monitores largos sobrava muita margem e as tabelas ficavam
+       espremidas. O limite alto usa a tela; o 96vw evita colar nas bordas. */
+    max-width: min(1900px, 96vw);
     margin: 0 auto;
     padding: var(--s-6) var(--s-5);
 }
@@ -468,10 +470,9 @@ body {
     .home-sections { grid-template-columns: 1fr; gap: var(--s-8); }
 }
 
-/* Em três colunas cada tabela tem ~1/3 da largura: os complementos dos
-   títulos e a coluna Regional saem para tudo caber sem rolagem. A regional
-   continua legível pelo destaque da R2 e pelos botões de filtro. */
-@media (min-width: 1251px) {
+/* Faixa apertada (3 colunas em telas médias): abrevia os títulos e esconde a
+   coluna Regional para tudo caber sem rolagem lateral. */
+@media (min-width: 1251px) and (max-width: 1699px) {
     .home-sections .rank-table .lg { display: none; }
     .home-sections .rank-table .reg { display: none; }
     .home-sections .rank-table { font-size: 0.78em; }
@@ -479,6 +480,14 @@ body {
     .home-sections .rank-table td { padding: 7px 3px; }
     /* Nome do distrito é a coluna mais larga; deixamos quebrar em vez de
        forçar a tabela a rolar. */
+    .home-sections .rank-table td.l { white-space: normal; line-height: 1.3; }
+}
+
+/* Tela larga: cabe tudo por extenso, com a coluna Regional de volta. */
+@media (min-width: 1700px) {
+    .home-sections .rank-table { font-size: 0.86em; }
+    .home-sections .rank-table th,
+    .home-sections .rank-table td { padding: 8px 6px; }
     .home-sections .rank-table td.l { white-space: normal; line-height: 1.3; }
 }
 

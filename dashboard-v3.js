@@ -1566,7 +1566,7 @@ function loadRankingDashboard() {
             <td class="c b">${fp(r.aprov)}</td></tr>`;
     }).join('') + Object.entries(totReg).filter(([reg]) => passaFiltro(reg))
         .sort((a, b) => b[1].media - a[1].media).map(([reg, t]) => `
-        <tr class="tot"><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
+        <tr class="tot"><td></td><td class="l">${nomeReg(reg)}</td><td class="l reg"></td>
             <td class="c">${t.V}</td><td class="c">${t.E}</td><td class="c">${t.D}</td>
             <td class="c b">${f2(t.media)}</td>
             <td class="c b">${fp(t.aprov)}</td></tr>`).join('');
@@ -1713,7 +1713,7 @@ function loadRankingDashboard() {
                 return { reg, t, base, simulada };
             })
             .sort((a, b) => b.simulada - a.simulada).map(({ reg, t, base, simulada }) => `
-            <tr class="tot"><td></td><td></td><td class="l" colspan="2">${nomeReg(reg)}</td>
+            <tr class="tot"><td></td><td></td><td class="l">${nomeReg(reg)}</td><td class="l reg"></td>
                 <td class="c">${base !== null ? f2(base) : '—'}</td>
                 <td class="c">${f2(totReg[reg] ? totReg[reg].media : 0)}</td>
                 <td class="c b">${f2(simulada)}</td>
