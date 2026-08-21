@@ -1537,3 +1537,19 @@ body {
     font-size: .92em;
     font-weight: 400;
 }
+
+/* Cards dos meus distritos: 3 por linha (6 distritos = 3 em cima, 3 embaixo),
+   o que dá mais largura para as listas de lojas do que o auto-fit dava. */
+.dist-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 1100px) {
+    .dist-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+    .dist-grid { grid-template-columns: 1fr; }
+}

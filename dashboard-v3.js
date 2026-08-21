@@ -833,9 +833,7 @@ function insightsR2Html(simulado) {
                 ${caindo.length ? `📉 Caindo: ${caindo.map(r => r.distrito).join(', ')}.` : ''}
             </div>
         </div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); gap:16px;">
-            ${cards}
-        </div>
+        <div class="dist-grid">${cards}</div>
     </div>`;
 }
 
