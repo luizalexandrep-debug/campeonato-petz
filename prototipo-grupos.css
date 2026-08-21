@@ -430,3 +430,42 @@
 .pg-lista .mov-topo { margin-bottom: 3px; }
 .pg-lista .mov-frase { font-size: .95em; color: var(--text-2); line-height: 1.5; }
 .pg-lista .mov-frase b { color: var(--text); }
+
+/* ====== Box expansível de insights ====== */
+.box-insights {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow-sm);
+    margin-top: var(--s-5);
+    overflow: hidden;
+}
+
+.box-insights > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--brand-grad);
+    color: #fff;
+    font-weight: 700;
+    user-select: none;
+}
+
+.box-insights > summary::-webkit-details-marker { display: none; }
+.box-insights > summary:hover { filter: brightness(1.06); }
+
+.bi-titulo { font-size: 1.05em; }
+.bi-resumo { flex: 1; font-size: .84em; font-weight: 500; opacity: .88; }
+.bi-seta { font-size: 1.1em; transition: transform .2s var(--ease); }
+.box-insights[open] > summary .bi-seta { transform: rotate(180deg); }
+.bi-corpo { padding: var(--s-4); }
+.bi-corpo .painel-geral { margin-bottom: 0; }
+.bi-corpo .bloco-insights { margin-bottom: 0; margin-top: var(--s-4); }
+
+@media (max-width: 768px) {
+    .box-insights > summary { flex-wrap: wrap; gap: 6px; }
+    .bi-resumo { flex: 1 1 100%; }
+}

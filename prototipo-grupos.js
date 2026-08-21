@@ -946,9 +946,15 @@ function render() {
 
     const semTabela = !st.grupo;
 
+    // Números que aparecem fechados, no cabeçalho do box
+    const pan = calcularPanorama();
+    const g4Resumo = `${pan.g4.filter(m => m.para === 1).length} liderança(s) no G4`;
+    const combosResumo = `${pan.combos.filter(c => c.completo).length} combinação(ões) de pé`;
+
+    // Estado do box de insights sobrevive ao redesenho.
+    const aberto = st.insightsAberto === undefined ? !st.grupo : st.insightsAberto;
+
     painel.innerHTML = `
-    ${panoramaHtml()}
-    ${blocoInsights}
     ${!st.semana ? `<div class="alerta-info" style="margin-bottom:14px">
         A classificação da pasta já vai até a rodada ${st.rodadaBase} e não há rodada
         posterior publicada para projetar. Assim que a rodada ${st.rodadaBase + 1} tiver
@@ -971,7 +977,23 @@ function render() {
                 painel oficial. Pelo regulamento, empates que persistem no saldo vão a
                 confronto direto, share MP e turn over, que o app não calcula.${semJogo ? ` ${semJogo} loja(s) sem jogo nesta rodada.` : ''}</div>
         </div>
-    </div>`}`;
+    </div>`}
+
+    <details class="box-insights" id="boxInsights" ${aberto ? 'open' : ''}>
+        <summary>
+            <span class="bi-titulo">💡 Insights</span>
+            <span class="bi-resumo">${itens.length} loja(s) na parte de cima ·
+                ${g4Resumo} · ${combosResumo}</span>
+            <span class="bi-seta">▾</span>
+        </summary>
+        <div class="bi-corpo">
+            ${panoramaHtml()}
+            ${blocoInsights}
+        </div>
+    </details>`;
+
+    const box = document.getElementById('boxInsights');
+    if (box) box.addEventListener('toggle', () => { st.insightsAberto = box.open; });
 
     // dados prontos para o exportador de imagem
     window.__dadosExportGrupo = {
