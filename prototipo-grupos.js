@@ -377,15 +377,20 @@ function insightsTopoHtml(itens) {
                 <small>(${it.jogoDaRodada.pts} pt)</small></div>`);
         }
 
+        // Tudo que fala de rodada abre a janela do calendário.
+        const cal = (rival) => `onclick="event.stopPropagation(); abrirCalendario('${it.time}','${rival || ''}','${it.grupo.replace(/'/g, "\\'")}')"`;
+
         if (alvo) {
             const sub = [];
             if (alvo.confronto) {
-                sub.push(`<span class="tatica dir">⚔ Confronto direto na rodada ${alvo.confronto}</span>`);
+                sub.push(`<span class="tatica dir cal" ${cal(alvo.time)}
+                    title="Ver o calendário">⚔ Confronto direto na rodada ${alvo.confronto}</span>`);
             } else {
-                sub.push(`<span class="tatica sem">Já se enfrentaram — depende de terceiros</span>`);
+                sub.push(`<span class="tatica sem cal" ${cal(alvo.time)}
+                    title="Ver o calendário">Já se enfrentaram — depende de terceiros</span>`);
             }
             if (alvo.tropecos.length) {
-                sub.push(`<span class="tatica ajuda">🛡 ${alvo.time} ainda pega
+                sub.push(`<span class="tatica ajuda cal" ${cal(alvo.time)} title="Ver o calendário">🛡 ${alvo.time} ainda pega
                     ${alvo.tropecos.length} loja(s) sua(s): ${alvo.tropecos.map(t => `${t.adv} (R${t.rodada})`).join(', ')}</span>`);
             }
             linhas.push(`<div class="ins-linha">🎯 Alvo <b>${alvo.time}</b> (${posTxt(alvo.pos)}) —
@@ -399,13 +404,16 @@ function insightsTopoHtml(itens) {
             if (l && l.time !== (alvo && alvo.time)) {
                 linhas.push(`<div class="ins-linha">👑 Líder <b>${it.lider}</b> — ${it.gapLider} pt(s)
                     <small>· ${it.gapLider <= it.emJogo ? 'alcançável' : 'fora de alcance'} com ${it.emJogo} pts em jogo</small>
-                    ${l.confronto ? `<span class="tatica dir">⚔ vocês se enfrentam na rodada ${l.confronto}</span>` : ''}</div>`);
+                    ${l.confronto ? `<span class="tatica dir cal" ${cal(l.time)}
+                        title="Ver o calendário">⚔ vocês se enfrentam na rodada ${l.confronto}</span>` : ''}</div>`);
             }
         }
 
         if (it.proximos.length) {
-            linhas.push(`<div class="ins-linha">📅 Próximos:
-                ${it.proximos.map(x => `<b>${x.adv}</b> <small>(${posTxt(x.pos)}, R${x.rodada})</small>`).join(' · ')}</div>`);
+            linhas.push(`<div class="ins-linha cal-linha" ${cal(alvo ? alvo.time : '')} title="Ver o calendário completo">
+                📅 Próximos:
+                ${it.proximos.map(x => `<b>${x.adv}</b> <small>(${posTxt(x.pos)}, R${x.rodada})</small>`).join(' · ')}
+                <span class="cal-abrir">ver calendário →</span></div>`);
         }
 
         return `<li class="clicavel ${it.pos === 1 ? 'ganho' : ''}"
@@ -435,6 +443,92 @@ function selecionarGrupo(g) {
     st.lojaFoco = null;
     montarChipsGrupo();
     render();
+}
+
+// ============================================================
+// JANELA DO CALENDÁRIO
+// Abre as rodadas que ainda faltam, lado a lado, destacando os
+// confrontos citados no insight (jogo direto e os tropeços possíveis).
+// ============================================================
+
+function jogoDaRodada(time, rodada) {
+    const j = (st.calendario || []).find(x => x.rodada === rodada &&
+        (x.mandante === time || x.visitante === time));
+    if (!j) return null;
+    return {
+        adv: j.mandante === time ? j.visitante : j.mandante,
+        casa: j.mandante === time,
+        realizado: j.realizado,
+        placar: j.realizado ? `${j.golsMandante} x ${j.golsVisitante}` : null
+    };
+}
+
+function abrirCalendario(loja, rival, grupo) {
+    const linhas = st.grupos[grupo] || [];
+    const { proj } = projecaoDaRodada();
+    const { sim } = classificarGrupo(linhas, proj);
+    const posDe = {};
+    sim.forEach((r, i) => posDe[r.time] = i + 1);
+
+    const rodadas = [];
+    for (let r = st.semana + 1; r <= TOTAL_RODADAS; r++) rodadas.push(r);
+
+    const corpo = rodadas.map(r => {
+        const a = jogoDaRodada(loja, r);
+        const b = rival ? jogoDaRodada(rival, r) : null;
+        const direto = a && rival && a.adv === rival;
+        const tropeco = b && st.minhasLojas.has(b.adv) && !direto;
+        const cls = direto ? 'linha-direto' : tropeco ? 'linha-tropeco' : '';
+        const cel = (j) => j
+            ? `<b>${j.adv}</b> <small>${j.casa ? '(casa)' : '(fora)'}${posDe[j.adv] ? ` · ${posDe[j.adv]}º` : ''}</small>`
+            : '<span class="vazio-cel">—</span>';
+        return `<tr class="${cls}">
+            <td class="c">R${r}</td>
+            <td>${cel(a)}</td>
+            ${rival ? `<td>${cel(b)}${tropeco ? ' <span class="tatica ajuda">🛡 loja sua</span>' : ''}</td>` : ''}
+            <td class="c motivo">${direto ? '⚔ confronto direto' : tropeco ? '🛡 chance de tropeço' : ''}</td>
+        </tr>`;
+    }).join('');
+
+    const nDireto = rodadas.filter(r => { const a = jogoDaRodada(loja, r); return a && rival && a.adv === rival; }).length;
+    const nTropeco = rodadas.filter(r => { const b = rival && jogoDaRodada(rival, r); return b && st.minhasLojas.has(b.adv) && !(jogoDaRodada(loja, r) || {}).adv === rival; }).length;
+
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo';
+    fundo.innerHTML = `
+        <div class="modal-cal">
+            <div class="modal-head">
+                <div class="cal-titulo">
+                    <b>Calendário até a rodada ${TOTAL_RODADAS}</b>
+                    <small>${grupo} · ${loja}${rival ? ` vs ${rival}` : ''}</small>
+                </div>
+                <button class="modal-btn" data-fechar>✕ Fechar</button>
+            </div>
+            <div class="modal-corpo">
+                <div class="cal-legenda">
+                    <span class="tatica dir">⚔ confronto direto</span>
+                    <span class="tatica ajuda">🛡 o rival enfrenta uma loja sua</span>
+                    <span class="cal-nota">Rodadas ${st.semana + 1} a ${TOTAL_RODADAS} · posição atual entre parênteses</span>
+                </div>
+                <table class="tab-grupo tab-cal">
+                    <thead><tr>
+                        <th class="c">Rodada</th>
+                        <th>${loja} <small>(sua loja)</small></th>
+                        ${rival ? `<th>${rival} <small>(alvo)</small></th>` : ''}
+                        <th class="c">Leitura</th>
+                    </tr></thead>
+                    <tbody>${corpo}</tbody>
+                </table>
+            </div>
+        </div>`;
+
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
 }
 
 function nomeCurto(reg) {

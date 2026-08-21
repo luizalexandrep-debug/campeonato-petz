@@ -287,3 +287,59 @@
 .tatica.sem { color: var(--text-3); }
 .pg-lista-ins .tag.minha { background: var(--brand-tint); color: var(--brand-ink); border: 1px solid #c6dbf2;
     border-radius: 20px; padding: 1px 7px; font-size: .82em; font-weight: 700; }
+
+/* ====== Janela do calendário ====== */
+.modal-fundo {
+    position: fixed; inset: 0; background: rgba(15,23,42,.55);
+    z-index: 200; display: flex; align-items: flex-start; justify-content: center;
+    padding: 32px 16px; overflow-y: auto;
+}
+
+.modal-cal {
+    background: var(--surface); border-radius: var(--r-lg);
+    width: min(920px, 100%); box-shadow: 0 24px 60px rgba(16,24,40,.28); overflow: hidden;
+}
+
+.modal-cal .modal-head {
+    background: var(--brand-grad); color: #fff; padding: 16px 22px;
+    display: flex; align-items: center; justify-content: space-between; gap: var(--s-4);
+    position: sticky; top: 0; z-index: 2;
+}
+
+.cal-titulo b { display: block; font-size: 1.15em; }
+.cal-titulo small { opacity: .85; font-size: .82em; }
+
+.modal-cal .modal-btn {
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3);
+    color: #fff; border-radius: var(--r-sm); padding: 8px 14px;
+    font-size: .88em; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+
+.modal-cal .modal-btn:hover { background: rgba(255,255,255,.26); }
+.modal-cal .modal-corpo { padding: var(--s-4); max-height: calc(100vh - 180px); overflow-y: auto; }
+
+.cal-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.cal-nota { font-size: .8em; color: var(--text-3); }
+
+.tab-cal td { text-align: left; padding: 9px 10px; }
+.tab-cal td.c, .tab-cal th.c { text-align: center; }
+.tab-cal th { font-size: .85em; }
+.tab-cal th small { font-weight: 400; opacity: .8; }
+.tab-cal .motivo { font-weight: 700; font-size: .88em; white-space: nowrap; }
+.tab-cal .vazio-cel { color: var(--text-3); }
+
+.tab-cal tr.linha-direto td { background: #fff3cd; box-shadow: inset 3px 0 0 #e0a800; }
+.tab-cal tr.linha-tropeco td { background: #e8f6ef; box-shadow: inset 3px 0 0 #157347; }
+
+/* Elementos do insight que abrem o calendário */
+.tatica.cal { cursor: pointer; }
+.tatica.cal:hover { filter: brightness(.96); text-decoration: underline; }
+.ins-linha.cal-linha { cursor: pointer; }
+.ins-linha.cal-linha:hover .cal-abrir { text-decoration: underline; }
+.cal-abrir { font-size: .85em; font-weight: 700; color: var(--brand); margin-left: 6px; }
+
+@media (max-width: 768px) {
+    .modal-fundo { padding: 0; }
+    .modal-cal { border-radius: 0; min-height: 100vh; }
+    .modal-cal .modal-corpo { max-height: none; }
+}
