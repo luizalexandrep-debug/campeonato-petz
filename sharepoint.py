@@ -10,6 +10,7 @@ baixa todos os .xlsx de dentro dela, sem necessidade de login:
   3. Baixa cada .xlsx via _api/web/GetFileByServerRelativeUrl('...')/$value.
 """
 import re
+import time
 import uuid
 import urllib.parse as urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -49,6 +50,11 @@ class ThrottledError(RuntimeError):
     """O SharePoint respondeu 429 (excesso de requisições)."""
 
 
+def _marcar_throttle():
+    global ULTIMO_THROTTLE
+    ULTIMO_THROTTLE = time.time()
+
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
@@ -82,8 +88,7 @@ def baixar_pasta(folder_link, dest_dir, timeout=40, subpasta=None):
     # 1) Seguir o link -> cookie anônimo + caminho da pasta
     r = sess.get(folder_link, allow_redirects=True, timeout=timeout)
     if r.status_code == 429:
-        global ULTIMO_THROTTLE
-        ULTIMO_THROTTLE = __import__('time').time()
+        _marcar_throttle()
         raise ThrottledError("SharePoint respondeu 429 (excesso de requisições)")
     r.raise_for_status()
     final_url = r.url
@@ -106,8 +111,7 @@ def baixar_pasta(folder_link, dest_dir, timeout=40, subpasta=None):
     lr = sess.get(list_url, headers={"Accept": "application/json;odata=nometadata"},
                   timeout=timeout)
     if lr.status_code == 429:
-        global ULTIMO_THROTTLE
-        ULTIMO_THROTTLE = __import__('time').time()
+        _marcar_throttle()
         raise ThrottledError("SharePoint respondeu 429 ao listar a pasta")
     lr.raise_for_status()
     files = lr.json().get("value", [])
