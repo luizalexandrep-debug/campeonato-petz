@@ -171,7 +171,12 @@ function calcularPanorama() {
     const z4 = [];        // minhas lojas na zona de queda
     const trocas = [];    // grupos onde o líder muda na projeção
 
-    Object.entries(st.grupos).forEach(([grupo, linhas]) => {
+    // Com um grupo selecionado nos chips, todo o panorama olha só para ele.
+    const escopo = st.grupo
+        ? Object.entries(st.grupos).filter(([g]) => g === st.grupo)
+        : Object.entries(st.grupos);
+
+    escopo.forEach(([grupo, linhas]) => {
         const { base, sim } = classificarGrupo(linhas, proj);
         const n = base.length;
         const posB = {}, posS = {};
@@ -612,7 +617,7 @@ function abrirGrupo(grupo, loja) {
 function textoTrocas(trocas) {
     if (!trocas.length) {
         return `<div class="pg-texto">Nenhuma liderança muda de dono com a projeção da rodada ${st.semana}:
-            os 14 líderes seguem os mesmos.</div>`;
+            ${st.grupo ? 'o líder do grupo segue o mesmo' : 'os 14 líderes seguem os mesmos'}.</div>`;
     }
 
     const eu = (reg) => reg === REGIONAL_DESTAQUE;
@@ -724,7 +729,7 @@ function panoramaHtml() {
     return `
     <div class="painel-geral">
         <div class="pg-bloco">
-            <h3>🌎 Panorama das 14 lideranças</h3>
+            <h3>🌎 ${st.grupo ? `Panorama · ${st.grupo}` : 'Panorama das 14 lideranças'}</h3>
             <div class="tab-wrap"><table class="tab-grupo tab-pan">
                 <thead><tr>
                     <th class="l">Regional</th>
@@ -743,7 +748,7 @@ function panoramaHtml() {
         </div>
 
         <div class="pg-bloco">
-            <h3>🟢 Movimentações no G4 <small>· 4 primeiros de cada grupo</small></h3>
+            <h3>🟢 Movimentações no G4 <small>· 4 primeiros ${st.grupo ? 'do grupo' : 'de cada grupo'}</small></h3>
             <div class="pg-resumo">
                 ${cont(g4, 'entrou')} entrada(s) · ${cont(g4, 'saiu')} saída(s) · ${cont(g4, 'ficou')} mantida(s)
             </div>
@@ -751,7 +756,7 @@ function panoramaHtml() {
         </div>
 
         <div class="pg-bloco">
-            <h3>🔴 Movimentações no Z4 <small>· 4 últimos de cada grupo</small></h3>
+            <h3>🔴 Movimentações no Z4 <small>· 4 últimos ${st.grupo ? 'do grupo' : 'de cada grupo'}</small></h3>
             <div class="pg-resumo">
                 ${cont(z4, 'entrou')} entrada(s) · ${cont(z4, 'saiu')} saída(s) · ${cont(z4, 'ficou')} mantida(s)
             </div>
@@ -800,7 +805,7 @@ function render() {
     const itens = st.grupo ? todosItens.filter(x => x.grupo === st.grupo) : todosItens;
     const blocoInsights = `
     <div class="pg-bloco pg-largo bloco-insights">
-        <h3>🎯 Oportunidades no topo <small>· lojas suas do ${CORTE_TOPO}º para cima${st.grupo ? ' · ' + st.grupo : ' · todos os grupos'}</small></h3>
+        <h3>🎯 Oportunidades na parte de cima da tabela <small>· lojas suas do ${CORTE_TOPO}º para cima${st.grupo ? ' · ' + st.grupo : ' · todos os grupos'}</small></h3>
         <div class="pg-resumo">${itens.length} loja(s) sua(s) na disputa da parte de cima</div>
         <ul class="pg-lista pg-lista-ins">${insightsTopoHtml(itens)}</ul>
         <div class="pg-nota">Confrontos futuros vindos de “TODOS OS JOGOS.xlsx”.
@@ -810,8 +815,8 @@ function render() {
     const semTabela = !st.grupo;
 
     painel.innerHTML = `
-    ${blocoInsights}
     ${panoramaHtml()}
+    ${blocoInsights}
     ${!st.semana ? `<div class="alerta-info" style="margin-bottom:14px">
         A classificação da pasta já vai até a rodada ${st.rodadaBase} e não há rodada
         posterior publicada para projetar. Assim que a rodada ${st.rodadaBase + 1} tiver
