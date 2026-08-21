@@ -220,6 +220,21 @@ function setupGolTooltip() {
     document.body.appendChild(_golTip);
 
     document.addEventListener('mousemove', (e) => {
+        // Célula com texto de apoio (ex.: distância para o colocado à frente)
+        const tip = e.target.closest && e.target.closest('.tem-tip[data-tip]');
+        if (tip && tip.dataset.tip) {
+            _golTip.textContent = tip.dataset.tip;
+            _golTip.style.borderLeft = '3px solid #2b5aa8';
+            _golTip.style.display = 'block';
+            let x = e.clientX + 14, y = e.clientY + 14;
+            const r = _golTip.getBoundingClientRect();
+            if (x + r.width > window.innerWidth) x = e.clientX - r.width - 14;
+            if (y + r.height > window.innerHeight) y = e.clientY - r.height - 14;
+            _golTip.style.left = x + 'px';
+            _golTip.style.top = y + 'px';
+            return;
+        }
+
         // Números de V/E/D dos cards de distrito: lista os placares projetados
         const ved = e.target.closest && e.target.closest('.ved-n[data-jogos]');
         if (ved) {
@@ -1620,6 +1635,18 @@ function loadRankingDashboard() {
             t.aprov = t.disp > 0 ? t.conq / t.disp * 100 : 0;
         });
 
+        // Distância em pontos para quem está imediatamente à frente. O líder
+        // não tem ninguém acima, então mostramos a folga sobre o 2º.
+        const distancia = (r) => {
+            const i = porSim.indexOf(r);
+            const ref = i === 0 ? porSim[1] : porSim[i - 1];
+            if (!ref) return '';
+            const d = Math.abs(ref.sim.simAcum - r.sim.simAcum);
+            const posRef = (i === 0 ? 2 : i);
+            if (d < 0.005) return `Empatado em pontos com o ${posRef}º (${ref.dist})`;
+            return `${f2(d)} pts ${i === 0 ? 'à frente do' : 'atrás do'} ${posRef}º (${ref.dist})`;
+        };
+
         const linhasAcum = porSim.filter(r => passaFiltro(r.reg)).map(r => {
             const dest = r.reg === REGIONAL_DESTAQUE;
             // Variação em relação ao ranking das RODADAS ANTERIORES (base),
@@ -1633,7 +1660,7 @@ function loadRankingDashboard() {
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
                     onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
                 <td class="c">${f2(r.sim.histAcum)}</td><td class="c">${f2(r.sim.curAvg)}</td>
-                <td class="c b">${f2(r.sim.simAcum)}</td>
+                <td class="c b tem-tip" data-tip="${distancia(r)}">${f2(r.sim.simAcum)}</td>
                 <td class="c b">${fp(r.aConq / r.aDisp * 100)}</td></tr>`;
         }).join('') + Object.entries(totAcum).filter(([reg]) => passaFiltro(reg))
             .map(([reg, t]) => {

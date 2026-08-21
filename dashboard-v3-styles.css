@@ -1788,3 +1788,7 @@ body {
     .modal-acessos { border-radius: 0; min-height: 100vh; }
     .modal-acessos .modal-corpo { max-height: none; padding: var(--s-3); }
 }
+
+/* Célula com texto de apoio no hover (distância para o colocado à frente) */
+.rank-table td.tem-tip { cursor: help; }
+.rank-table td.tem-tip:hover { text-decoration: underline dotted; }
