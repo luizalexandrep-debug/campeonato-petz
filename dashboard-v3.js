@@ -1693,7 +1693,7 @@ function renderJogosPorResultado(container, lojas) {
         <div class="col-res ${k}">
             <div class="col-res-head"><span>${titulo}</span><span class="n">${grupos[k].length}</span></div>
             <div class="lista">
-                ${grupos[k].length ? grupos[k].map(cardJogoCompacto).join('') : '<div class="vazio">nenhum jogo</div>'}
+                ${grupos[k].length ? grupos[k].map(g => cardJogoCompacto(g, lojas)).join('') : '<div class="vazio">nenhum jogo</div>'}
             </div>
         </div>`).join('')}</div>`;
 }
@@ -1716,27 +1716,47 @@ function classeSigla(loja) {
     return reg && reg !== REGIONAL_DESTAQUE ? 'sig outra-reg' : 'sig';
 }
 
-function cardJogoCompacto(g) {
+// Inverte um placar "a x b" quando a leitura é pela ótica do outro lado.
+function inverterPlacar(p) {
+    const m = String(p || '').match(/(\d+)\s*x\s*(\d+)/i);
+    return m ? `${m[2]} x ${m[1]}` : (p || '0 x 0');
+}
+
+function cardJogoCompacto(g, lojas) {
+    // A loja do distrito/regional selecionado vem sempre à esquerda; se ela
+    // estiver como team2 no confronto, o placar inverte junto.
+    const inverte = Array.isArray(lojas) && !lojas.includes(g.team1) && lojas.includes(g.team2);
+    const esq = inverte ? g.team2 : g.team1;
+    const dir = inverte ? g.team1 : g.team2;
+    const proj = inverte ? inverterPlacar(g.scoreProjected) : g.scoreProjected;
+    const acum = inverte ? inverterPlacar(g.scoreAccumulated) : g.scoreAccumulated;
+
     return `
-    <div class="jogo-card" onclick="abrirDetalhesJogo('${g.team1}','${g.team2}')">
+    <div class="jogo-card" onclick="abrirDetalhesJogo('${esq}','${dir}')">
         <div class="lados">
-            <span class="${classeSigla(g.team1)}" title="${regionalDaLoja(g.team1) || ''}">${g.team1}</span>
+            <span class="${classeSigla(esq)}" title="${regionalDaLoja(esq) || ''}">${esq}</span>
             <span class="meio">
                 <span class="rot">Placar Projetado</span>
-                <span class="placar">${g.scoreProjected.replace('x', '×')}</span>
-                <span class="acum">Acumulado ${g.scoreAccumulated}</span>
+                <span class="placar">${proj.replace('x', '×')}</span>
+                <span class="acum">Acumulado ${acum}</span>
             </span>
-            <span class="${classeSigla(g.team2)}" title="${regionalDaLoja(g.team2) || ''}">${g.team2}</span>
+            <span class="${classeSigla(dir)}" title="${regionalDaLoja(dir) || ''}">${dir}</span>
         </div>
         <button class="btn-exportar" title="Copiar imagem para compartilhar"
-            onclick="event.stopPropagation(); exportarJogoImagem('${g.team1}','${g.team2}', this)">📋</button>
+            onclick="event.stopPropagation(); exportarJogoImagem('${esq}','${dir}', this)">📋</button>
         <span class="lupa" title="Ver detalhes">🔍</span>
     </div>`;
 }
 
 async function abrirDetalhesJogo(team1, team2) {
-    const resumo = (state.gamesSummary?.games || [])
-        .find(g => g.team1 === team1 && g.team2 === team2) || {};
+    // O confronto pode ser pedido em qualquer ordem (o card lidera com a loja
+    // do distrito selecionado), então procuramos nos dois sentidos e viramos
+    // o placar quando necessário.
+    const resumo = (state.gamesSummary?.games || []).find(g =>
+        (g.team1 === team1 && g.team2 === team2) || (g.team1 === team2 && g.team2 === team1)) || {};
+    const invertido = resumo.team1 === team2;
+    const placarProj = invertido ? inverterPlacar(resumo.scoreProjected) : (resumo.scoreProjected || '0 x 0');
+    const placarAcum = invertido ? inverterPlacar(resumo.scoreAccumulated) : (resumo.scoreAccumulated || '0 x 0');
 
     const fundo = document.createElement('div');
     fundo.className = 'modal-fundo';
@@ -1747,8 +1767,8 @@ async function abrirDetalhesJogo(team1, team2) {
                     <span class="t">${team1}</span>
                     <span class="placar">
                         <small>Placar Projetado</small>
-                        <b>${(resumo.scoreProjected || '0 x 0').replace('x', '×')}</b>
-                        <small>Acumulado ${resumo.scoreAccumulated || '0 x 0'}</small>
+                        <b>${placarProj.replace('x', '×')}</b>
+                        <small>Acumulado ${placarAcum}</small>
                     </span>
                     <span class="t">${team2}</span>
                 </div>
@@ -1785,10 +1805,13 @@ async function abrirDetalhesJogo(team1, team2) {
     // Quem marcou cada gol vem do resumo — é ele que aplica os critérios de
     // desempate quando a evolução das duas lojas empata.
     const gols = resumo.golsProjetados || {};
+    // 1 = quem é team1 no resumo. Como podemos ter invertido a exibição,
+    // traduzimos para "o time da esquerda".
+    const golEsq = invertido ? 2 : 1, golDir = invertido ? 1 : 2;
     corpo.innerHTML = ordenarIndicadores(Object.keys(jogo.dadosTeam1)).map(ind => `
         <div class="tables-wrapper">
-            ${criarTabelaIndicador(team1, jogo.dadosTeam1[ind], ind, jogo.dadosTeam2[ind], gols[ind] === 1)}
-            ${criarTabelaIndicador(team2, jogo.dadosTeam2[ind], ind, jogo.dadosTeam1[ind], gols[ind] === 2)}
+            ${criarTabelaIndicador(team1, jogo.dadosTeam1[ind], ind, jogo.dadosTeam2[ind], gols[ind] === golEsq)}
+            ${criarTabelaIndicador(team2, jogo.dadosTeam2[ind], ind, jogo.dadosTeam1[ind], gols[ind] === golDir)}
         </div>`).join('');
 
     const bt = fundo.querySelector('#btExpModal');

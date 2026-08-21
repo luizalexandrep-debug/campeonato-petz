@@ -194,9 +194,18 @@ function expDesenharJogo(jogoData) {
 
     // Quem fez cada gol vem do resumo — é ele que aplica os desempates quando
     // a evolução das duas lojas empata.
-    const resumo = (state.gamesSummary?.games || [])
-        .find(g => g.team1 === team1 && g.team2 === team2) || {};
-    const gols = semRes ? {} : (resumo.golsProjetados || {});
+    // O jogo pode chegar na ordem invertida (o card lidera com a loja do
+    // distrito selecionado), então achamos nos dois sentidos e traduzimos o
+    // lado de quem marcou.
+    const resumo = (state.gamesSummary?.games || []).find(g =>
+        (g.team1 === team1 && g.team2 === team2) || (g.team1 === team2 && g.team2 === team1)) || {};
+    const invertido = resumo.team1 === team2;
+    const golsResumo = semRes ? {} : (resumo.golsProjetados || {});
+    const golEsq = invertido ? 2 : 1, golDir = invertido ? 1 : 2;
+    const gols = {};
+    Object.entries(golsResumo).forEach(([ind, v]) => {
+        gols[ind] = v === golEsq ? 1 : v === golDir ? 2 : 0;
+    });
     const larguraTab = (EXP.largura - EXP.pad * 2 - EXP.gap) / 2;
 
     // 1ª passada: medir
