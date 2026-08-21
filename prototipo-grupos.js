@@ -282,7 +282,15 @@ function calcularPanorama() {
     const ordemSit = { entrou: 0, saiu: 1, ficou: 2 };
     g4.sort((a, b) => ordemSit[a.situacao] - ordemSit[b.situacao] || a.para - b.para);
     z4.sort((a, b) => ordemSit[a.situacao] - ordemSit[b.situacao] || b.para - a.para);
-    trocas.sort((a, b) => (a.grupo).localeCompare(b.grupo, 'pt', { numeric: true }));
+    // A minha regional vem primeiro — ganhos e perdas —, e só depois as trocas
+    // entre as outras regionais.
+    const envolveMinha = (t) => t.novoReg === REGIONAL_DESTAQUE || t.antigoReg === REGIONAL_DESTAQUE;
+    const ordemTroca = (t) => {
+        if (!envolveMinha(t)) return 2;
+        return t.novoReg === REGIONAL_DESTAQUE ? 0 : 1;   // ganhou antes de perdeu
+    };
+    trocas.sort((a, b) => ordemTroca(a) - ordemTroca(b)
+        || (a.grupo).localeCompare(b.grupo, 'pt', { numeric: true }));
     // Combinações que já estão de pé primeiro, depois as que faltam pouco.
     combos.sort((a, b) => (b.completo - a.completo)
         || ((b.venceCarrasco + b.venceMinha) - (a.venceCarrasco + a.venceMinha))
@@ -633,9 +641,11 @@ function textoTrocas(trocas) {
     const itens = trocas.map(t => {
         const ganho = eu(t.novoReg), perda = eu(t.antigoReg);
         const classe = ganho && !perda ? 'ganho' : perda && !ganho ? 'perda' : '';
+        const selo = ganho && !perda ? '<span class="selo">GANHOU</span> '
+            : perda && !ganho ? '<span class="selo">PERDEU</span> ' : '';
         return `<li class="${classe} clicavel" onclick="abrirGrupo('${t.grupo.replace(/'/g, "\\'")}','${t.novo}')"
             title="Ver a tabela do ${t.grupo}">
-            <b>${t.novo}</b> ${tag(t.novoReg)} assume a liderança do <b>${t.grupo}</b>
+            ${selo}<b>${t.novo}</b> ${tag(t.novoReg)} assume a liderança do <b>${t.grupo}</b>
             com ${t.ptsNovo} pts, no lugar de <b>${t.antigo}</b> ${tag(t.antigoReg)}
             <small>· ${t.antigo} cai para ${t.posAntigo}º com ${t.ptsAntigo} pts</small>
         </li>`;
