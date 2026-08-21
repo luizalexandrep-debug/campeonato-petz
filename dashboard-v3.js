@@ -1456,7 +1456,47 @@ function loadRankingDashboard() {
             <td class="c b">${f2(t.media)}</td>
             <td class="c b">${fp(t.aprov)}</td></tr>`).join('');
 
-    // ---------- TABELA 2: acumulado simulado ----------
+    // ---------- TABELA 2: classificação acumulada (oficial, sem a rodada) ----------
+    let secaoBase = '';
+    if (simulado.length) {
+        const rodadas = state.historico.rodadasAnteriores;
+        // Ordenada pela pontuação acumulada do ranking oficial, sem somar a
+        // rodada em andamento — é a foto de onde o campeonato parou.
+        const porBase = [...dadosDist].filter(r => r.sim && r.sim.temHistorico)
+            .sort((a, b) => b.sim.histAcum - a.sim.histAcum);
+
+        const linhasBase = porBase.filter(r => passaFiltro(r.reg)).map((r, i) => {
+            const dest = r.reg === REGIONAL_DESTAQUE;
+            const h = state.historico.distritos?.[r.dist] || {};
+            return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}" title="Ver ${r.dist}">
+                <td class="c b">${medalhaFn(porBase.indexOf(r))}</td>
+                <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
+                    onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
+                <td class="c b">${f2(r.sim.histAcum)}</td>
+                <td class="c">${h.vitoriaMedia !== undefined ? f2(h.vitoriaMedia) : '—'}</td></tr>`;
+        }).join('') + Object.entries(state.historico.regionais || {})
+            .filter(([reg]) => passaFiltro(reg))
+            .sort((a, b) => b[1].pontuacaoMedia - a[1].pontuacaoMedia)
+            .map(([reg, h]) => `
+            <tr class="tot"><td></td><td class="l">${nomeReg(reg)}</td><td class="l reg"></td>
+                <td class="c b">${f2(h.pontuacaoMedia)}</td>
+                <td class="c">${h.vitoriaMedia !== undefined ? f2(h.vitoriaMedia) : '—'}</td></tr>`).join('');
+
+        secaoBase = `
+        <section class="sec base">
+            <div class="sec-head">🏁 CLASSIFICAÇÃO ACUMULADA <small>· oficial, até a rodada ${rodadas}</small></div>
+            <div class="sec-body">
+                <div class="tbl-wrap"><table class="rank-table">
+                    <thead><tr><th>#</th><th class="l">Distrito</th><th class="l reg">Regional</th>
+                        <th title="Pontuação média acumulada (ranking oficial)">Pontuação<span class="lg"> Média</span></th>
+                        <th title="Média de vitórias por loja">Vit.<span class="lg"> Média</span></th></tr></thead>
+                    <tbody>${linhasBase}</tbody>
+                </table></div>
+            </div>
+        </section>`;
+    }
+
+    // ---------- TABELA 3: acumulado + simulado ----------
     let secaoAcumulado = '';
     if (simulado.length) {
         const rodadas = state.historico.rodadasAnteriores;
@@ -1516,7 +1556,7 @@ function loadRankingDashboard() {
 
         secaoAcumulado = `
         <section class="sec acum">
-            <div class="sec-head">📊 ACUMULADO SIMULADO <small>· rodadas 1-${rodadas} + rodada ${state.semana} (atual)</small></div>
+            <div class="sec-head">📊 ACUMULADO + SIMULADO <small>· rodadas 1-${rodadas} + rodada ${state.semana}</small></div>
             ${rodadas < state.semana - 1 ? `<div class="alerta-hist">⚠️ O histórico está com <b>${rodadas} rodada(s)</b>, mas a rodada atual é a <b>${state.semana}</b> — as rodadas ${rodadas + 1} a ${state.semana - 1} não estão sendo somadas. Atualize o ranking na pasta <b>Histórico ranking distritais</b> do SharePoint.</div>` : ''}
             <div class="sec-body">
                 <div class="tbl-wrap"><table class="rank-table">
@@ -1555,7 +1595,7 @@ function loadRankingDashboard() {
     ${blocoAvisos}
     <div class="home-sections">
         <section class="sec atual">
-            <div class="sec-head">📅 RODADA ATUAL <small>· desempenho desta semana, ao vivo</small></div>
+            <div class="sec-head">📅 RODADA SIMULADA <small>· desempenho da rodada ${state.semana}, ao vivo</small></div>
             <div class="sec-body">
                 <div class="tbl-wrap"><table class="rank-table">
                     <thead><tr><th>#</th><th class="l">Distrito</th><th class="l reg">Regional</th>
@@ -1564,6 +1604,7 @@ function loadRankingDashboard() {
                 </table></div>
             </div>
         </section>
+        ${secaoBase}
         ${secaoAcumulado}
     </div>
 
