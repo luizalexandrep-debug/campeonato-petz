@@ -509,3 +509,42 @@
     .modal-jogo .t { font-size: 1.05em; }
     .modal-jogo .modal-corpo { max-height: none; padding: var(--s-3); }
 }
+
+/* Cabeçalho da janela de jogo: o placar precisa cair no centro exato da
+   janela, para o "×" alinhar com o vão entre as duas tabelas de baixo.
+   Os botões saem do fluxo (absolutos) e as três partes do título viram uma
+   grade 1fr/auto/1fr, senão siglas de larguras diferentes deslocam o placar. */
+.modal-jogo .modal-head { position: relative; justify-content: center; }
+
+.modal-jogo .times {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 28px;
+    /* espaço reservado dos dois lados para o título não passar por baixo dos botões */
+    padding: 0 210px;
+}
+
+.modal-jogo .times > .t:first-child { text-align: right; }
+.modal-jogo .times > .t:last-child { text-align: left; }
+.modal-jogo .placar { justify-self: center; }
+
+.modal-jogo .modal-acoes {
+    position: absolute;
+    right: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Sem largura para os botões ao lado: eles empilham e voltam ao fluxo. */
+@media (max-width: 900px) {
+    .modal-jogo .times { padding: 0; grid-template-columns: 1fr auto 1fr; gap: 12px; }
+    .modal-jogo .modal-acoes {
+        position: static;
+        transform: none;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .modal-jogo .modal-head { justify-content: space-between; }
+}
