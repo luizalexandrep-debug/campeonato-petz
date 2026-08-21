@@ -967,6 +967,66 @@ def get_classificacao():
         return jsonify({"error": str(e)}), 500
 
 
+# ============================================================
+# CALENDÁRIO COMPLETO (TODOS OS JOGOS.xlsx)
+# ============================================================
+
+def ler_todos_os_jogos():
+    """Lê 'TODOS OS JOGOS.xlsx' da pasta Confrontos.
+
+    Colunas: RODADA | ID_JOGO | MANDANTE | PLACAR | VISITANTE |
+             GOLS_MANDANTE | GOLS_VISITANTE | STATUS
+    Diferente dos 'Semana N.xlsx', este arquivo traz as 19 rodadas de uma vez
+    e serve só para os insights (confronto direto, calendário futuro).
+    """
+    caminho = dir_confrontos() / "TODOS OS JOGOS.xlsx"
+    if not caminho.exists():
+        return []
+    wb = openpyxl.load_workbook(caminho, data_only=True, read_only=True)
+    ws = wb.active
+    jogos = []
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        if not row or not row[0] or not row[2] or not row[4]:
+            continue
+        try:
+            rodada = int(row[0])
+        except (TypeError, ValueError):
+            continue
+        gm, gv = row[5], row[6]
+        jogos.append({
+            "rodada": rodada,
+            "id": row[1],
+            "mandante": str(row[2]).strip(),
+            "visitante": str(row[4]).strip(),
+            "golsMandante": gm if isinstance(gm, (int, float)) else None,
+            "golsVisitante": gv if isinstance(gv, (int, float)) else None,
+            "realizado": str(row[7] or "").strip().lower().startswith("realiz"),
+        })
+    wb.close()
+    return jogos
+
+
+@app.route('/api/jogos', methods=['GET'])
+def get_jogos():
+    """Calendário completo das 19 rodadas (para os insights)."""
+    try:
+        garantir_arquivos_frescos()
+    except Exception:
+        pass
+    try:
+        jogos = ler_todos_os_jogos()
+        rodadas = sorted({j["rodada"] for j in jogos})
+        return jsonify({
+            "total": len(jogos),
+            "rodadas": rodadas,
+            "jogos": jogos,
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/semana', methods=['GET'])
 def get_semana():
     """Semana vigente, detectada pelos arquivos de confronto disponíveis.
