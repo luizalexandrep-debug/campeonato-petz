@@ -1151,10 +1151,13 @@ function abrirJogosDistrito(regional, distrito) {
     const jogos = (state.gamesSummary?.games || [])
         .filter(g => lojas.includes(g.team1) || lojas.includes(g.team2));
 
-    // loja -> regional, para saber quem é adversário da minha regional
-    const lojaReg = {};
+    // loja -> regional + distrito, para identificar o adversário por completo
+    const lojaReg = {}, lojaDist = {};
     Object.entries(state.estrutura || {}).forEach(([reg, dists]) =>
-        Object.values(dists).forEach(ls => ls.forEach(l => { lojaReg[l] = reg; })));
+        Object.entries(dists).forEach(([dist, ls]) => ls.forEach(l => {
+            lojaReg[l] = reg;
+            lojaDist[l] = dist;
+        })));
 
     const linhas = jogos.map(g => {
         const minha = lojas.includes(g.team1) ? g.team1 : g.team2;
@@ -1166,6 +1169,7 @@ function abrirJogosDistrito(regional, distrito) {
         return {
             minha, adv, gm, gs, sem,
             advRegional: lojaReg[adv] || '—',
+            advDistrito: lojaDist[adv] || '',
             contraMim: lojaReg[adv] === REGIONAL_DESTAQUE,
             pts: sem ? 0 : (gm > gs ? 3 : gm === gs ? 1 : 0),
             resultado: sem ? 'sem' : gm > gs ? 'v' : gm < gs ? 'd' : 'e'
@@ -1201,8 +1205,8 @@ function abrirJogosDistrito(regional, distrito) {
             <td class="l"><b>${l.minha}</b></td>
             <td class="c placar ${corDe(l.resultado)}">${l.gm} × ${l.gs}</td>
             <td class="l"><b>${l.adv}</b>
-                ${l.contraMim ? '<span class="tag-minha">sua regional</span>'
-                    : `<small>${l.advRegional}</small>`}</td>
+                ${l.contraMim ? '<span class="tag-minha">sua regional</span>' : ''}
+                <small>${l.advRegional}${l.advDistrito ? ` · ${l.advDistrito}` : ''}</small></td>
             <td class="c"><span class="res ${corDe(l.resultado)}">${rotulo[l.resultado]}</span></td>
             <td class="c b">${l.sem ? '—' : '+' + l.pts}</td>
             <td class="c lupa">🔍</td>
