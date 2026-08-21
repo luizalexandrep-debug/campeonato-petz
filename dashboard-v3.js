@@ -1699,8 +1699,8 @@ function cardJogoCompacto(g) {
             </span>
             <span class="sig">${g.team2}</span>
         </div>
-        <button class="btn-exportar" title="Exportar imagem para compartilhar"
-            onclick="event.stopPropagation(); exportarJogoImagem('${g.team1}','${g.team2}', this)">🖼️</button>
+        <button class="btn-exportar" title="Copiar imagem para compartilhar"
+            onclick="event.stopPropagation(); exportarJogoImagem('${g.team1}','${g.team2}', this)">📋</button>
         <span class="lupa" title="Ver detalhes">🔍</span>
     </div>`;
 }
@@ -1724,7 +1724,7 @@ async function abrirDetalhesJogo(team1, team2) {
                     <span class="t">${team2}</span>
                 </div>
                 <div class="modal-acoes">
-                    <button class="modal-btn" id="btExpModal">🖼️ Exportar imagem</button>
+                    <button class="modal-btn" id="btExpModal">📋 Copiar imagem</button>
                     <button class="modal-btn" data-fechar>✕ Fechar</button>
                 </div>
             </div>

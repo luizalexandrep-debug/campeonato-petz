@@ -251,7 +251,7 @@ async function exportarJogoImagem(team1, team2, btn) {
     const chave = `${team1}_${team2}`;
     const txt = btn ? btn.innerHTML : null;
     let avisou = false;
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳'; btn.title = 'Copiando...'; }
     try {
         // O card do resumo não traz as tabelas; busca sob demanda.
         let jogoData = state.jogosCalculados[chave];
@@ -265,26 +265,25 @@ async function exportarJogoImagem(team1, team2, btn) {
         const nome = `${team1}-x-${team2}-rodada-${state.semana}.png`;
         const file = new File([blob], nome, { type: 'image/png' });
 
-        // No celular abre o compartilhamento nativo (WhatsApp na lista);
-        // no desktop copia para a área de transferência E baixa o arquivo.
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        // Copiar é a ação principal. Só se o navegador recusar é que caímos
+        // para o compartilhamento nativo ou para o download.
+        if (await expCopiarBlob(blob)) {
+            expAviso(btn, '📋', 'Imagem copiada — cole no WhatsApp com Cmd+V.');
+        } else if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: `${team1} x ${team2}` });
-            expAviso(btn, '✅');
+            expAviso(btn, '✅', 'Imagem compartilhada.');
         } else {
-            const copiou = await expCopiarBlob(blob);
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = nome;
             a.click();
             setTimeout(() => URL.revokeObjectURL(url), 4000);
-            expAviso(btn, copiou ? '📋' : '⬇️',
-                copiou ? 'Imagem copiada — cole no WhatsApp com Cmd+V (o arquivo também foi baixado)'
-                       : 'Imagem baixada (o navegador não permitiu copiar para a área de transferência)');
+            expAviso(btn, '⬇️', 'O navegador não permitiu copiar — a imagem foi baixada.');
         }
     } catch (e) {
         if (e && e.name === 'AbortError') return;   // usuário cancelou
-        console.error('Falha ao exportar imagem:', e);
+        console.error('Falha ao copiar a imagem:', e);
         alert('Não foi possível gerar a imagem.');
     } finally {
         // Não sobrescrever o ícone de confirmação que expAviso acabou de pôr.
