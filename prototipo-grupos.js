@@ -620,6 +620,140 @@ function abrirCalendario(loja, rival, grupo) {
     document.body.appendChild(fundo);
 }
 
+// ============================================================
+// JANELA DE DETALHES DO JOGO
+// Clicar na sigla dentro das tabelas abre os indicadores da rodada,
+// com as mesmas regras de agregação e evolução do dashboard.
+// ============================================================
+
+const DIAS_JOGO = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const CHAVE_TOTAL = '__total__';
+
+function evolucaoPct(anterior, atual) {
+    if (anterior === 0) return 0;
+    if (atual === 0) return 0;
+    return (atual - anterior) / anterior * 100;
+}
+
+function agregarPct(diasObj) {
+    const o = diasObj || {};
+    if (o[CHAVE_TOTAL]) return o[CHAVE_TOTAL];
+    const vals = DIAS_JOGO.map(d => o[d] || 0).filter(v => v);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+}
+
+function fmtValor(v, tipo) {
+    return tipo === '%'
+        ? (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
+        : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+}
+
+async function abrirDetalhesJogo(loja) {
+    const p = (st.projAtual || {})[loja];
+    if (!p) return;
+    const adv = p.adv;
+    const placar = `${p.gm} × ${p.gs}`;
+
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo';
+    fundo.innerHTML = `
+        <div class="modal-jogo">
+            <div class="modal-head">
+                <div class="times">
+                    <span class="t">${loja}</span>
+                    <span class="placar"><small>Placar Projetado</small><b>${placar}</b>
+                        <small>rodada ${st.semana}</small></span>
+                    <span class="t">${adv}</span>
+                </div>
+                <button class="modal-btn" data-fechar>✕ Fechar</button>
+            </div>
+            <div class="modal-corpo"><div class="carregando">⏳ Carregando indicadores...</div></div>
+        </div>`;
+
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
+
+    let d1, d2;
+    try {
+        [d1, d2] = await Promise.all([
+            pegar(`/loja-dias/${loja}/${st.semana}`),
+            pegar(`/loja-dias/${adv}/${st.semana}`)
+        ]);
+    } catch (e) {
+        const c = fundo.querySelector('.modal-corpo');
+        if (c) c.innerHTML = '<div class="carregando">❌ Não foi possível carregar os indicadores.</div>';
+        return;
+    }
+
+    const corpo = fundo.querySelector('.modal-corpo');
+    if (!corpo) return;   // fechado antes de carregar
+    corpo.innerHTML = Object.keys(d1.dados).map(ind => `
+        <div class="tables-wrapper">
+            ${tabelaIndicadorJogo(loja, d1.dados[ind], ind, d2.dados[ind])}
+            ${tabelaIndicadorJogo(adv, d2.dados[ind], ind, d1.dados[ind])}
+        </div>`).join('');
+}
+
+function tabelaIndicadorJogo(loja, dados, indicador, adversario) {
+    if (!dados) return '<div class="table-container"><div class="table-title">Sem dados</div></div>';
+
+    const tipo = dados.atual?.type || dados.anterior?.type || 'R$';
+    const ehPct = tipo === '%';
+    const f = (v) => fmtValor(v, tipo);
+    const ant = dados.anterior?.dias || {};
+    const atu = dados.atual?.dias || {};
+    const agregar = (o) => ehPct ? agregarPct(o) : DIAS_JOGO.reduce((t, d) => t + ((o || {})[d] || 0), 0);
+    const usaTotal = ehPct && !!(atu[CHAVE_TOTAL] || ant[CHAVE_TOTAL]);
+
+    const linhas = DIAS_JOGO.map(dia => {
+        const a = ant[dia] || 0, b = atu[dia] || 0;
+        const ev = evolucaoPct(a, b);
+        const cls = ev > 0 ? 'positive' : ev < 0 ? 'negative' : 'neutral';
+        return `<tr><td class="day-label">${dia}</td>
+            <td class="value-anterior">${f(a)}</td>
+            <td class="value-atual">${f(b)}</td>
+            <td class="evolution ${cls}">${ev.toFixed(2)}%</td></tr>`;
+    }).join('');
+
+    const tA = agregar(ant), tB = agregar(atu);
+    const evo = evolucaoPct(tA, tB);
+    let classe = evo > 0 ? 'positive' : evo < 0 ? 'negative' : 'neutral';
+    let falta = null;
+    if (adversario) {
+        const evoAdv = evolucaoPct(agregar(adversario.anterior?.dias), agregar(adversario.atual?.dias));
+        if (evo > evoAdv) classe = 'evolution-melhor';
+        else if (evo < evoAdv) {
+            classe = 'evolution-pior';
+            if (tA > 0) {
+                const n = tA * (1 + evoAdv / 100) - tB;
+                if (n > 0) falta = n;
+            }
+        }
+    }
+
+    return `<div class="table-container">
+        <div class="table-title"><span class="tt-loja">${loja}</span><span class="tt-ind">${indicador.replace(/\.xlsx$/i, '')}</span></div>
+        <table>
+            <thead><tr><th>Dia</th><th>S. Anterior</th><th>S. Atual</th><th>Evolução</th></tr></thead>
+            <tbody>
+                ${linhas}
+                <tr class="total-row">
+                    <td class="day-label">${ehPct && !usaTotal ? 'MÉDIA' : 'TOTAL'}</td>
+                    <td style="text-align:center">${f(tA)}</td>
+                    <td style="text-align:center">${f(tB)}</td>
+                    <td class="evolution ${classe}" style="text-align:center">${evo.toFixed(2)}%</td>
+                </tr>
+                ${falta !== null ? `<tr><td colspan="3" style="background:#fff3cd;color:#6b4d00;font-size:.85em">Falta p/ virar</td>
+                    <td style="background:#fff3cd;color:#6b4d00;font-weight:800;text-align:center">+${f(falta)}</td></tr>` : ''}
+            </tbody>
+        </table></div>`;
+}
+
 function nomeCurto(reg) {
     const p = reg.split(' - ');
     return p.length > 1 ? `${p[0]} (${p[1]})` : reg;
@@ -1026,7 +1160,8 @@ function tabela(linhas, posBase, ehSim) {
         return `<tr class="${(dest + foco).trim()}">
             <td>${pos}</td>
             ${posBase ? `<td>${mov}</td>` : ''}
-            <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}">${r.time}</span></td>
+            <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}"
+                onclick="event.stopPropagation(); abrirDetalhesJogo('${r.time}')">${r.time}</span></td>
             <td class="pts">${r.pts}</td>
             ${ganho}
             <td>${r.jogos}</td><td>${r.vit}</td><td>${r.emp}</td><td>${r.der}</td>
