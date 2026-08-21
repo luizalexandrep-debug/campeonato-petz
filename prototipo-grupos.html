@@ -2,46 +2,13 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Protótipo · Classificação simulada por grupo</title>
-<link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="dashboard-v3-styles.css">
-<link rel="stylesheet" href="prototipo-grupos.css">
+<title>Classificação por grupos</title>
+<!-- A página saiu da fase de protótipo e virou /grupos.html.
+     Este arquivo fica só para não quebrar links já salvos. -->
+<meta http-equiv="refresh" content="0; url=/grupos.html">
+<link rel="canonical" href="/grupos.html">
 </head>
 <body>
-<div class="container">
-    <header class="header">
-        <div class="header-brand">
-            <img src="logo.png" alt="" class="header-logo">
-            <div class="header-content">
-                <h1>Classificação simulada por grupo</h1>
-                <div class="subtitle">Acumulado até a rodada anterior + projeção da rodada atual</div>
-            </div>
-        </div>
-        <div class="header-actions">
-            <a href="/" class="btn-header" style="text-decoration:none">← Dashboard</a>
-        </div>
-    </header>
-
-    <div class="filters-section">
-        <div class="filter-group">
-            <label for="fRodada">Rodada projetada:</label>
-            <select id="fRodada"><option>...</option></select>
-        </div>
-        <div class="filter-group" style="justify-content:flex-end">
-            <label class="chk"><input type="checkbox" id="soMinha" checked> Destacar lojas da minha regional</label>
-        </div>
-
-        <button id="btExportarGrupo" class="btn btn-reprocess" onclick="exportarGrupoImagem(this)">
-            📋 Copiar imagem
-        </button>
-    </div>
-
-    <div class="info-bar" id="infoBar"><span>Carregando...</span></div>
-    <div class="grupo-bar" id="grupoBar"></div>
-    <div id="painel"></div>
-</div>
-<script src="prototipo-grupos.js"></script>
-<script src="exportar-grupo.js"></script>
+<p>Esta página agora é <a href="/grupos.html">Classificação por grupos</a>.</p>
 </body>
 </html>

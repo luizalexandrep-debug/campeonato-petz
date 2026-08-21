@@ -225,10 +225,29 @@ body {
 .btn-calc,
 .btn-reprocess,
 .btn-simulado,
+.btn-grupos,
 .btn-inicio {
     padding: 11px 18px;
     align-self: flex-end;
     font-weight: 700;
+}
+
+/* Leva à classificação por grupo (nível loja). É um link, então precisa das
+   mesmas regras de alinhamento e tipografia dos botões vizinhos. */
+.btn-grupos {
+    background: linear-gradient(135deg, #0f7b6c 0%, #0b5d52 100%);
+    color: #fff;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.btn-grupos:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 123, 108, 0.32);
+    color: #fff;
 }
 
 .btn-calc {
@@ -1124,7 +1143,7 @@ body {
         min-width: 0;
     }
 
-    .btn-calc, .btn-reprocess, .btn-simulado, .btn-inicio {
+    .btn-calc, .btn-reprocess, .btn-simulado, .btn-grupos, .btn-inicio {
         width: 100%;
         align-self: stretch;
     }
