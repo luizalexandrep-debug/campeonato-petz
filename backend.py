@@ -203,7 +203,10 @@ SEMANA_ATUAL = BASE_PATH / "SEMANA ATUAL"
 import time
 import threading
 
-CACHE_TTL_SEGUNDOS = 90          # frescor máximo antes de rebaixar
+# As planilhas mudam no máximo algumas vezes por dia; 90s de TTL fazia cada
+# visita rebaixar ~90 arquivos do SharePoint e levou a 429 (throttle).
+CACHE_TTL_SEGUNDOS = 900         # frescor máximo antes de rebaixar (15 min)
+ESPERA_APOS_THROTTLE = 900       # depois de um 429, aguarda antes de tentar
 _fetch_lock = threading.Lock()
 _MARKER = TMP_BASE / ".fetched_at"
 
@@ -247,6 +250,17 @@ def _idade_tmp():
     return None
 
 
+def _em_espera_throttle():
+    """Estamos no período de espera após um 429 do SharePoint?"""
+    try:
+        import sharepoint
+        if not sharepoint.ULTIMO_THROTTLE:
+            return False
+        return (time.time() - sharepoint.ULTIMO_THROTTLE) < ESPERA_APOS_THROTTLE
+    except Exception:
+        return False
+
+
 def garantir_arquivos_frescos(force=False):
     """Garante que /tmp tenha os arquivos do SharePoint razoavelmente frescos.
     Baixa se nunca baixou, se passou do TTL, ou se force=True. Protegido por
@@ -254,6 +268,8 @@ def garantir_arquivos_frescos(force=False):
     idade = _idade_tmp()
     if not force and idade is not None and idade < CACHE_TTL_SEGUNDOS:
         return  # já está fresco o suficiente
+    if _em_espera_throttle() and active_base() == TMP_BASE:
+        return  # throttle recente e já temos dados baixados: não insistir
     with _fetch_lock:
         # Re-checar após o lock: outra thread pode ter acabado de baixar
         idade = _idade_tmp()
@@ -275,8 +291,13 @@ def garantir_arquivos_frescos(force=False):
                 for s in (sem, sem - 1):
                     if s > 0:
                         sharepoint.baixar_rodada(s, str(TMP_BASE), timeout=30)
-            _MARKER.write_text(str(time.time()))
-            print("✅ Dados do SharePoint atualizados em /tmp.")
+            # Só marcamos como fresco se algo realmente chegou. Marcar após um
+            # download vazio congelava a cópia velha por todo o TTL.
+            if active_base() == TMP_BASE:
+                _MARKER.write_text(str(time.time()))
+                print("✅ Dados do SharePoint atualizados em /tmp.")
+            else:
+                print("⚠️ Nada foi baixado do SharePoint; mantendo a cópia empacotada.")
         except Exception as e:
             print(f"⚠️ garantir_arquivos_frescos falhou: {e}")
 
@@ -1526,6 +1547,14 @@ def _calcular_summary(semana):
     import calculo_rapido as cr
     confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
     if not confrontos_path.exists():
+        # Distinguir "arquivo não existe" de "não conseguimos baixar": com o
+        # SharePoint limitando as requisições (429) a pasta chega vazia e o
+        # app cai para a cópia do repositório, que só tem semanas antigas.
+        if _em_espera_throttle():
+            raise FileNotFoundError(
+                f"O SharePoint está limitando as requisições (erro 429) e os confrontos "
+                f"da semana {semana} não puderam ser baixados. Tente de novo em alguns "
+                f"minutos — os dados voltam sozinhos.")
         raise FileNotFoundError(f"Confrontos da semana {semana} não encontrados")
     confrontos = cr.ler_confrontos(confrontos_path)
     garantir_rodada(semana)          # dados da rodada pedida (subpasta)
