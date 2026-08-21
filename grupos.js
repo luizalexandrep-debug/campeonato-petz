@@ -562,7 +562,11 @@ function abrirCalendario(loja, rival, grupo) {
             <td class="c">R${r}</td>
             <td>${cel(a)}</td>
             ${rival ? `<td>${cel(b)}${tropeco ? ' <span class="tatica ajuda">🛡 loja sua</span>' : ''}</td>` : ''}
-            <td class="c motivo">${direto ? '⚔ confronto direto' : tropeco ? '🛡 chance de tropeço' : ''}</td>
+            <td class="c motivo">
+                ${direto ? '<div>⚔ confronto direto</div>' : tropeco ? '<div>🛡 chance de tropeço</div>' : ''}
+                ${a ? `<small class="cel-origem">${st.lojaRegional[a.adv] || '—'}${
+                    distritoDaLoja(a.adv) ? ` · ${distritoDaLoja(a.adv)}` : ''}</small>` : ''}
+            </td>
         </tr>`;
     }).join('');
 
@@ -605,7 +609,7 @@ function abrirCalendario(loja, rival, grupo) {
                         <th class="c">Rodada</th>
                         <th>${loja} <small>(sua loja)</small></th>
                         ${rival ? `<th>${rival} <small>(alvo)</small></th>` : ''}
-                        <th class="c">Leitura</th>
+                        <th class="c">Leitura<span class="th-sub">regional · distrito</span></th>
                     </tr></thead>
                     <tbody>${corpo}</tbody>
                 </table>

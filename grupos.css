@@ -586,3 +586,20 @@
     letter-spacing: .02em;
     margin-top: 2px;
 }
+
+/* Regional e distrito do adversário, na coluna Leitura do calendário */
+.tab-cal .motivo { white-space: normal; line-height: 1.35; }
+
+.tab-cal .cel-origem {
+    display: block;
+    color: var(--text-3);
+    font-weight: 500;
+    font-size: .92em;
+}
+
+.tab-cal .th-sub {
+    display: block;
+    font-weight: 400;
+    font-size: .82em;
+    opacity: .8;
+}
