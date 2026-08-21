@@ -721,14 +721,19 @@ async function abrirDetalhesJogo(loja) {
 
     const corpo = fundo.querySelector('.modal-corpo');
     if (!corpo) return;   // fechado antes de carregar
+    // Quem marcou cada gol vem do resumo (ele aplica os desempates).
+    const jogoResumo = (st.summary?.games || []).find(g =>
+        (g.team1 === loja && g.team2 === adv) || (g.team1 === adv && g.team2 === loja)) || {};
+    const gols = jogoResumo.golsProjetados || {};
+    const ehTeam1 = jogoResumo.team1 === loja;
     corpo.innerHTML = ordenarIndicadores(Object.keys(d1.dados)).map(ind => `
         <div class="tables-wrapper">
-            ${tabelaIndicadorJogo(loja, d1.dados[ind], ind, d2.dados[ind])}
-            ${tabelaIndicadorJogo(adv, d2.dados[ind], ind, d1.dados[ind])}
+            ${tabelaIndicadorJogo(loja, d1.dados[ind], ind, d2.dados[ind], gols[ind] === (ehTeam1 ? 1 : 2))}
+            ${tabelaIndicadorJogo(adv, d2.dados[ind], ind, d1.dados[ind], gols[ind] === (ehTeam1 ? 2 : 1))}
         </div>`).join('');
 }
 
-function tabelaIndicadorJogo(loja, dados, indicador, adversario) {
+function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) {
     if (!dados) return '<div class="table-container"><div class="table-title">Sem dados</div></div>';
 
     const tipo = dados.atual?.type || dados.anterior?.type || 'R$';
@@ -765,11 +770,12 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario) {
         }
     }
 
+    const fezGol = marcou === null ? classe === 'evolution-melhor' : marcou;
+
     return `<div class="table-container">
-        <div class="table-title${classe === 'evolution-melhor' ? ' marcou' : ''}">
+        <div class="table-title${fezGol ? ' marcou' : ''}">
             <span class="tt-loja">${loja}</span><span class="tt-ind">${indicador.replace(/\.xlsx$/i, '')}</span>
-            ${classe === 'evolution-melhor'
-                ? '<span class="tt-gol" title="Está fazendo este gol">⚽</span>' : ''}</div>
+            ${fezGol ? '<span class="tt-gol" title="Está fazendo este gol">⚽</span>' : ''}</div>
         <table>
             <thead><tr><th>Dia</th><th>S. Anterior</th><th>S. Atual</th><th>Evolução</th></tr></thead>
             <tbody>

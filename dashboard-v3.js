@@ -1764,10 +1764,13 @@ async function abrirDetalhesJogo(team1, team2) {
         return;
     }
 
+    // Quem marcou cada gol vem do resumo — é ele que aplica os critérios de
+    // desempate quando a evolução das duas lojas empata.
+    const gols = resumo.golsProjetados || {};
     corpo.innerHTML = ordenarIndicadores(Object.keys(jogo.dadosTeam1)).map(ind => `
         <div class="tables-wrapper">
-            ${criarTabelaIndicador(team1, jogo.dadosTeam1[ind], ind, jogo.dadosTeam2[ind])}
-            ${criarTabelaIndicador(team2, jogo.dadosTeam2[ind], ind, jogo.dadosTeam1[ind])}
+            ${criarTabelaIndicador(team1, jogo.dadosTeam1[ind], ind, jogo.dadosTeam2[ind], gols[ind] === 1)}
+            ${criarTabelaIndicador(team2, jogo.dadosTeam2[ind], ind, jogo.dadosTeam1[ind], gols[ind] === 2)}
         </div>`).join('');
 
     const bt = fundo.querySelector('#btExpModal');
@@ -1814,7 +1817,7 @@ async function carregarDadosJogo(jogo) {
 // CRIAR TABELA DE INDICADOR
 // ============================================================
 
-function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null) {
+function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null, marcou = null) {
     // Proteção: verificar se dados existe e tem estrutura correta
     if (!dados) {
         return '<div class="table-container"><div class="table-title">Dados indisponíveis</div></div>';
@@ -1848,12 +1851,15 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
         totalAdversarioAtual = agregar(dadosAdversario.atual?.dias);
     }
 
+    // Preferimos o vencedor vindo do resumo; sem ele, cai na comparação direta
+    // de evolução (que não resolve empates).
+    const fezGol = marcou === null ? classeEvolucao === 'evolution-melhor' : marcou;
+
     let html = `
         <div class="table-container">
-            <div class="table-title${classeEvolucao === 'evolution-melhor' ? ' marcou' : ''}">
+            <div class="table-title${fezGol ? ' marcou' : ''}">
                 <span class="tt-loja">${teamName}</span><span class="tt-ind">${displayName}</span>
-                ${classeEvolucao === 'evolution-melhor'
-                    ? '<span class="tt-gol" title="Está fazendo este gol">⚽</span>' : ''}</div>
+                ${fezGol ? '<span class="tt-gol" title="Está fazendo este gol">⚽</span>' : ''}</div>
             <table>
                 <thead>
                     <tr>
