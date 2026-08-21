@@ -76,6 +76,17 @@ function formatarMoedaBR(valor) {
 
 // Jogo sem resultado: a rodada ainda não tem nenhum dia lançado na semana
 // atual. Sem evolução para medir, não se atribui vitória, empate nem derrota.
+// VENDAS é o gol fixo do campeonato, então encabeça qualquer lista de
+// indicadores; os demais seguem em ordem alfabética.
+function ordenarIndicadores(nomes) {
+    const ehVendas = (n) => /^vendas\b/i.test(String(n).replace(/\.xlsx$/i, '').trim());
+    return [...nomes].sort((a, b) => {
+        const va = ehVendas(a), vb = ehVendas(b);
+        if (va !== vb) return va ? -1 : 1;
+        return String(a).localeCompare(String(b), 'pt');
+    });
+}
+
 function semResultado(j) {
     return !!(j && j.semDados) || !!(state.gamesSummary && state.gamesSummary.semDadosAtual);
 }
@@ -260,7 +271,7 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
     let score1 = 0, score2 = 0;
 
     const diasOrdenados = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-    const indicadores = Object.keys(dadosTeam1);
+    const indicadores = ordenarIndicadores(Object.keys(dadosTeam1));
 
     indicadores.forEach(indicador => {
         const dados1 = dadosTeam1[indicador];
@@ -1753,7 +1764,7 @@ async function abrirDetalhesJogo(team1, team2) {
         return;
     }
 
-    corpo.innerHTML = Object.keys(jogo.dadosTeam1).map(ind => `
+    corpo.innerHTML = ordenarIndicadores(Object.keys(jogo.dadosTeam1)).map(ind => `
         <div class="tables-wrapper">
             ${criarTabelaIndicador(team1, jogo.dadosTeam1[ind], ind, jogo.dadosTeam2[ind])}
             ${criarTabelaIndicador(team2, jogo.dadosTeam2[ind], ind, jogo.dadosTeam1[ind])}

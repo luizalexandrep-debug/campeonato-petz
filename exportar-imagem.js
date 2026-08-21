@@ -183,7 +183,7 @@ function expDesenharJogo(jogoData) {
     const [s1, s2] = (!semRes && score && score.includes('x'))
         ? score.split('x').map(v => parseInt(v.trim())) : [0, 0];
 
-    const indicadores = Object.keys(dadosTeam1 || {});
+    const indicadores = ordenarIndicadores(Object.keys(dadosTeam1 || {}));
     const larguraTab = (EXP.largura - EXP.pad * 2 - EXP.gap) / 2;
 
     // 1ª passada: medir

@@ -630,6 +630,17 @@ function abrirCalendario(loja, rival, grupo) {
 const DIAS_JOGO = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const CHAVE_TOTAL = '__total__';
 
+// VENDAS é o gol fixo do campeonato, então encabeça qualquer lista de
+// indicadores; os demais seguem em ordem alfabética.
+function ordenarIndicadores(nomes) {
+    const ehVendas = (n) => /^vendas\b/i.test(String(n).replace(/\.xlsx$/i, '').trim());
+    return [...nomes].sort((a, b) => {
+        const va = ehVendas(a), vb = ehVendas(b);
+        if (va !== vb) return va ? -1 : 1;
+        return String(a).localeCompare(String(b), 'pt');
+    });
+}
+
 function evolucaoPct(anterior, atual) {
     if (anterior === 0) return 0;
     if (atual === 0) return 0;
@@ -710,7 +721,7 @@ async function abrirDetalhesJogo(loja) {
 
     const corpo = fundo.querySelector('.modal-corpo');
     if (!corpo) return;   // fechado antes de carregar
-    corpo.innerHTML = Object.keys(d1.dados).map(ind => `
+    corpo.innerHTML = ordenarIndicadores(Object.keys(d1.dados)).map(ind => `
         <div class="tables-wrapper">
             ${tabelaIndicadorJogo(loja, d1.dados[ind], ind, d2.dados[ind])}
             ${tabelaIndicadorJogo(adv, d2.dados[ind], ind, d1.dados[ind])}
