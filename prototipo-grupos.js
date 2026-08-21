@@ -457,7 +457,6 @@ function jogoDaRodada(time, rodada) {
     if (!j) return null;
     return {
         adv: j.mandante === time ? j.visitante : j.mandante,
-        casa: j.mandante === time,
         realizado: j.realizado,
         placar: j.realizado ? `${j.golsMandante} x ${j.golsVisitante}` : null
     };
@@ -479,8 +478,10 @@ function abrirCalendario(loja, rival, grupo) {
         const direto = a && rival && a.adv === rival;
         const tropeco = b && st.minhasLojas.has(b.adv) && !direto;
         const cls = direto ? 'linha-direto' : tropeco ? 'linha-tropeco' : '';
+        // Mandante/visitante não muda nada no campeonato (o placar vem da
+        // evolução de vendas de cada loja), então não vale espaço na tela.
         const cel = (j) => j
-            ? `<b>${j.adv}</b> <small>${j.casa ? '(casa)' : '(fora)'}${posDe[j.adv] ? ` · ${posDe[j.adv]}º` : ''}</small>`
+            ? `<b>${j.adv}</b>${posDe[j.adv] ? ` <small>${posDe[j.adv]}º</small>` : ''}`
             : '<span class="vazio-cel">—</span>';
         return `<tr class="${cls}">
             <td class="c">R${r}</td>
@@ -508,7 +509,7 @@ function abrirCalendario(loja, rival, grupo) {
                 <div class="cal-legenda">
                     <span class="tatica dir">⚔ confronto direto</span>
                     <span class="tatica ajuda">🛡 o rival enfrenta uma loja sua</span>
-                    <span class="cal-nota">Rodadas ${st.semana + 1} a ${TOTAL_RODADAS} · posição atual entre parênteses</span>
+                    <span class="cal-nota">Rodadas ${st.semana + 1} a ${TOTAL_RODADAS} · o número é a posição atual do adversário</span>
                 </div>
                 <table class="tab-grupo tab-cal">
                     <thead><tr>
