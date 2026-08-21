@@ -223,7 +223,7 @@ function setupGolTooltip() {
         // Célula com texto de apoio (ex.: distância para o colocado à frente)
         const tip = e.target.closest && e.target.closest('.tem-tip[data-tip]');
         if (tip && tip.dataset.tip) {
-            _golTip.textContent = tip.dataset.tip;
+            _golTip.innerHTML = tip.dataset.tip.split('\n').join('<br>');
             _golTip.style.borderLeft = '3px solid #2b5aa8';
             _golTip.style.display = 'block';
             let x = e.clientX + 14, y = e.clientY + 14;
@@ -1635,16 +1635,23 @@ function loadRankingDashboard() {
             t.aprov = t.disp > 0 ? t.conq / t.disp * 100 : 0;
         });
 
-        // Distância em pontos para quem está imediatamente à frente. O líder
-        // não tem ninguém acima, então mostramos a folga sobre o 2º.
+        // Distância em pontos para os vizinhos de tabela: quem está logo acima
+        // e quem está logo abaixo. O líder só tem o de baixo; o lanterna, o de
+        // cima.
         const distancia = (r) => {
             const i = porSim.indexOf(r);
-            const ref = i === 0 ? porSim[1] : porSim[i - 1];
-            if (!ref) return '';
-            const d = Math.abs(ref.sim.simAcum - r.sim.simAcum);
-            const posRef = (i === 0 ? 2 : i);
-            if (d < 0.005) return `Empatado em pontos com o ${posRef}º (${ref.dist})`;
-            return `${f2(d)} pts ${i === 0 ? 'à frente do' : 'atrás do'} ${posRef}º (${ref.dist})`;
+            const linha = (ref, posRef, sentido) => {
+                if (!ref) return '';
+                const d = Math.abs(ref.sim.simAcum - r.sim.simAcum);
+                const alvo = `${posRef}º ${ref.dist}`;
+                if (d < 0.005) return `${sentido === 'cima' ? '▲' : '▼'} empatado com o ${alvo}`;
+                return `${sentido === 'cima' ? '▲' : '▼'} ${f2(d)} pts ${
+                    sentido === 'cima' ? 'atrás do' : 'à frente do'} ${alvo}`;
+            };
+            return [
+                linha(porSim[i - 1], i, 'cima'),
+                linha(porSim[i + 1], i + 2, 'baixo')
+            ].filter(Boolean).join('\n');
         };
 
         const linhasAcum = porSim.filter(r => passaFiltro(r.reg)).map(r => {
