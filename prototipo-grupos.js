@@ -17,7 +17,7 @@ const st = {
     semana: null, semanaVigente: null, semanas: [],
     rodadaBase: null, grupos: {}, summary: null,
     estrutura: {}, minhasLojas: new Set(),
-    grupo: '', destacar: false,
+    grupo: '', destacar: true,     // destaque das minhas lojas ligado por padrão
     calendario: [], lojaFoco: null
 };
 

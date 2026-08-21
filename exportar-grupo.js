@@ -164,7 +164,7 @@ function egDesenhar(grupo, rodadaBase, rodadaProj, atual, simulado) {
 async function exportarGrupoImagem(btn) {
     const txt = btn ? btn.innerHTML : null;
     let avisou = false;
-    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Gerando...'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Copiando...'; }
     try {
         const d = window.__dadosExportGrupo;
         if (!d) throw new Error('nada para exportar');
@@ -174,17 +174,19 @@ async function exportarGrupoImagem(btn) {
         const nome = `${d.grupo.replace(/[^\w]+/g, '-')}-rodada-${d.rodadaProj}.png`;
         const file = new File([blob], nome, { type: 'image/png' });
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        // A ação principal é copiar. Só se o navegador recusar é que caímos
+        // para o compartilhamento nativo ou para o download.
+        if (await egCopiar(blob)) {
+            aviso('📋 Imagem copiada — cole no WhatsApp com Cmd+V.');
+        } else if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({ files: [file], title: d.grupo });
             aviso('✅ Compartilhado');
         } else {
-            const copiou = await egCopiar(blob);
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url; a.download = nome; a.click();
             setTimeout(() => URL.revokeObjectURL(url), 4000);
-            aviso(copiou ? '📋 Copiada — cole no WhatsApp (Cmd+V). O arquivo também foi baixado.'
-                : '⬇️ Imagem baixada (o navegador não permitiu copiar).');
+            aviso('⬇️ O navegador não permitiu copiar — a imagem foi baixada.');
         }
     } catch (e) {
         if (e && e.name === 'AbortError') return;
@@ -197,7 +199,7 @@ async function exportarGrupoImagem(btn) {
     function aviso(msg) {
         avisou = true;
         if (btn) {
-            btn.innerHTML = '✅ Pronto';
+            btn.innerHTML = '✅ Copiada';
             setTimeout(() => { btn.innerHTML = txt; }, 2500);
         }
         const bar = document.getElementById('infoBar');
