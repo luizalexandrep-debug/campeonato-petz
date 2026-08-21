@@ -775,6 +775,8 @@ function panoramaHtml() {
     const g4Html = listaAgrupada(g4, true, `Nenhuma loja sua no G4 ${st.grupo ? 'deste grupo' : 'destes grupos'}.`);
     const z4Html = listaAgrupada(z4, false, 'Nenhuma loja sua na zona de queda. 🎉');
 
+    const cont = (lista, sit) => lista.filter(x => x.situacao === sit).length;
+
     const check = (ok) => ok ? '<span class="ck sim">✔</span>' : '<span class="ck nao">✖</span>';
     const combosHtml = combos.length ? combos.slice(0, 14).map(c => `
         <li class="${c.completo ? 'ganho' : ''} clicavel" onclick="abrirGrupo('${c.grupo.replace(/'/g, "\\'")}','${c.beneficiada}')"
