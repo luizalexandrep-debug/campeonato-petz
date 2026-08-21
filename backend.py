@@ -10,7 +10,7 @@ import openpyxl
 import os
 import re
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
 from auth import db, login_manager, Usuario, Acesso, init_db
@@ -1121,7 +1121,7 @@ def _marcar_presenca():
             # Sessão anterior ao registro (ou perdida): abre uma nova.
             registrar_entrada(current_user)
             return
-        ac.visto_em = datetime.now()
+        ac.visto_em = datetime.utcnow()
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -1135,7 +1135,16 @@ def get_acessos():
     if not getattr(current_user, 'é_admin', False):
         return jsonify({"error": "Apenas administradores"}), 403
     try:
-        limite = datetime.now() - timedelta(minutes=MINUTOS_ONLINE)
+        limite = datetime.utcnow() - timedelta(minutes=MINUTOS_ONLINE)
+
+        def _iso_utc(dt):
+            """ISO com fuso explícito. Sem isso o navegador interpretava a hora
+            UTC como local e o horário aparecia 3h adiantado."""
+            if dt is None:
+                return None
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.isoformat()
 
         def fmt(a):
             partes = [p for p in (a.cidade, a.regiao, a.pais) if p]
@@ -1144,8 +1153,8 @@ def get_acessos():
                 "ip": a.ip,
                 "local": " · ".join(partes) or "—",
                 "dispositivo": _dispositivo(a.user_agent or ''),
-                "entrouEm": a.entrou_em.isoformat() if a.entrou_em else None,
-                "vistoEm": a.visto_em.isoformat() if a.visto_em else None,
+                "entrouEm": _iso_utc(a.entrou_em),
+                "vistoEm": _iso_utc(a.visto_em),
             }
 
         online = (Acesso.query.filter(Acesso.visto_em >= limite)
