@@ -746,6 +746,29 @@ function voltarDashboard() {
     loadGames(); // sem regional -> mostra o dashboard de rankings
 }
 
+// V/E/D de um distrito na rodada: no total e só nos jogos contra lojas de
+// OUTRAS regionais ("fora de casa"). Jogos entre lojas da mesma regional não
+// mexem no saldo da regional como time, por isso a separação.
+function vedDistrito(regional, distrito) {
+    const lojas = (state.estrutura?.[regional]?.[distrito]) || [];
+    const lojaReg = {};
+    Object.entries(state.estrutura || {}).forEach(([reg, dists]) =>
+        Object.values(dists).forEach(ls => ls.forEach(l => { lojaReg[l] = reg; })));
+
+    const tot = { V: 0, E: 0, D: 0 }, fora = { V: 0, E: 0, D: 0 };
+    (state.gamesSummary?.games || []).forEach(g => {
+        if (semResultado(g)) return;
+        const [a1, b1] = g.scoreProjected.split('x').map(v => parseInt(v.trim()));
+        [[g.team1, a1, b1, g.team2], [g.team2, b1, a1, g.team1]].forEach(([loja, meu, adv, outra]) => {
+            if (!lojas.includes(loja)) return;
+            const r = meu > adv ? 'V' : meu === adv ? 'E' : 'D';
+            tot[r]++;
+            if (lojaReg[outra] !== regional) fora[r]++;
+        });
+    });
+    return { tot, fora };
+}
+
 function insightsR2Html(simulado) {
     // Seção de destaque da regional (R2): cards por distrito com insights.
     const meus = simulado.filter(r => r.regional === REGIONAL_DESTAQUE);
@@ -765,6 +788,20 @@ function insightsR2Html(simulado) {
             <div style="font-size:0.88em; color:#666; margin:6px 0 10px;">
                 Base ${r.histAcum.toFixed(2)} + rodada ${r.curAvg.toFixed(2)} · ritmo ${setaEvol(r)}
             </div>
+            ${(() => {
+                const v = vedDistrito(r.regional, r.distrito);
+                const bloco = (t, o) => `<div class="ved-bloco">
+                    <span class="ved-rot">${t}</span>
+                    <span class="ved-n v">${o.V}</span><span class="ved-l">V</span>
+                    <span class="ved-n e">${o.E}</span><span class="ved-l">E</span>
+                    <span class="ved-n d">${o.D}</span><span class="ved-l">D</span>
+                </div>`;
+                return `<div class="ved">
+                    ${bloco('Total', v.tot)}
+                    ${bloco('Fora de casa', v.fora)}
+                    <div class="ved-nota">“Fora de casa” = jogos contra lojas de outras regionais.</div>
+                </div>`;
+            })()}
             <div style="font-size:0.88em; line-height:1.6;">
                 <div>💪 <b>Puxando pra cima:</b> ${up}</div>
                 <div>📉 <b>Puxando pra baixo:</b> ${down}</div>
@@ -1359,7 +1396,6 @@ function loadRankingDashboard() {
                         <th><span class="lg">% </span>Aprov.</th></tr></thead>
                     <tbody>${linhasAcum}</tbody>
                 </table></div>
-                ${insightsR2Html(simulado)}
             </div>
         </section>`;
     }
@@ -1395,15 +1431,20 @@ function loadRankingDashboard() {
                         <th>V</th><th>E</th><th>D</th><th><span class="lg">Pontuação </span>Média</th><th><span class="lg">% </span>Aprov.</th></tr></thead>
                     <tbody>${linhasAtual}</tbody>
                 </table></div>
-                <div class="panel">
-                    <h4>🏆 Regionais</h4>
-                    <div class="hint">clique p/ abrir a regional ou um distrito</div>
-                    <div class="reg-grid">${colRegionais}</div>
-                </div>
             </div>
         </section>
         ${secaoAcumulado}
-    </div>`;
+    </div>
+
+    <div class="linha-cheia">
+        <div class="panel">
+            <h4>🏆 Regionais</h4>
+            <div class="hint">clique p/ abrir a regional ou um distrito</div>
+            <div class="reg-grid">${colRegionais}</div>
+        </div>
+    </div>
+
+    <div class="linha-cheia">${insightsR2Html(simulado)}</div>`;
 }
 
 function loadGamesFromSummary(regional) {

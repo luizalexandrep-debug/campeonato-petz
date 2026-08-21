@@ -1481,3 +1481,52 @@ body {
 .md-legenda .res { vertical-align: 1px; }
 .md-card.bom span { color: #157347; }
 .md-card.ruim span { color: #c0392b; }
+
+/* ====== Linhas largas abaixo das duas tabelas ====== */
+.linha-cheia {
+    margin-bottom: var(--s-6);
+}
+
+.linha-cheia .panel { margin: 0; }
+
+/* Com a largura toda, as três regionais cabem lado a lado */
+.linha-cheia .reg-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+}
+
+/* V/E/D do distrito: total e contra outras regionais */
+.ved {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 9px 11px;
+    margin: 10px 0;
+}
+
+.ved-bloco {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 3px 0;
+}
+
+.ved-rot {
+    flex: 1;
+    font-size: .82em;
+    font-weight: 700;
+    color: var(--text-2);
+}
+
+.ved-n {
+    font-weight: 800;
+    font-size: 1em;
+    font-variant-numeric: tabular-nums;
+    min-width: 18px;
+    text-align: right;
+}
+
+.ved-n.v { color: #157347; }
+.ved-n.e { color: #6b4d00; }
+.ved-n.d { color: #c0392b; }
+.ved-l { font-size: .72em; color: var(--text-3); font-weight: 700; margin-right: 6px; }
+.ved-nota { font-size: .72em; color: var(--text-3); margin-top: 5px; }
