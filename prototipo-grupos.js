@@ -171,7 +171,28 @@ function calcularPanorama() {
     const z4 = [];        // minhas lojas na zona de queda
     const trocas = [];    // grupos onde o líder muda na projeção
 
-    // Com um grupo selecionado nos chips, todo o panorama olha só para ele.
+    // O quadro das regionais e as trocas de liderança são a leitura do
+    // campeonato inteiro — não mudam quando um grupo é escolhido nos chips.
+    // O filtro vale só para as listas de lojas (G4, Z4 e combinações).
+    Object.entries(st.grupos).forEach(([grupo, linhas]) => {
+        const { base, sim } = classificarGrupo(linhas, proj);
+        const n = base.length;
+
+        base.forEach((r, i) => { const g = st.lojaRegional[r.time]; if (tot[g]) { if (i === 0) tot[g].base.lider++; if (i < 4) tot[g].base.top4++; if (i >= n - 4) tot[g].base.ultimos4++; } });
+        sim.forEach((r, i) => { const g = st.lojaRegional[r.time]; if (tot[g]) { if (i === 0) tot[g].sim.lider++; if (i < 4) tot[g].sim.top4++; if (i >= n - 4) tot[g].sim.ultimos4++; } });
+
+        if (base.length && sim.length && base[0].time !== sim[0].time) {
+            trocas.push({
+                grupo,
+                novo: sim[0].time, novoReg: st.lojaRegional[sim[0].time],
+                antigo: base[0].time, antigoReg: st.lojaRegional[base[0].time],
+                ptsNovo: sim[0].pts, ptsAntigo: (sim.find(x => x.time === base[0].time) || {}).pts,
+                posAntigo: sim.findIndex(x => x.time === base[0].time) + 1
+            });
+        }
+    });
+
+    // Daqui para baixo, só o grupo escolhido (ou todos, se nenhum estiver).
     const escopo = st.grupo
         ? Object.entries(st.grupos).filter(([g]) => g === st.grupo)
         : Object.entries(st.grupos);
@@ -182,20 +203,6 @@ function calcularPanorama() {
         const posB = {}, posS = {};
         base.forEach((r, i) => posB[r.time] = i + 1);
         sim.forEach((r, i) => posS[r.time] = i + 1);
-
-        base.forEach((r, i) => { const g = st.lojaRegional[r.time]; if (tot[g]) { if (i === 0) tot[g].base.lider++; if (i < 4) tot[g].base.top4++; if (i >= n - 4) tot[g].base.ultimos4++; } });
-        sim.forEach((r, i) => { const g = st.lojaRegional[r.time]; if (tot[g]) { if (i === 0) tot[g].sim.lider++; if (i < 4) tot[g].sim.top4++; if (i >= n - 4) tot[g].sim.ultimos4++; } });
-
-        // troca de liderança no grupo (qualquer regional)
-        if (base.length && sim.length && base[0].time !== sim[0].time) {
-            trocas.push({
-                grupo,
-                novo: sim[0].time, novoReg: st.lojaRegional[sim[0].time],
-                antigo: base[0].time, antigoReg: st.lojaRegional[base[0].time],
-                ptsNovo: sim[0].pts, ptsAntigo: (sim.find(x => x.time === base[0].time) || {}).pts,
-                posAntigo: sim.findIndex(x => x.time === base[0].time) + 1
-            });
-        }
 
         // A regional como um só time: quando uma loja minha enfrenta um rival
         // que está À FRENTE de outra loja minha, a vitória dela abre caminho
@@ -617,7 +624,7 @@ function abrirGrupo(grupo, loja) {
 function textoTrocas(trocas) {
     if (!trocas.length) {
         return `<div class="pg-texto">Nenhuma liderança muda de dono com a projeção da rodada ${st.semana}:
-            ${st.grupo ? 'o líder do grupo segue o mesmo' : 'os 14 líderes seguem os mesmos'}.</div>`;
+            os 14 líderes seguem os mesmos.</div>`;
     }
 
     const eu = (reg) => reg === REGIONAL_DESTAQUE;
@@ -729,7 +736,7 @@ function panoramaHtml() {
     return `
     <div class="painel-geral">
         <div class="pg-bloco">
-            <h3>🌎 ${st.grupo ? `Panorama · ${st.grupo}` : 'Panorama das 14 lideranças'}</h3>
+            <h3>🌎 Panorama das 14 lideranças <small>· campeonato inteiro, não muda com o filtro</small></h3>
             <div class="tab-wrap"><table class="tab-grupo tab-pan">
                 <thead><tr>
                     <th class="l">Regional</th>
