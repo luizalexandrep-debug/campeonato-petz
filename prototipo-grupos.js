@@ -684,8 +684,24 @@ function panoramaHtml() {
         ? `empatada em pontos ${sufixo}, atrás no desempate`
         : `${g} pt(s) ${sufixo}`;
 
+    // A cor segue o GANHO: entrar/sair da zona é o sinal mais forte, mas quem
+    // fica e melhora de posição também é ganho — antes ficava neutro.
+    const corMov = (m, entrarEhBom) => {
+        if (m.situacao === 'entrou') return entrarEhBom ? 'ganho' : 'perda';
+        if (m.situacao === 'saiu') return entrarEhBom ? 'perda' : 'ganho';
+        const d = m.de - m.para;
+        return d > 0 ? 'ganho' : d < 0 ? 'perda' : '';
+    };
+
+    const setaMov = (m) => {
+        const d = m.de - m.para;
+        if (d > 0) return `<span class="mov sobe">▲ ${d}</span>`;
+        if (d < 0) return `<span class="mov desce">▼ ${-d}</span>`;
+        return '<span class="mov igual">–</span>';
+    };
+
     const g4Html = g4.length ? g4.map(m => {
-        const classe = m.situacao === 'entrou' ? 'ganho' : m.situacao === 'saiu' ? 'perda' : '';
+        const classe = corMov(m, true);
         const ctx = m.situacao === 'saiu'
             ? `<small>· ${gapTxt(m.gapG4, 'do 4º lugar')}</small>`
             : m.para === 1
@@ -694,13 +710,13 @@ function panoramaHtml() {
         return `<li class="${classe} clicavel" onclick="abrirGrupo('${m.grupo.replace(/'/g, "\\'")}','${m.time}')"
             title="Ver a tabela do ${m.grupo}">
             ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
-            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
+            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b> ${setaMov(m)}
             ${ctx} ${linhaJogo(m)}
         </li>`;
     }).join('') : '<li>Nenhuma loja sua no G4 destes grupos.</li>';
 
     const z4Html = z4.length ? z4.map(m => {
-        const classe = m.situacao === 'saiu' ? 'ganho' : m.situacao === 'entrou' ? 'perda' : '';
+        const classe = corMov(m, false);
         const ctx = m.situacao === 'saiu'
             ? `<small>· ${m.margem === 0 ? 'empatada com o Z4, à frente só no desempate'
                 : `${m.margem} pt(s) de folga sobre o Z4`}</small>`
@@ -708,7 +724,7 @@ function panoramaHtml() {
         return `<li class="${classe} clicavel" onclick="abrirGrupo('${m.grupo.replace(/'/g, "\\'")}','${m.time}')"
             title="Ver a tabela do ${m.grupo}">
             ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
-            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b>
+            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b> ${setaMov(m)}
             ${ctx} ${linhaJogo(m)}
         </li>`;
     }).join('') : '<li>Nenhuma loja sua na zona de queda. 🎉</li>';
