@@ -1618,3 +1618,70 @@ body {
 
 /* Loja de outra regional (a adversária) em vermelho nos cards de jogo */
 .jogo-card .sig.outra-reg { color: #c0392b; }
+
+/* ====== Ícone de calendário no título do jogo ====== */
+.modal-jogo .bt-cal {
+    background: rgba(255, 255, 255, .16);
+    border: 1px solid rgba(255, 255, 255, .3);
+    color: #fff;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: .62em;
+    line-height: 1.4;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.modal-jogo .bt-cal:hover { background: rgba(255, 255, 255, .3); }
+/* O da esquerda fica antes da sigla; o da direita, depois. */
+.modal-jogo .times > .t:first-child .bt-cal { margin-right: 8px; }
+.modal-jogo .times > .t:last-child .bt-cal { margin-left: 8px; }
+
+/* ====== Janela do calendário da loja ====== */
+.modal-cal {
+    background: var(--surface);
+    border-radius: var(--r-lg);
+    width: min(620px, 100%);
+    box-shadow: 0 24px 60px rgba(16, 24, 40, .28);
+    overflow: hidden;
+}
+
+.modal-cal .modal-head {
+    background: var(--brand-grad);
+    color: #fff;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-4);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.cal-titulo b { display: block; font-size: 1.1em; }
+.cal-titulo small { opacity: .85; font-size: .82em; }
+.modal-cal .modal-corpo { padding: var(--s-4); max-height: calc(100vh - 170px); overflow-y: auto; }
+
+.cal-legenda { font-size: .86em; color: var(--text-2); font-weight: 600; margin-bottom: 10px; }
+.cal-legenda .cal-nota { display: block; font-weight: 400; color: var(--text-3); font-size: .92em; }
+
+.cal-tabela tr.sep td {
+    background: var(--bg);
+    font-size: .78em;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-2);
+    padding: 7px 10px;
+}
+
+.cal-tabela .placar { font-weight: 800; }
+.cal-tabela .placar.v { color: #157347; }
+.cal-tabela .placar.d { color: #c0392b; }
+.cal-tabela td small { color: var(--text-3); }
+
+@media (max-width: 768px) {
+    .modal-cal { border-radius: 0; min-height: 100vh; }
+    .modal-cal .modal-corpo { max-height: none; padding: var(--s-3); }
+}

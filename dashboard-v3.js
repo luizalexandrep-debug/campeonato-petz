@@ -1046,6 +1046,100 @@ function filtrarHomePorRegional(regional) {
 }
 
 // ============================================================
+// CALENDÁRIO DE UMA LOJA
+// Próximos confrontos, lidos de "TODOS OS JOGOS.xlsx" via /api/jogos.
+// O ícone que abre esta janela é só da tela — não entra na imagem copiada.
+// ============================================================
+
+let _calendario = null;
+
+async function carregarCalendario() {
+    if (_calendario) return _calendario;
+    try {
+        const r = await fetch('/api/jogos', { cache: 'no-store' });
+        const d = await r.json();
+        _calendario = d.jogos || [];
+    } catch (e) {
+        console.error('Não foi possível carregar o calendário:', e);
+        _calendario = [];
+    }
+    return _calendario;
+}
+
+async function abrirCalendarioLoja(loja) {
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo';
+    fundo.innerHTML = `
+        <div class="modal-cal">
+            <div class="modal-head">
+                <div class="cal-titulo">
+                    <b>📅 Próximos jogos · ${loja}</b>
+                    <small>${regionalDaLoja(loja) || ''}</small>
+                </div>
+                <button class="modal-btn" data-fechar>✕ Fechar</button>
+            </div>
+            <div class="modal-corpo"><div class="carregando">⏳ Carregando calendário...</div></div>
+        </div>`;
+
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
+
+    const jogos = await carregarCalendario();
+    const corpo = fundo.querySelector('.modal-corpo');
+    if (!corpo) return;   // fechado antes de carregar
+
+    const meus = jogos
+        .filter(j => j.mandante === loja || j.visitante === loja)
+        .sort((a, b) => a.rodada - b.rodada);
+    const futuros = meus.filter(j => j.rodada > state.semana);
+    const passados = meus.filter(j => j.rodada <= state.semana);
+
+    if (!meus.length) {
+        corpo.innerHTML = `<div class="carregando">Calendário indisponível.
+            Confira se o arquivo <b>TODOS OS JOGOS.xlsx</b> está na pasta Confrontos.</div>`;
+        return;
+    }
+
+    const linha = (j) => {
+        const adv = j.mandante === loja ? j.visitante : j.mandante;
+        const reg = regionalDaLoja(adv);
+        const minha = reg === REGIONAL_DESTAQUE;
+        const placar = j.realizado
+            ? (j.mandante === loja ? `${j.golsMandante} x ${j.golsVisitante}`
+                                   : `${j.golsVisitante} x ${j.golsMandante}`)
+            : '—';
+        const res = j.realizado
+            ? (placar.split(' x ').map(Number)[0] > placar.split(' x ').map(Number)[1] ? 'v'
+                : placar.split(' x ').map(Number)[0] < placar.split(' x ').map(Number)[1] ? 'd' : 'e')
+            : '';
+        return `<tr class="${minha ? 'contra-minha' : ''}">
+            <td class="c">R${j.rodada}</td>
+            <td class="l"><b>${adv}</b> <small>${reg || '—'}</small>
+                ${minha ? '<span class="tag-minha">sua regional</span>' : ''}</td>
+            <td class="c placar ${res}">${placar}</td>
+        </tr>`;
+    };
+
+    corpo.innerHTML = `
+        <div class="cal-legenda">
+            ${futuros.length} jogo(s) pela frente · ${passados.length} já realizado(s)
+            <span class="cal-nota">Confrontos contra a ${REGIONAL_DESTAQUE} vêm destacados.</span>
+        </div>
+        <table class="md-tabela cal-tabela">
+            <thead><tr><th class="c">Rodada</th><th class="l">Adversário</th><th class="c">Placar</th></tr></thead>
+            <tbody>
+                ${futuros.length ? `<tr class="sep"><td colspan="3">A disputar</td></tr>` + futuros.map(linha).join('') : ''}
+                ${passados.length ? `<tr class="sep"><td colspan="3">Já realizados</td></tr>` + passados.map(linha).join('') : ''}
+            </tbody>
+        </table>`;
+}
+
+// ============================================================
 // JANELA "JOGOS DO DISTRITO NA RODADA"
 // Pensando a regional como um time só: mostra todos os jogos que um distrito
 // disputa na rodada e destaca os que são contra lojas da minha regional —
@@ -1764,13 +1858,15 @@ async function abrirDetalhesJogo(team1, team2) {
         <div class="modal-jogo">
             <div class="modal-head">
                 <div class="times">
-                    <span class="t">${team1}</span>
+                    <span class="t"><button class="bt-cal" title="Próximos jogos de ${team1}"
+                        onclick="abrirCalendarioLoja('${team1}')">📅</button>${team1}</span>
                     <span class="placar">
                         <small>Placar Projetado</small>
                         <b>${placarProj.replace('x', '×')}</b>
                         <small>Acumulado ${placarAcum}</small>
                     </span>
-                    <span class="t">${team2}</span>
+                    <span class="t">${team2}<button class="bt-cal" title="Próximos jogos de ${team2}"
+                        onclick="abrirCalendarioLoja('${team2}')">📅</button></span>
                 </div>
                 <div class="modal-acoes">
                     <button class="modal-btn" id="btExpModal">📋 Copiar imagem</button>
