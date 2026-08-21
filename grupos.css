@@ -559,3 +559,30 @@
 .res-letra.v { color: #157347; }
 .res-letra.e { color: #b8860b; }
 .res-letra.d { color: #c0392b; }
+
+/* Ícone de calendário e distrito no título da janela de jogo */
+.modal-jogo .bt-cal {
+    background: rgba(255, 255, 255, .16);
+    border: 1px solid rgba(255, 255, 255, .3);
+    color: #fff;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: .62em;
+    line-height: 1.4;
+    cursor: pointer;
+    vertical-align: middle;
+}
+
+.modal-jogo .bt-cal:hover { background: rgba(255, 255, 255, .3); }
+.modal-jogo .times > .t:first-child .bt-cal { margin-right: 8px; }
+.modal-jogo .times > .t:last-child .bt-cal { margin-left: 8px; }
+.modal-jogo .times .t-nome { display: block; }
+
+.modal-jogo .times .t-dist {
+    display: block;
+    font-size: .45em;
+    font-weight: 600;
+    opacity: .82;
+    letter-spacing: .02em;
+    margin-top: 2px;
+}

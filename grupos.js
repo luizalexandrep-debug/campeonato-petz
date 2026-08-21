@@ -680,6 +680,32 @@ function prefetchJogo(loja) {
     if (p.adv) buscarDias(p.adv);
 }
 
+// Em qual grupo a loja joga (o confronto pode envolver loja de outro grupo).
+function grupoDaLoja(loja) {
+    if (!st._grupoDaLoja) {
+        st._grupoDaLoja = {};
+        Object.entries(st.grupos).forEach(([g, linhas]) =>
+            linhas.forEach(r => { st._grupoDaLoja[r.time] = g; }));
+    }
+    return st._grupoDaLoja[loja];
+}
+
+function distritoDaLoja(loja) {
+    if (!st._distDaLoja) {
+        st._distDaLoja = {};
+        Object.values(st.estrutura || {}).forEach(dists =>
+            Object.entries(dists).forEach(([dist, ls]) =>
+                ls.forEach(l => { st._distDaLoja[l] = dist; })));
+    }
+    return st._distDaLoja[loja];
+}
+
+// Calendário de uma loja, a partir do grupo dela.
+function abrirCalendarioDaLoja(loja) {
+    const g = grupoDaLoja(loja);
+    if (g) abrirCalendario(loja, '', g);
+}
+
 async function abrirDetalhesJogo(loja) {
     const p = (st.projAtual || {})[loja];
     if (!p) return;
@@ -692,10 +718,14 @@ async function abrirDetalhesJogo(loja) {
         <div class="modal-jogo">
             <div class="modal-head">
                 <div class="times">
-                    <span class="t">${loja}</span>
+                    <span class="t"><span class="t-nome"><button class="bt-cal" title="Próximos jogos de ${loja}"
+                        onclick="abrirCalendarioDaLoja('${loja}')">📅</button>${loja}</span>
+                        <small class="t-dist">${distritoDaLoja(loja) || ''}</small></span>
                     <span class="placar"><small>Placar Projetado</small><b>${placar}</b>
                         <small>rodada ${st.semana}</small></span>
-                    <span class="t">${adv}</span>
+                    <span class="t"><span class="t-nome">${adv}<button class="bt-cal" title="Próximos jogos de ${adv}"
+                        onclick="abrirCalendarioDaLoja('${adv}')">📅</button></span>
+                        <small class="t-dist">${distritoDaLoja(adv) || ''}</small></span>
                 </div>
                 <button class="modal-btn" data-fechar>✕ Fechar</button>
             </div>
