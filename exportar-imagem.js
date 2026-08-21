@@ -97,7 +97,7 @@ function expAlturaTabela(info) {
     return 52 + 30 + (7 * 30) + 34 + (info.faltaVirar !== null ? 30 : 0);
 }
 
-function expDesenhaTabela(ctx, x, y, w, loja, indicador, info) {
+function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
     const c = EXP.cor;
     const alt = expAlturaTabela(info);
     const fmt = (v) => formatarValor(v, info.tipo);
@@ -115,6 +115,13 @@ function expDesenhaTabela(ctx, x, y, w, loja, indicador, info) {
     expTexto(ctx, loja, x + w / 2, y + 19, { fonte: expFonte(17, 800), cor: '#fff', align: 'center' });
     expTexto(ctx, indicador.replace(/\.xlsx$/i, ''), x + w / 2, y + 38,
         { fonte: expFonte(12, 600), cor: 'rgba(255,255,255,.82)', align: 'center' });
+    if (marcou) {
+        // Bola no canto direito, marcando quem está fazendo o gol.
+        expTexto(ctx, '⚽', x + w - 16, y + 27,
+            { fonte: expFonte(21, 400), cor: '#fff', align: 'right' });
+        ctx.fillStyle = 'rgba(255,255,255,.55)';
+        ctx.fillRect(x, y + 49, w, 3);
+    }
 
     // colunas
     const cols = [x + 14, x + w * 0.42, x + w * 0.68, x + w - 14];
@@ -184,6 +191,12 @@ function expDesenharJogo(jogoData) {
         ? score.split('x').map(v => parseInt(v.trim())) : [0, 0];
 
     const indicadores = ordenarIndicadores(Object.keys(dadosTeam1 || {}));
+
+    // Quem fez cada gol vem do resumo — é ele que aplica os desempates quando
+    // a evolução das duas lojas empata.
+    const resumo = (state.gamesSummary?.games || [])
+        .find(g => g.team1 === team1 && g.team2 === team2) || {};
+    const gols = semRes ? {} : (resumo.golsProjetados || {});
     const larguraTab = (EXP.largura - EXP.pad * 2 - EXP.gap) / 2;
 
     // 1ª passada: medir
@@ -235,8 +248,8 @@ function expDesenharJogo(jogoData) {
     // ---- tabelas ----
     let y = alturaCabecalho + EXP.pad;
     infos.forEach(i => {
-        expDesenhaTabela(ctx, EXP.pad, y, larguraTab, team1, i.ind, i.a);
-        expDesenhaTabela(ctx, EXP.pad + larguraTab + EXP.gap, y, larguraTab, team2, i.ind, i.b);
+        expDesenhaTabela(ctx, EXP.pad, y, larguraTab, team1, i.ind, i.a, gols[i.ind] === 1);
+        expDesenhaTabela(ctx, EXP.pad + larguraTab + EXP.gap, y, larguraTab, team2, i.ind, i.b, gols[i.ind] === 2);
         y += Math.max(expAlturaTabela(i.a), expAlturaTabela(i.b)) + EXP.gap;
     });
 
