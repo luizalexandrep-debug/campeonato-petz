@@ -141,3 +141,52 @@
     .modal-dist .modal-corpo { max-height: none; padding: var(--s-3); }
     .md-resumo { grid-template-columns: repeat(2, 1fr); }
 }
+/* Linha de jogo clicável e legenda da ótica das cores */
+.md-tabela tr.linha-jogo { cursor: pointer; }
+.md-tabela tr.linha-jogo:hover td { background: var(--hover, #f1f5f9); }
+.md-tabela tr.contra-minha.linha-jogo:hover td { background: #fdf3d8; }
+.md-tabela .lupa { color: var(--text-3); }
+
+.md-legenda {
+    font-size: .84em;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.md-legenda .res { vertical-align: 1px; }
+.md-card.bom span { color: #157347; }
+.md-card.ruim span { color: #c0392b; }
+
+/* Janela dos gols, aberta por cima da janela do distrito */
+.modal-jogo {
+    background: var(--surface); border-radius: var(--r-lg);
+    width: min(1180px, 100%); box-shadow: 0 24px 60px rgba(16,24,40,.28); overflow: hidden;
+}
+
+.modal-jogo .modal-head {
+    background: var(--brand-grad); color: #fff; padding: 16px 22px;
+    display: flex; align-items: center; gap: var(--s-4); position: sticky; top: 0; z-index: 2;
+}
+
+.modal-jogo .times { flex: 1; display: flex; align-items: center; justify-content: center; gap: 28px; }
+.modal-jogo .t { font-size: 1.45em; font-weight: 800; }
+.modal-jogo .placar { text-align: center; }
+.modal-jogo .placar b { display: block; font-size: 2em; font-weight: 800; line-height: 1.05; }
+.modal-jogo .placar small { font-size: .7em; opacity: .8; display: block; }
+
+.modal-jogo .modal-btn {
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.3);
+    color: #fff; border-radius: var(--r-sm); padding: 8px 14px;
+    font-size: .88em; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+
+.modal-jogo .modal-corpo { padding: var(--s-5); max-height: calc(100vh - 190px); overflow-y: auto; }
+.modal-jogo .carregando { text-align: center; color: var(--text-3); padding: 40px; }
+
+@media (max-width: 768px) {
+    .modal-jogo { border-radius: 0; min-height: 100vh; }
+    .modal-jogo .modal-head { flex-wrap: wrap; padding: 14px; }
+    .modal-jogo .t { font-size: 1.05em; }
+    .modal-jogo .modal-corpo { max-height: none; padding: var(--s-3); }
+}
