@@ -1103,9 +1103,9 @@ function render() {
     const g4Resumo = `${pan.g4.filter(m => m.para === 1).length} liderança(s) no G4`;
     const combosResumo = `${pan.combos.filter(c => c.completo).length} combinação(ões) de pé`;
 
-    // Aberto por padrão; se o usuário recolher, a escolha dele é mantida
-    // ao trocar de grupo ou de rodada.
-    const aberto = st.insightsAberto !== false;
+    // Em "Todos" os insights SÃO a tela — sempre abertos. Com um grupo
+    // escolhido abre por padrão, mas respeita quem recolheu.
+    const aberto = !st.grupo ? true : st.insightsAberto !== false;
 
     painel.innerHTML = `
     ${!st.semana ? `<div class="alerta-info" style="margin-bottom:14px">
@@ -1146,7 +1146,11 @@ function render() {
     </details>`;
 
     const box = document.getElementById('boxInsights');
-    if (box) box.addEventListener('toggle', () => { st.insightsAberto = box.open; });
+    // O recolhimento só é lembrado quando há um grupo selecionado; em "Todos"
+    // ele é temporário, para a volta a essa visão vir sempre aberta.
+    if (box) box.addEventListener('toggle', () => {
+        if (st.grupo) st.insightsAberto = box.open;
+    });
 
     // dados prontos para o exportador de imagem
     window.__dadosExportGrupo = {
