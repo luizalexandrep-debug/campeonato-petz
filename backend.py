@@ -106,6 +106,19 @@ def _tem_xlsx(p):
     return p.exists() and any(p.glob("*.xlsx"))
 
 
+def pasta_dados(nome):
+    """Pasta de apoio (Estrutura, Historico, ...) preferindo o que veio do
+    SharePoint em /tmp e caindo para a cópia do repositório.
+
+    Sem esse fallback, um throttle do SharePoint zerava estrutura, histórico e
+    classificação — mesmo com os arquivos empacotados no deploy.
+    """
+    tmp = TMP_BASE / nome
+    if _tem_xlsx(tmp):
+        return tmp
+    return BUNDLED_BASE / nome
+
+
 def _rodada_iniciada(base, n):
     """A rodada n já tem base para ser exibida?
 
@@ -614,7 +627,7 @@ def health():
 def estrutura_do_sharepoint():
     """Lê estrutura.xlsx (Regional | Distrito | Sigla Loja) da pasta raiz do
     SharePoint. Retorna {regional: {distrito: [lojas]}} ou None."""
-    pasta = TMP_BASE / "Estrutura"
+    pasta = pasta_dados("Estrutura")
     arq = pasta / "estrutura.xlsx"
     if not arq.exists():
         cands = list(pasta.glob("*.xlsx")) if pasta.exists() else []
@@ -766,7 +779,7 @@ def historico_do_sharepoint(nome_pasta="Historico", chave="distrito"):
     O nº de rodadas vem do nome do arquivo ('rodada 6.xlsx'). Cada arquivo é o
     ranking ACUMULADO até aquela rodada. Retorna None se não houver planilha.
     """
-    pasta = TMP_BASE / nome_pasta
+    pasta = pasta_dados(nome_pasta)
     if not pasta.exists():
         return None
     # Só arquivos "rodada N" — a pasta pode conter outros itens por engano
@@ -931,7 +944,7 @@ def classificacao_lojas():
     colunas SERIE_GRUPO | Rank | Time | Pts | Jogos | VIT | EMP | DER | GM | GS | SG.
     Usa sempre o arquivo da rodada mais alta. Retorna (rodada, {grupo: [linhas]}).
     """
-    base = TMP_BASE / "ClassificacaoLojas"
+    base = pasta_dados("ClassificacaoLojas")
     if not base.exists():
         return None, {}
 
