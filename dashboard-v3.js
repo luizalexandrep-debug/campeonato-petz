@@ -1546,6 +1546,15 @@ function loadRankingDashboard() {
         t.media = jogos > 0 ? t.conq / jogos : 0;
         t.aprov = t.disp > 0 ? t.conq / t.disp * 100 : 0;
     });
+    // Na coluna Regional mostramos só o código quando o espaço aperta; o nome
+    // completo volta em telas largas (span .lg).
+    const regCurto = (reg) => {
+        const p = reg.split(' - ');
+        return p.length > 1
+            ? `${p[0]}<span class="lg"> - ${p[1]}</span>`
+            : reg;
+    };
+
     const nomeReg = (reg) => {
         const p = reg.split(' - ');
         return p.length > 1 ? `Regional ${p[0].replace('R', '')} (${p[1]})` : reg;
@@ -1560,7 +1569,7 @@ function loadRankingDashboard() {
         return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}">
             <td class="c b">${medalhaFn(r.rankAtual - 1)}</td>
             <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
-                onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
+                onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${regCurto(r.reg)}</td>
             <td class="c">${r.V}</td><td class="c">${r.E}</td><td class="c">${r.D}</td>
             <td class="c b">${f2(r.media)}</td>
             <td class="c b">${fp(r.aprov)}</td></tr>`;
@@ -1586,7 +1595,7 @@ function loadRankingDashboard() {
             return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}">
                 <td class="c b">${medalhaFn(porBase.indexOf(r))}</td>
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
-                    onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${r.reg}</td>
+                    onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${regCurto(r.reg)}</td>
                 <td class="c b">${f2(r.sim.histAcum)}</td>
                 <td class="c">${h.vitoriaMedia !== undefined ? f2(h.vitoriaMedia) : '—'}</td></tr>`;
         }).join('') + Object.entries(state.historico.regionais || {})
@@ -1696,7 +1705,7 @@ function loadRankingDashboard() {
             return `<tr class="clk${dest ? ' dest' : ''}" onclick="${clkDist(r.reg, r.dist)}">
                 <td class="c b">${medalhaFn(r.sim.posicao - 1)}</td><td class="c">${movHtml}</td>
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
-                    onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span>${alerta(r)}</td><td class="l reg">${r.reg}</td>
+                    onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span>${alerta(r)}</td><td class="l reg">${regCurto(r.reg)}</td>
                 <td class="c">${f2(r.sim.histAcum)}</td><td class="c">${f2(r.sim.curAvg)}</td>
                 <td class="c b tem-tip" data-tip="${distancia(r)}">${f2(r.sim.simAcum)}</td>
                 <td class="c b">${fp(r.aConq / r.aDisp * 100)}</td></tr>`;
