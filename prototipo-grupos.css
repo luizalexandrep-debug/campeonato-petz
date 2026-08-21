@@ -246,9 +246,6 @@
     box-shadow: 0 4px 14px rgba(16, 24, 40, .07);
 }
 
-/* Cabeçalhos das tabelas passam por baixo da barra ao rolar */
-.tab-grupo thead th { position: sticky; top: 103px; z-index: 3; }
-.modal-cal .tab-grupo thead th { position: static; }
 
 .chip-label {
     font-size: .8em;
