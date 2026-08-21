@@ -1530,3 +1530,10 @@ body {
 .ved-n.d { color: #c0392b; }
 .ved-l { font-size: .72em; color: var(--text-3); font-weight: 700; margin-right: 6px; }
 .ved-nota { font-size: .72em; color: var(--text-3); margin-top: 5px; }
+
+/* Referência numérica do ritmo (as duas médias comparadas) */
+.ritmo-ref {
+    color: var(--text-3);
+    font-size: .92em;
+    font-weight: 400;
+}

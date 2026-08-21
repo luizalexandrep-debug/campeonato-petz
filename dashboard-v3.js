@@ -724,11 +724,16 @@ function insightsDistrito(distrito, lojas) {
 }
 
 function setaEvol(r) {
+    // Ritmo = pontos por jogo nesta rodada menos a média por jogo das rodadas
+    // anteriores. Mostramos os dois números porque o card exibe a base na
+    // escala do Power BI (acumulado por loja), que não é a da comparação.
     const diff = r.curAvg - r.histAvg;
-    if (Math.abs(diff) < 0.05) return '<span style="color:#888;">➡️ estável</span>';
+    const ref = `<span class="ritmo-ref">(${r.curAvg.toFixed(2)} nesta rodada vs
+        ${r.histAvg.toFixed(2)} de média nas anteriores, em pontos por jogo)</span>`;
+    if (Math.abs(diff) < 0.05) return `<span style="color:#888;">➡️ estável</span> ${ref}`;
     return diff > 0
-        ? `<span style="color:#11998e;">▲ +${diff.toFixed(2)}</span>`
-        : `<span style="color:#c0392b;">▼ ${diff.toFixed(2)}</span>`;
+        ? `<span style="color:#11998e;">▲ +${diff.toFixed(2)}</span> ${ref}`
+        : `<span style="color:#c0392b;">▼ ${diff.toFixed(2)}</span> ${ref}`;
 }
 
 function voltarDashboard() {
@@ -786,7 +791,8 @@ function insightsR2Html(simulado) {
                 <span style="color:#2b5aa8; font-weight:bold; font-size:1.25em;">${r.simAcum.toFixed(2)} pts</span>
             </div>
             <div style="font-size:0.88em; color:#666; margin:6px 0 10px;">
-                Base ${r.histAcum.toFixed(2)} + rodada ${r.curAvg.toFixed(2)} · ritmo ${setaEvol(r)}
+                Acumulado ${r.histAcum.toFixed(2)} pts/loja + ${r.curAvg.toFixed(2)} desta rodada<br>
+                Ritmo ${setaEvol(r)}
             </div>
             ${(() => {
                 const v = vedDistrito(r.regional, r.distrito);
