@@ -1698,17 +1698,35 @@ function renderJogosPorResultado(container, lojas) {
         </div>`).join('')}</div>`;
 }
 
+// Loja -> regional, com cache (a estrutura não muda durante a sessão).
+let _lojaRegMap = null;
+function regionalDaLoja(loja) {
+    if (!_lojaRegMap) {
+        _lojaRegMap = {};
+        Object.entries(state.estrutura || {}).forEach(([reg, dists]) =>
+            Object.values(dists).forEach(ls => ls.forEach(l => { _lojaRegMap[l] = reg; })));
+    }
+    return _lojaRegMap[loja];
+}
+
+// Lojas de outras regionais saem em vermelho: num card de jogo é sempre a
+// adversária, e a cor deixa isso óbvio sem precisar decorar as siglas.
+function classeSigla(loja) {
+    const reg = regionalDaLoja(loja);
+    return reg && reg !== REGIONAL_DESTAQUE ? 'sig outra-reg' : 'sig';
+}
+
 function cardJogoCompacto(g) {
     return `
     <div class="jogo-card" onclick="abrirDetalhesJogo('${g.team1}','${g.team2}')">
         <div class="lados">
-            <span class="sig">${g.team1}</span>
+            <span class="${classeSigla(g.team1)}" title="${regionalDaLoja(g.team1) || ''}">${g.team1}</span>
             <span class="meio">
                 <span class="rot">Placar Projetado</span>
                 <span class="placar">${g.scoreProjected.replace('x', '×')}</span>
                 <span class="acum">Acumulado ${g.scoreAccumulated}</span>
             </span>
-            <span class="sig">${g.team2}</span>
+            <span class="${classeSigla(g.team2)}" title="${regionalDaLoja(g.team2) || ''}">${g.team2}</span>
         </div>
         <button class="btn-exportar" title="Copiar imagem para compartilhar"
             onclick="event.stopPropagation(); exportarJogoImagem('${g.team1}','${g.team2}', this)">📋</button>

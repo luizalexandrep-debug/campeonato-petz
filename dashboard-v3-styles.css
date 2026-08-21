@@ -1615,3 +1615,6 @@ body {
     }
     .modal-jogo .modal-head { justify-content: space-between; }
 }
+
+/* Loja de outra regional (a adversária) em vermelho nos cards de jogo */
+.jogo-card .sig.outra-reg { color: #c0392b; }
