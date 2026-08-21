@@ -695,8 +695,10 @@ function panoramaHtml() {
         : `${g} pt(s) ${sufixo}`;
 
     // A cor segue o GANHO: entrar/sair da zona é o sinal mais forte, mas quem
-    // fica e melhora de posição também é ganho — antes ficava neutro.
+    // fica e melhora de posição também é ganho.
     const corMov = (m, entrarEhBom) => {
+        if (m.para === 1 && m.de !== 1) return 'ganho';
+        if (m.de === 1 && m.para !== 1) return 'perda';
         if (m.situacao === 'entrou') return entrarEhBom ? 'ganho' : 'perda';
         if (m.situacao === 'saiu') return entrarEhBom ? 'perda' : 'ganho';
         const d = m.de - m.para;
@@ -710,36 +712,68 @@ function panoramaHtml() {
         return '<span class="mov igual">–</span>';
     };
 
-    const g4Html = g4.length ? g4.map(m => {
-        const classe = corMov(m, true);
-        const ctx = m.situacao === 'saiu'
-            ? `<small>· ${gapTxt(m.gapG4, 'do 4º lugar')}</small>`
-            : m.para === 1
-                ? '<small>· liderando o grupo</small>'
-                : `<small>· ${gapTxt(m.gapLider, `do líder ${m.lider}`)}</small>`;
+    // Selo próprio para a liderança — cor sozinha não basta para distinguir
+    // "assumiu o grupo" de "subiu uma posição qualquer".
+    const seloLideranca = (m) => {
+        if (m.para === 1 && m.de !== 1) return '<span class="selo-lider ganhou">🥇 ASSUMIU A LIDERANÇA</span>';
+        if (m.de === 1 && m.para !== 1) return '<span class="selo-lider perdeu">🥈 PERDEU A LIDERANÇA</span>';
+        if (m.para === 1) return '<span class="selo-lider segue">🥇 SEGUE LÍDER</span>';
+        return '';
+    };
+
+    // Agrupa os movimentos em blocos com título, para os itens coloridos não
+    // ficarem espalhados no meio dos neutros.
+    const secoes = (lista, entrarEhBom) => {
+        const usado = new Set();
+        const pega = (fn) => lista.filter(m => !usado.has(m) && fn(m)).map(m => (usado.add(m), m));
+        const defs = entrarEhBom ? [
+            ['🥇 Assumiram a liderança', m => m.para === 1 && m.de !== 1],
+            ['🥈 Perderam a liderança', m => m.de === 1 && m.para !== 1],
+            ['🟢 Entraram no G4', m => m.situacao === 'entrou'],
+            ['🔻 Saíram do G4', m => m.situacao === 'saiu'],
+            ['▲ Subiram dentro do G4', m => m.para < m.de],
+            ['▼ Caíram dentro do G4', m => m.para > m.de],
+            ['— Sem mudança de posição', () => true]
+        ] : [
+            ['🟢 Saíram do Z4', m => m.situacao === 'saiu'],
+            ['🔻 Entraram no Z4', m => m.situacao === 'entrou'],
+            ['▲ Subiram dentro do Z4', m => m.para < m.de],
+            ['▼ Caíram dentro do Z4', m => m.para > m.de],
+            ['— Sem mudança de posição', () => true]
+        ];
+        return defs.map(([titulo, fn]) => ({ titulo, itens: pega(fn) })).filter(x => x.itens.length);
+    };
+
+    const itemMov = (m, entrarEhBom) => {
+        const classe = corMov(m, entrarEhBom);
+        const lider = seloLideranca(m);
+        const ctx = entrarEhBom
+            ? (m.situacao === 'saiu'
+                ? `<small>· ${gapTxt(m.gapG4, 'do 4º lugar')}</small>`
+                : m.para === 1 ? '<small>· liderando o grupo</small>'
+                    : `<small>· ${gapTxt(m.gapLider, `do líder ${m.lider}`)}</small>`)
+            : (m.situacao === 'saiu'
+                ? `<small>· ${m.margem === 0 ? 'empatada com o Z4, à frente só no desempate'
+                    : `${m.margem} pt(s) de folga sobre o Z4`}</small>`
+                : `<small>· ${gapTxt(m.gapSalvacao, 'para sair do Z4')}</small>`);
         return `<li class="${classe} clicavel" onclick="abrirGrupo('${m.grupo.replace(/'/g, "\\'")}','${m.time}')"
             title="Ver a tabela do ${m.grupo}">
-            ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
+            ${lider}
             <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b> ${setaMov(m)}
             ${ctx} ${linhaJogo(m)}
         </li>`;
-    }).join('') : '<li>Nenhuma loja sua no G4 destes grupos.</li>';
+    };
 
-    const z4Html = z4.length ? z4.map(m => {
-        const classe = corMov(m, false);
-        const ctx = m.situacao === 'saiu'
-            ? `<small>· ${m.margem === 0 ? 'empatada com o Z4, à frente só no desempate'
-                : `${m.margem} pt(s) de folga sobre o Z4`}</small>`
-            : `<small>· ${gapTxt(m.gapSalvacao, 'para sair do Z4')}</small>`;
-        return `<li class="${classe} clicavel" onclick="abrirGrupo('${m.grupo.replace(/'/g, "\\'")}','${m.time}')"
-            title="Ver a tabela do ${m.grupo}">
-            ${selo[m.situacao] ? `<span class="selo">${selo[m.situacao]}</span> ` : ''}
-            <b>${m.time}</b> · ${m.grupo} — ${m.de}º → <b>${m.para}º</b> ${setaMov(m)}
-            ${ctx} ${linhaJogo(m)}
-        </li>`;
-    }).join('') : '<li>Nenhuma loja sua na zona de queda. 🎉</li>';
+    const listaAgrupada = (lista, entrarEhBom, vazio) => {
+        if (!lista.length) return `<li>${vazio}</li>`;
+        return secoes(lista, entrarEhBom).map(sec =>
+            `<li class="sec-titulo">${sec.titulo} <span class="sec-n">${sec.itens.length}</span></li>`
+            + sec.itens.map(m => itemMov(m, entrarEhBom)).join('')
+        ).join('');
+    };
 
-    const cont = (lista, sit) => lista.filter(x => x.situacao === sit).length;
+    const g4Html = listaAgrupada(g4, true, `Nenhuma loja sua no G4 ${st.grupo ? 'deste grupo' : 'destes grupos'}.`);
+    const z4Html = listaAgrupada(z4, false, 'Nenhuma loja sua na zona de queda. 🎉');
 
     const check = (ok) => ok ? '<span class="ck sim">✔</span>' : '<span class="ck nao">✖</span>';
     const combosHtml = combos.length ? combos.slice(0, 14).map(c => `
@@ -783,7 +817,8 @@ function panoramaHtml() {
         <div class="pg-bloco">
             <h3>🟢 Movimentações no G4 <small>· 4 primeiros ${st.grupo ? 'do grupo' : 'de cada grupo'}</small></h3>
             <div class="pg-resumo">
-                ${cont(g4, 'entrou')} entrada(s) · ${cont(g4, 'saiu')} saída(s) · ${cont(g4, 'ficou')} mantida(s)
+                ${g4.filter(m => m.para === 1).length} liderança(s) ·
+                ${cont(g4, 'entrou')} entrada(s) · ${cont(g4, 'saiu')} saída(s) · ${g4.length} loja(s)
             </div>
             <ul class="pg-lista">${g4Html}</ul>
         </div>
@@ -791,7 +826,7 @@ function panoramaHtml() {
         <div class="pg-bloco">
             <h3>🔴 Movimentações no Z4 <small>· 4 últimos ${st.grupo ? 'do grupo' : 'de cada grupo'}</small></h3>
             <div class="pg-resumo">
-                ${cont(z4, 'entrou')} entrada(s) · ${cont(z4, 'saiu')} saída(s) · ${cont(z4, 'ficou')} mantida(s)
+                ${cont(z4, 'saiu')} saída(s) · ${cont(z4, 'entrou')} entrada(s) · ${z4.length} loja(s)
             </div>
             <ul class="pg-lista">${z4Html}</ul>
             <div class="pg-nota">Lojas da ${nomeCurto(REGIONAL_DESTAQUE)}. Posições após a projeção da rodada ${st.semana}.</div>

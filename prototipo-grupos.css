@@ -374,3 +374,54 @@
 .cal-passado small { color: var(--text-2); display: block; margin-top: 4px; }
 
 .tatica.contra { background: #fdecea; border-color: #f5c6c0; color: #c0392b; }
+
+/* ====== Agrupamento dos movimentos por tipo ====== */
+.pg-lista li.sec-titulo {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    padding: 10px 2px 2px;
+    font-size: .78em;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: default;
+}
+
+.pg-lista li.sec-titulo::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.pg-lista li.sec-titulo .sec-n {
+    order: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0 7px;
+    font-size: .95em;
+    color: var(--text-2);
+}
+
+/* Selo de liderança — sinal além da cor */
+.selo-lider {
+    display: inline-block;
+    font-size: .74em;
+    font-weight: 800;
+    letter-spacing: .04em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 5px;
+    vertical-align: 1px;
+    white-space: nowrap;
+}
+
+.selo-lider.ganhou { background: #fbbf24; color: #4a3200; box-shadow: 0 1px 3px rgba(180,130,0,.35); }
+.selo-lider.perdeu { background: #c0392b; color: #fff; }
+.selo-lider.segue { background: #fff3cd; color: #6b4d00; border: 1px solid #f0dca0; }
