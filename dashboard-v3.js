@@ -439,6 +439,34 @@ async function abrirPainelAcessos() {
     document.body.appendChild(fundo);
 }
 
+// ============================================================
+// FAROL DOS GOLS — até que dia cada indicador foi lançado
+// Verde: está no dia mais recente lançado. Vermelho: ficou para trás.
+// ============================================================
+
+async function carregarFarol() {
+    const el = document.getElementById('farol');
+    if (!el || !state.semana) return;
+    try {
+        const r = await fetch(`/api/farol/${state.semana}`, { cache: 'no-store' });
+        if (!r.ok) { el.innerHTML = ''; return; }
+        const d = await r.json();
+        if (!d.indicadores?.length) { el.innerHTML = ''; return; }
+
+        const atrasados = d.indicadores.filter(i => !i.atualizado).length;
+        el.innerHTML = `
+            <span class="farol-rot">Gols atualizados até <b>${d.referencia || '—'}</b>${
+                atrasados ? ` · <span class="farol-pend">${atrasados} pendente(s)</span>` : ''}:</span>
+            ${d.indicadores.map(i => `
+                <span class="farol-item ${i.atualizado ? 'ok' : 'atrasado'}"
+                    title="${i.indicador}: ${i.ultimoDia ? 'lançado até ' + i.ultimoDia : 'sem lançamento'}">
+                    <span class="farol-ponto"></span>${i.indicador}
+                </span>`).join('')}`;
+    } catch (e) {
+        el.innerHTML = '';
+    }
+}
+
 async function checkAuthentication() {
     try {
         const response = await fetch('/api/me');
@@ -532,6 +560,7 @@ async function carregarResumJogos() {
         const data = await response.json();
         state.gamesSummary = data;
         state.resumoCarregado = true;
+        carregarFarol();
         console.log(`✅ ${data.total} jogos carregados em cache!`);
 
         // Se nenhuma regional foi selecionada, mostrar dashboard de rankings

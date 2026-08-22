@@ -1827,3 +1827,53 @@ body {
 
 .alerta-pos.risco { filter: saturate(1.2); }
 .alerta-pos:hover { transform: scale(1.15); display: inline-block; }
+
+/* ====== Farol dos gols, no cabeçalho ====== */
+.farol {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.farol:empty { display: none; }
+
+.farol-rot {
+    font-size: .78em;
+    color: rgba(255, 255, 255, .8);
+    margin-right: 2px;
+}
+
+.farol-rot b { color: #fff; }
+.farol-pend { color: #ffd9d4; font-weight: 700; }
+
+.farol-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, .12);
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 20px;
+    padding: 2px 9px;
+    font-size: .72em;
+    font-weight: 700;
+    letter-spacing: .02em;
+    color: #fff;
+    cursor: help;
+}
+
+.farol-ponto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.farol-item.ok .farol-ponto { background: #34d399; box-shadow: 0 0 0 2px rgba(52, 211, 153, .3); }
+.farol-item.atrasado .farol-ponto { background: #f87171; box-shadow: 0 0 0 2px rgba(248, 113, 113, .3); }
+.farol-item.atrasado { background: rgba(248, 113, 113, .16); border-color: rgba(248, 113, 113, .35); }
+
+@media (max-width: 768px) {
+    .farol-rot { flex: 1 1 100%; }
+}
