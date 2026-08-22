@@ -1201,6 +1201,57 @@ def _dispositivo(ua):
     return f"{so}{' · ' + nav if nav else ''}"
 
 
+# ============================================================
+# FAROL DOS INDICADORES: até que dia cada gol foi lançado
+# ============================================================
+
+@app.route('/api/farol/<int:semana>', methods=['GET'])
+def get_farol(semana):
+    """Último dia lançado em cada indicador da rodada.
+
+    Verde = está no mesmo dia do indicador mais adiantado; vermelho = ficou
+    para trás. Serve para ver de relance o que ainda falta subir.
+    """
+    try:
+        garantir_arquivos_frescos()
+        garantir_rodada(semana)
+        import calculo_rapido as cr
+
+        dias = cr.DIAS_ORDENADOS
+        itens = []
+        for arquivo, slots in mapear_indicadores(semana).items():
+            fp = slots.get("atual")
+            ultimo = -1
+            if fp:
+                try:
+                    dados = cr._carregar_arquivo(fp)
+                    for i, dia in enumerate(dias):
+                        if any((v or {}).get(dia) for v in dados.values()):
+                            ultimo = i
+                except Exception as e:
+                    print(f"⚠️ farol falhou em {arquivo}: {e}")
+            itens.append({
+                "indicador": arquivo.rsplit('.', 1)[0],
+                "ultimoDiaIdx": ultimo,
+                "ultimoDia": dias[ultimo] if ultimo >= 0 else None,
+            })
+
+        referencia = max((i["ultimoDiaIdx"] for i in itens), default=-1)
+        for i in itens:
+            i["atualizado"] = i["ultimoDiaIdx"] == referencia and referencia >= 0
+
+        itens.sort(key=lambda i: (i["atualizado"], i["indicador"]))
+        return jsonify({
+            "semana": semana,
+            "referencia": dias[referencia] if referencia >= 0 else None,
+            "indicadores": itens,
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/semana', methods=['GET'])
 def get_semana():
     """Semana vigente, detectada pelos arquivos de confronto disponíveis.
