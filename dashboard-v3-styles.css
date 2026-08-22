@@ -1877,3 +1877,23 @@ body {
 @media (max-width: 768px) {
     .farol-rot { flex: 1 1 100%; }
 }
+
+/* Botão de copiar as três tabelas da home */
+.btn-copiar {
+    padding: 11px 18px;
+    align-self: flex-end;
+    font-weight: 700;
+    background: linear-gradient(135deg, #6b4d9e, #4a3270);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.btn-copiar:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(74, 50, 112, .32); }
+.btn-copiar:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+@media (max-width: 768px) {
+    .btn-copiar { width: 100%; align-self: stretch; }
+}
