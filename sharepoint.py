@@ -45,6 +45,11 @@ SUBPASTAS_RAIZ = {
 # espera antes de tentar de novo — insistir num throttle só o prolonga.
 ULTIMO_THROTTLE = 0.0
 
+# Pastas que falharam no último ciclo de download. O backend usa isso para não
+# marcar os dados como "frescos" quando parte deles não chegou — sem isso, uma
+# subpasta que falha deixa o arquivo velho valendo por todo o TTL.
+ULTIMAS_FALHAS = []
+
 
 class ThrottledError(RuntimeError):
     """O SharePoint respondeu 429 (excesso de requisições)."""
@@ -164,6 +169,7 @@ def baixar_rodada(semana, base_dest, timeout=25):
     Retorna {pasta: [arquivos]} — lista vazia se a subpasta não existir."""
     sub = f"rodada {semana}"
     out = {}
+    del ULTIMAS_FALHAS[:]
 
     def _uma(nome):
         link = PASTAS_SHAREPOINT.get(nome)
@@ -174,6 +180,7 @@ def baixar_rodada(semana, base_dest, timeout=25):
             return nome, baixar_pasta(link, dest, timeout=timeout, subpasta=sub)
         except Exception as e:
             print(f"⚠️ '{nome}/{sub}' indisponível: {e}")
+            ULTIMAS_FALHAS.append(f"{nome}/{sub}")
             return nome, []
 
     alvos = ["SEMANA ATUAL", "SEMANA ANTERIOR"]
@@ -200,6 +207,7 @@ def baixar_todas_pastas(base_dest, timeout=40, semanas=None):
                 pastas.append((f"{p}/rodada {s}", PASTAS_SHAREPOINT[p],
                                f"rodada {s}", f"{p}/rodada {s}"))
     resultado = {}
+    del ULTIMAS_FALHAS[:]
 
     def _uma(item):
         nome_pasta, link, sub, destino = item
@@ -209,6 +217,7 @@ def baixar_todas_pastas(base_dest, timeout=40, semanas=None):
         except Exception as e:
             # Uma pasta com problema não pode derrubar as demais
             print(f"⚠️ Falha ao baixar '{nome_pasta}': {e}")
+            ULTIMAS_FALHAS.append(nome_pasta)
             return nome_pasta, []
 
     # Pastas em paralelo (todas as 5 juntas cabem no limite de tempo do Vercel)

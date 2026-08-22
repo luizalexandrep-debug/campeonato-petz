@@ -220,6 +220,7 @@ import threading
 # visita rebaixar ~90 arquivos do SharePoint e levou a 429 (throttle).
 CACHE_TTL_SEGUNDOS = 900         # frescor máximo antes de rebaixar (15 min)
 ESPERA_APOS_THROTTLE = 900       # depois de um 429, aguarda antes de tentar
+RETENTAR_APOS_FALHA = 60         # download parcial: tenta de novo em 1 min
 _fetch_lock = threading.Lock()
 _MARKER = TMP_BASE / ".fetched_at"
 
@@ -296,6 +297,7 @@ def garantir_arquivos_frescos(force=False):
             # devolveria a semana da cópia empacotada (desatualizada) e as
             # subpastas certas nunca seriam baixadas.
             sharepoint.baixar_todas_pastas(str(TMP_BASE), timeout=40)
+            falhas = list(sharepoint.ULTIMAS_FALHAS)
             try:
                 sem = semana_atual()
             except Exception:
@@ -304,13 +306,22 @@ def garantir_arquivos_frescos(force=False):
                 for s in (sem, sem - 1):
                     if s > 0:
                         sharepoint.baixar_rodada(s, str(TMP_BASE), timeout=30)
+                        falhas += list(sharepoint.ULTIMAS_FALHAS)
             # Só marcamos como fresco se algo realmente chegou. Marcar após um
             # download vazio congelava a cópia velha por todo o TTL.
-            if active_base() == TMP_BASE:
+            if active_base() != TMP_BASE:
+                print("⚠️ Nada foi baixado do SharePoint; mantendo a cópia empacotada.")
+            elif falhas:
+                # Parte das pastas não veio: os arquivos antigos continuam ali.
+                # Marcamos um frescor curto para tentar de novo em ~1 min, em vez
+                # de deixar o dado velho valendo o TTL inteiro.
+                atraso = max(0, CACHE_TTL_SEGUNDOS - RETENTAR_APOS_FALHA)
+                _MARKER.write_text(str(time.time() - atraso))
+                print(f"⚠️ Download parcial ({', '.join(sorted(set(falhas)))}); "
+                      f"nova tentativa em ~{RETENTAR_APOS_FALHA}s.")
+            else:
                 _MARKER.write_text(str(time.time()))
                 print("✅ Dados do SharePoint atualizados em /tmp.")
-            else:
-                print("⚠️ Nada foi baixado do SharePoint; mantendo a cópia empacotada.")
         except Exception as e:
             print(f"⚠️ garantir_arquivos_frescos falhou: {e}")
 
