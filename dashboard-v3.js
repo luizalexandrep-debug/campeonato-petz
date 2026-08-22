@@ -2117,7 +2117,11 @@ async function abrirDetalhesJogo(team1, team2) {
                         <small class="t-dist">${distritoDaLoja(team1) || ''}</small></span>
                     <span class="placar">
                         <small>Placar Projetado</small>
-                        <b>${placarProj.replace('x', '×')}</b>
+                        <b class="placar-nums">${(() => {
+                            const [pa, pb] = placarProj.split('x').map(v => v.trim());
+                            return `<span class="pl-num" data-lado="esq" title="Ver só os gols de ${team1}">${pa}</span>`
+                                + ` × <span class="pl-num" data-lado="dir" title="Ver só os gols de ${team2}">${pb}</span>`;
+                        })()}</b>
                         <small>Acumulado ${placarAcum}</small>
                     </span>
                     <span class="t"><span class="t-nome">${team2}<button class="bt-cal" title="Próximos jogos de ${team2}"
@@ -2160,11 +2164,40 @@ async function abrirDetalhesJogo(team1, team2) {
     // 1 = quem é team1 no resumo. Como podemos ter invertido a exibição,
     // traduzimos para "o time da esquerda".
     const golEsq = invertido ? 2 : 1, golDir = invertido ? 1 : 2;
-    corpo.innerHTML = ordenarIndicadores(Object.keys(jogo.dadosTeam1)).map(ind => `
-        <div class="tables-wrapper">
-            ${criarTabelaIndicador(team1, jogo.dadosTeam1[ind], ind, jogo.dadosTeam2[ind], gols[ind] === golEsq)}
-            ${criarTabelaIndicador(team2, jogo.dadosTeam2[ind], ind, jogo.dadosTeam1[ind], gols[ind] === golDir)}
-        </div>`).join('');
+    const todos = ordenarIndicadores(Object.keys(jogo.dadosTeam1));
+
+    // Clicar num número do placar filtra os indicadores para os gols daquele
+    // lado; clicar de novo (ou em "ver todos") volta à lista completa.
+    const desenhar = (lado) => {
+        const inds = lado === 'esq' ? todos.filter(i => gols[i] === golEsq)
+            : lado === 'dir' ? todos.filter(i => gols[i] === golDir)
+                : todos;
+        const dono = lado === 'esq' ? team1 : team2;
+        const aviso = lado ? `
+            <div class="filtro-gols">
+                Mostrando os <b>${inds.length}</b> gol(s) de <b>${dono}</b>
+                <button class="filtro-limpar" data-lado="">ver todos os ${todos.length}</button>
+            </div>` : '';
+
+        corpo.innerHTML = aviso + (inds.length ? inds.map(ind => `
+            <div class="tables-wrapper">
+                ${criarTabelaIndicador(team1, jogo.dadosTeam1[ind], ind, jogo.dadosTeam2[ind], gols[ind] === golEsq)}
+                ${criarTabelaIndicador(team2, jogo.dadosTeam2[ind], ind, jogo.dadosTeam1[ind], gols[ind] === golDir)}
+            </div>`).join('')
+            : '<div class="carregando">Nenhum gol deste lado nesta rodada.</div>');
+
+        fundo.querySelectorAll('.pl-num').forEach(n =>
+            n.classList.toggle('ativo', n.dataset.lado === lado));
+        const limpar = corpo.querySelector('.filtro-limpar');
+        if (limpar) limpar.onclick = () => desenhar(null);
+        corpo.scrollTop = 0;
+    };
+
+    fundo.querySelectorAll('.pl-num').forEach(n => {
+        n.onclick = () => desenhar(n.classList.contains('ativo') ? null : n.dataset.lado);
+    });
+
+    desenhar(null);
 
     const bt = fundo.querySelector('#btExpModal');
     if (bt) bt.onclick = (e) => exportarJogoImagem(team1, team2, e.currentTarget);

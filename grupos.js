@@ -725,7 +725,12 @@ async function abrirDetalhesJogo(loja) {
                     <span class="t"><span class="t-nome"><button class="bt-cal" title="Próximos jogos de ${loja}"
                         onclick="abrirCalendarioDaLoja('${loja}')">📅</button>${loja}</span>
                         <small class="t-dist">${distritoDaLoja(loja) || ''}</small></span>
-                    <span class="placar"><small>Placar Projetado</small><b>${placar}</b>
+                    <span class="placar"><small>Placar Projetado</small>
+                        <b class="placar-nums">${(() => {
+                            const [pa, pb] = placar.split('×').map(v => v.trim());
+                            return `<span class="pl-num" data-lado="esq" title="Ver só os gols de ${loja}">${pa}</span>`
+                                + ` × <span class="pl-num" data-lado="dir" title="Ver só os gols de ${adv}">${pb}</span>`;
+                        })()}</b>
                         <small>rodada ${st.semana}</small></span>
                     <span class="t"><span class="t-nome">${adv}<button class="bt-cal" title="Próximos jogos de ${adv}"
                         onclick="abrirCalendarioDaLoja('${adv}')">📅</button></span>
@@ -760,11 +765,40 @@ async function abrirDetalhesJogo(loja) {
         (g.team1 === loja && g.team2 === adv) || (g.team1 === adv && g.team2 === loja)) || {};
     const gols = jogoResumo.golsProjetados || {};
     const ehTeam1 = jogoResumo.team1 === loja;
-    corpo.innerHTML = ordenarIndicadores(Object.keys(d1.dados)).map(ind => `
-        <div class="tables-wrapper">
-            ${tabelaIndicadorJogo(loja, d1.dados[ind], ind, d2.dados[ind], gols[ind] === (ehTeam1 ? 1 : 2))}
-            ${tabelaIndicadorJogo(adv, d2.dados[ind], ind, d1.dados[ind], gols[ind] === (ehTeam1 ? 2 : 1))}
-        </div>`).join('');
+    const golEsq = ehTeam1 ? 1 : 2, golDir = ehTeam1 ? 2 : 1;
+    const todos = ordenarIndicadores(Object.keys(d1.dados));
+
+    // Clicar num número do placar mostra só os gols daquele lado.
+    const desenhar = (lado) => {
+        const inds = lado === 'esq' ? todos.filter(i => gols[i] === golEsq)
+            : lado === 'dir' ? todos.filter(i => gols[i] === golDir)
+                : todos;
+        const dono = lado === 'esq' ? loja : adv;
+        const aviso = lado ? `
+            <div class="filtro-gols">
+                Mostrando os <b>${inds.length}</b> gol(s) de <b>${dono}</b>
+                <button class="filtro-limpar">ver todos os ${todos.length}</button>
+            </div>` : '';
+
+        corpo.innerHTML = aviso + (inds.length ? inds.map(ind => `
+            <div class="tables-wrapper">
+                ${tabelaIndicadorJogo(loja, d1.dados[ind], ind, d2.dados[ind], gols[ind] === golEsq)}
+                ${tabelaIndicadorJogo(adv, d2.dados[ind], ind, d1.dados[ind], gols[ind] === golDir)}
+            </div>`).join('')
+            : '<div class="carregando">Nenhum gol deste lado nesta rodada.</div>');
+
+        fundo.querySelectorAll('.pl-num').forEach(n =>
+            n.classList.toggle('ativo', n.dataset.lado === lado));
+        const limpar = corpo.querySelector('.filtro-limpar');
+        if (limpar) limpar.onclick = () => desenhar(null);
+        corpo.scrollTop = 0;
+    };
+
+    fundo.querySelectorAll('.pl-num').forEach(n => {
+        n.onclick = () => desenhar(n.classList.contains('ativo') ? null : n.dataset.lado);
+    });
+
+    desenhar(null);
 }
 
 function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) {

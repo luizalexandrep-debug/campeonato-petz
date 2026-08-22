@@ -1909,3 +1909,43 @@ body {
 .modal-acessos .modal-corpo {
     overscroll-behavior: contain;
 }
+
+/* Números do placar clicáveis: filtram os gols de cada lado */
+.placar-nums .pl-num {
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 0 6px;
+    transition: background .15s var(--ease);
+}
+
+.placar-nums .pl-num:hover { background: rgba(255, 255, 255, .18); }
+.placar-nums .pl-num.ativo { background: rgba(255, 255, 255, .28); box-shadow: inset 0 0 0 2px rgba(255,255,255,.5); }
+
+.filtro-gols {
+    background: var(--brand-tint);
+    border: 1px solid #c6dbf2;
+    border-left: 4px solid var(--brand);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: .9em;
+    color: var(--brand-ink);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filtro-limpar {
+    margin-left: auto;
+    background: var(--surface);
+    border: 1px solid #c6dbf2;
+    color: var(--brand-ink);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: .88em;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.filtro-limpar:hover { background: #dbe6f7; }
