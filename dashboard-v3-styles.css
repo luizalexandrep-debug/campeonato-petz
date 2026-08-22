@@ -1897,3 +1897,15 @@ body {
 @media (max-width: 768px) {
     .btn-copiar { width: 100%; align-self: stretch; }
 }
+
+/* ====== Rolagem contida nas janelas ======
+   Sem isto, ao chegar ao fim da rolagem interna o navegador continua rolando
+   a página atrás (scroll chaining). O 'contain' interrompe a corrente. */
+.modal-fundo,
+.modal-corpo,
+.modal-jogo .modal-corpo,
+.modal-cal .modal-corpo,
+.modal-dist .modal-corpo,
+.modal-acessos .modal-corpo {
+    overscroll-behavior: contain;
+}

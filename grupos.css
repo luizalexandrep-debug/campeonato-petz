@@ -603,3 +603,11 @@
     font-size: .82em;
     opacity: .8;
 }
+
+/* Rolagem contida: impede que a página atrás role quando a janela chega ao fim */
+.modal-fundo,
+.modal-corpo,
+.modal-jogo .modal-corpo,
+.modal-cal .modal-corpo {
+    overscroll-behavior: contain;
+}
