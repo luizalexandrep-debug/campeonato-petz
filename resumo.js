@@ -329,7 +329,7 @@ function rsmBlocoGrupos(d) {
                     r.ganhou === 3 ? 'V' : r.ganhou === 1 ? 'E' : 'D'}</span>`;
             return `<tr>
                 <td class="c b">${r.pos}º</td>
-                <td class="l"><b>${r.time}</b> <small>${r.distrito}</small></td>
+                <td class="l">${rsmSigla(r.time, r.distrito)}</td>
                 <td class="c">${mov}</td><td class="c">${zona}</td>
                 <td class="c">${res}</td>
                 <td class="l pequeno">${r.adv ? 'vs ' + r.adv : ''}</td>
@@ -359,18 +359,18 @@ function rsmBlocoDestaques(d) {
 
     const gPro = cx('🎯 Goleadas a favor <small>6 x 0</small>', d.golead.pro,
         'Nenhuma goleada de 6x0 a favor nesta rodada.',
-        x => `<li><b>${x.loja}</b> <small>${x.distrito}</small> ${x.placar} <b>${x.adv}</b>
+        x => `<li>${rsmSigla(x.loja, x.distrito)} ${x.placar} <b>${x.adv}</b>
               <small>${x.advReg}</small></li>`, 'bom');
     const gCon = cx('🧨 Goleadas contra <small>0 x 6</small>', d.golead.contra,
         'Nenhuma loja nossa levou 6x0. Bom sinal.',
-        x => `<li><b>${x.loja}</b> <small>${x.distrito}</small> ${x.placar} <b>${x.adv}</b>
+        x => `<li>${rsmSigla(x.loja, x.distrito)} ${x.placar} <b>${x.adv}</b>
               <small>${x.advReg}</small></li>`, 'ruim');
 
     const rot = { V: 'vitória', E: 'empate', D: 'derrota' };
     const dom = d.viradas.filter(v => v.noDomingo);
     const outras = d.viradas.filter(v => !v.noDomingo);
     const virada = (v) => `<li class="${v.ganho > 0 ? 'bom' : 'ruim'}">
-        <b>${v.loja}</b> <small>${v.distrito}</small> vs <b>${v.adv}</b> —
+        ${rsmSigla(v.loja, v.distrito)} vs <b>${v.adv}</b> —
         estava em ${rot[v.de]} ${v.placarAntes} e terminou em
         <b>${rot[v.para]} ${v.placarFim}</b>
         <small>(virou na ${v.virouEm}${v.noDomingo ? ', no último dia' : ''})</small>
@@ -390,7 +390,7 @@ function rsmBlocoCornetas(d) {
     const semVencer = d.jejum.filter(j => j.semVencer > 0).slice(0, 12);
     const linhas = semVencer.map(j => `
         <tr class="${j.agora === 'V' ? 'aliviou' : ''}">
-            <td class="l"><b>${j.loja}</b> <small>${j.distrito}</small></td>
+            <td class="l">${rsmSigla(j.loja, j.distrito)}</td>
             <td class="c b desce">${j.semVencer}</td>
             <td class="l pequeno">${j.ultimaVitoria
                 ? `rodada ${j.ultimaVitoria} — ${j.ultimaVitoriaPlacar} vs ${j.ultimaVitoriaAdv}`
@@ -402,10 +402,10 @@ function rsmBlocoCornetas(d) {
         </tr>`).join('');
 
     const piores = d.piores.slice(0, 8).map(x => `<li>
-        <b>${x.loja}</b> <small>${x.distrito}</small> perdeu de <b>${x.gm} x ${x.gs}</b>
+        ${rsmSigla(x.loja, x.distrito)} perdeu de <b>${x.gm} x ${x.gs}</b>
         para <b>${x.adv}</b></li>`).join('');
     const melhores = d.melhores.slice(0, 8).map(x => `<li>
-        <b>${x.loja}</b> <small>${x.distrito}</small> venceu por <b>${x.gm} x ${x.gs}</b>
+        ${rsmSigla(x.loja, x.distrito)} venceu por <b>${x.gm} x ${x.gs}</b>
         <b>${x.adv}</b></li>`).join('');
 
     return `
@@ -431,7 +431,7 @@ function rsmBlocoLideres(d) {
     return `<div class="rs-box bom">
         <h5>👑 Nossas lojas na liderança do grupo <small>${d.lideres.length} de 14</small></h5>
         <ul class="rs-lista">${d.lideres.map(l => `<li>
-            <b>${l.loja}</b> <small>${l.distrito}</small> — ${l.grupo}, ${l.pts} pts
+            ${rsmSigla(l.loja, l.distrito)} — ${l.grupo}, ${l.pts} pts
             ${l.folga != null ? `<small>${l.folga > 0
                 ? `${rsmPl(l.folga, 'ponto', 'pontos')} de folga sobre ${l.vice}`
                 : `empatado com ${l.vice}, na frente pelo desempate`}</small>` : ''}
@@ -639,6 +639,16 @@ function rsmVariar(lista, i) {
 
 function rsmPlural(n, um, muitos) {
     return `${n} ${n === 1 ? um : muitos}`;
+}
+
+// Sigla clicável: abre a janela de detalhe dos gols daquele jogo, a mesma das
+// tabelas de grupo. Só vira link se a loja tiver jogo nesta rodada.
+function rsmSigla(loja, distrito) {
+    const temJogo = !!(st.projAtual || {})[loja];
+    const dist = distrito ? ` <small>${distrito}</small>` : '';
+    if (!temJogo) return `<b>${loja}</b>${dist}`;
+    return `<b class="rs-sigla" title="Ver os gols de ${loja}"
+        onclick="event.stopPropagation(); abrirDetalhesJogo('${loja.replace(/'/g, "\\'")}')">${loja}</b>${dist}`;
 }
 
 function rsmNome(loja, distrito) {
@@ -1058,7 +1068,7 @@ function rsmBlocoPorPouco(d) {
 
     const linha = (x, perdeu) => `
         <tr class="${x.decisivo ? 'decisivo' : ''}">
-            <td class="l"><b>${x.loja}</b> <small>${x.distrito}</small></td>
+            <td class="l">${rsmSigla(x.loja, x.distrito)}</td>
             <td class="l">${x.indicador}</td>
             <td class="c b ${perdeu ? 'd' : 'v'}">${rsmValor(x.falta, x.tipo)}</td>
             <td class="l pequeno">vs ${x.adv} <small>${x.advReg}</small></td>

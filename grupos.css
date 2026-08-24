@@ -783,3 +783,10 @@
 .rs-lim.on { background: #b7791f; border-color: #b7791f; color: #fff; }
 .rs-tab tr.decisivo { background: #fff7ed; font-weight: 600; }
 .rs-tab tr.decisivo td:first-child { box-shadow: inset 3px 0 0 #b7791f; }
+
+/* Sigla clicável dentro do resumo — abre o detalhe dos gols */
+.rs-sigla {
+    cursor: pointer; color: #2b5aa8;
+    text-decoration: underline dotted; text-underline-offset: 2px;
+}
+.rs-sigla:hover { color: #b7791f; text-decoration-style: solid; }
