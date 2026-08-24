@@ -466,10 +466,13 @@ def detectar_tipo(file_path):
 def indicador_meta(arquivo, file_path=None):
     """Nome/tipo do indicador. O tipo é DETECTADO do arquivo (formato da
     célula); INDICADORES_MAP serve só para o nome amigável."""
-    nome = INDICADORES_MAP.get(arquivo, {}).get("name") or arquivo.rsplit(".", 1)[0]
+    import calculo_rapido as cr
+    nome = INDICADORES_MAP.get(arquivo, {}).get("name") or cr.nome_limpo(arquivo)
     tipo = detectar_tipo(file_path) if file_path is not None else \
         INDICADORES_MAP.get(arquivo, {}).get("type", "R$")
-    return {"name": nome, "type": tipo}
+    # 'nivel' = o gol vale pelo valor da própria semana (marcado no nome do
+    # arquivo); 'evolucao' = regra padrão, evolução sobre a semana anterior.
+    return {"name": nome, "type": tipo, "criterio": cr.criterio_do_nome(arquivo)}
 
 
 def ler_dias_loja(file_path, sigla):
@@ -1246,7 +1249,7 @@ def get_farol(semana):
                 except Exception as e:
                     print(f"⚠️ farol falhou em {arquivo}: {e}")
             itens.append({
-                "indicador": arquivo.rsplit('.', 1)[0],
+                "indicador": cr.nome_limpo(arquivo),
                 "ultimoDiaIdx": ultimo,
                 "ultimoDia": dias[ultimo] if ultimo >= 0 else None,
             })
@@ -1289,6 +1292,7 @@ def get_evolucao(semana):
         ev = cr.evolucao_diaria(confrontos, memoria)
         ev["semana"] = semana
         ev["indicadores"] = sorted(memoria.keys())
+        ev["criterios"] = {a: (m.get("criterio") or "evolucao") for a, m in memoria.items()}
         return jsonify(ev)
     except Exception as e:
         import traceback
@@ -1581,6 +1585,7 @@ def get_loja_dias(sigla, semana):
                 dados_dias.setdefault(arquivo, {})[semana_type] = {
                     "name": info["name"],
                     "type": info["type"],
+                    "criterio": info["criterio"],
                     "dias": dias
                 }
 
@@ -1814,11 +1819,23 @@ def _calcular_summary(semana):
     # de comparação o gol empata em todos os jogos e o placar não soma 6.
     avisos = []
     for arquivo, sem in memoria.items():
-        nome = arquivo.rsplit('.', 1)[0]
+        nome = cr.nome_limpo(arquivo)
+        nivel = sem.get("criterio") == "nivel"
+        if nivel:
+            avisos.append({
+                "tipo": "criterio",
+                "indicador": nome,
+                "semana": f"rodada {semana}",
+                "mensagem": f"{nome} está sendo disputado pelo valor da SEMANA ATUAL, "
+                            f"não pela evolução: vence o gol quem tiver o maior número "
+                            f"na semana. A base da semana anterior não é usada."
+            })
         for rotulo, chave in (("semana anterior", "anterior"), ("semana atual", "atual")):
             lojas = sem.get(chave) or {}
             if not lojas:
                 continue  # arquivo ausente nessa semana (não é o mesmo problema)
+            if nivel and chave == "anterior":
+                continue  # base intencionalmente sem uso — zerada não é erro
             tem_valor = any(v for dias in lojas.values()
                             for k, v in dias.items() if k != cr.CHAVE_TOTAL)
             if not tem_valor:

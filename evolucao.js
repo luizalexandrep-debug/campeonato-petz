@@ -17,7 +17,8 @@ const evo = {
 };
 
 function evoNomeGol(arquivo) {
-    return String(arquivo).replace(/\.xlsx$/i, '');
+    return typeof nomeIndicador === 'function'
+        ? nomeIndicador(arquivo) : String(arquivo).replace(/\.xlsx$/i, '');
 }
 
 function evoPontos(res) {

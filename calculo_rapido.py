@@ -19,6 +19,29 @@ DIAS_ORDENADOS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 # Chave onde guardamos o valor da coluna 'Total' da planilha (não é um dia).
 CHAVE_TOTAL = '__total__'
 
+# Gols disputados por NÍVEL em vez de evolução.
+#
+# A regra padrão do campeonato é evolução percentual sobre a semana anterior.
+# Em algumas rodadas um indicador vale pelo valor da própria semana — o share
+# de PIX da rodada 9, por exemplo. Marcamos isso no nome do arquivo da SEMANA
+# ATUAL ('SHARE PIX (ATUAL).xlsx'), porque assim a regra fica visível no
+# próprio SharePoint e não se confunde com uma base que subiu zerada por erro.
+MARCADORES_NIVEL = ('(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EVOLUÇÃO)')
+
+
+def criterio_do_nome(nome):
+    """'nivel' se o nome do arquivo traz um dos marcadores; senão 'evolucao'."""
+    alvo = str(nome).upper()
+    return 'nivel' if any(m in alvo for m in MARCADORES_NIVEL) else 'evolucao'
+
+
+def nome_limpo(arquivo):
+    """Nome do indicador para exibição, sem a extensão e sem o marcador."""
+    nome = str(arquivo).rsplit('.', 1)[0]
+    for m in MARCADORES_NIVEL:
+        nome = re.sub(re.escape(m), '', nome, flags=re.IGNORECASE)
+    return ' '.join(nome.split()).strip()
+
 
 def _listar_xlsx(semana_path):
     if not semana_path.exists():
@@ -243,7 +266,8 @@ def carregar_tudo(semana_anterior, semana_atual):
     for arquivo, slots in mapa.items():
         # Tipo detectado do arquivo (prefere a semana atual)
         tipo = detectar_tipo(slots.get("atual") or slots.get("anterior"))
-        memoria[arquivo] = {"anterior": {}, "atual": {}, "tipo": tipo}
+        memoria[arquivo] = {"anterior": {}, "atual": {}, "tipo": tipo,
+                            "criterio": criterio_do_nome(arquivo)}
         for semana_type in ("anterior", "atual"):
             fp = slots.get(semana_type)
             if fp:
@@ -383,6 +407,17 @@ def _placar(memoria, team1, team2, hoje_idx=None, usar_total_pct=True,
             agg = (lambda o, ds: sum((o or {}).get(d, 0) for d in ds))
         t1_ant, t1_atu = agg(d1a, dias_anterior), agg(d1t, dias_a_contar)
         t2_ant, t2_atu = agg(d2a, dias_anterior), agg(d2t, dias_a_contar)
+        if semanas.get("criterio") == "nivel":
+            # Gol por NÍVEL: vale o valor desta semana, sem olhar a anterior.
+            if t1_atu > t2_atu:
+                score1 += 1
+                gols[arquivo] = 1
+            elif t2_atu > t1_atu:
+                score2 += 1
+                gols[arquivo] = 2
+            else:
+                gols[arquivo] = 0
+            continue
         # Evolução PERCENTUAL em relação à semana anterior (regra do campeonato).
         # Deve casar exatamente com calcularPlacarLocal() no frontend.
         ev1 = evolucao_pct(t1_ant, t1_atu)

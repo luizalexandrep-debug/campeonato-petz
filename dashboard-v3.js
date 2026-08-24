@@ -78,6 +78,24 @@ function formatarMoedaBR(valor) {
 // atual. Sem evolução para medir, não se atribui vitória, empate nem derrota.
 // VENDAS é o gol fixo do campeonato, então encabeça qualquer lista de
 // indicadores; os demais seguem em ordem alfabética.
+// Gols marcados no nome do arquivo como disputados por NÍVEL — vale o valor da
+// própria semana, não a evolução sobre a anterior. Precisa casar com
+// MARCADORES_NIVEL em calculo_rapido.py.
+const MARCADORES_NIVEL = ['(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EVOLUÇÃO)'];
+
+function criterioDoNome(nome) {
+    const alvo = String(nome || '').toUpperCase();
+    return MARCADORES_NIVEL.some(m => alvo.includes(m)) ? 'nivel' : 'evolucao';
+}
+
+function nomeIndicador(arquivo) {
+    let n = String(arquivo || '').replace(/\.xlsx$/i, '');
+    MARCADORES_NIVEL.forEach(m => {
+        n = n.replace(new RegExp(m.replace(/[()]/g, '\\$&'), 'ig'), '');
+    });
+    return n.replace(/\s+/g, ' ').trim();
+}
+
 function ordenarIndicadores(nomes) {
     const ehVendas = (n) => /^vendas\b/i.test(String(n).replace(/\.xlsx$/i, '').trim());
     return [...nomes].sort((a, b) => {
@@ -317,6 +335,15 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
         const total1Atual = agregar(dias1Atual);
         const total2Anterior = agregar(dias2Anterior);
         const total2Atual = agregar(dias2Atual);
+
+        // Gol por NÍVEL: vale o valor desta semana, sem olhar a anterior.
+        const criterio = dados1.atual?.criterio || dados1.anterior?.criterio
+            || criterioDoNome(indicador);
+        if (criterio === 'nivel') {
+            if (total1Atual > total2Atual) score1 += 1;
+            else if (total2Atual > total1Atual) score2 += 1;
+            return;
+        }
 
         // Calcular evolução percentual (mesma regra do backend)
         const evolucao1Pct = evolucaoPct(total1Anterior, total1Atual);
@@ -892,7 +919,7 @@ function insightsDistrito(distrito, lojas) {
 
     // Gol mais fraco (mais derrotas) e mais forte (mais vitórias)
     const gols = Object.entries(analiseGol).map(([ind, a]) => ({
-        nome: ind.replace(/\.xlsx$/i, ''), v: a.v, d: a.d, e: a.e, total: a.v + a.d + a.e
+        nome: nomeIndicador(ind), v: a.v, d: a.d, e: a.e, total: a.v + a.d + a.e
     }));
     gols.sort((a, b) => a.v - b.v);
     const golFraco = gols[0];
@@ -1807,7 +1834,8 @@ function loadRankingDashboard() {
     // Dois tipos: 'rodada' (informativo, a rodada ainda não começou) e
     // 'zerado' (planilha subiu sem valores — aí sim é erro de upload).
     const avisosRodada = avisos.filter(a => a.tipo === 'rodada');
-    const avisosZerado = avisos.filter(a => a.tipo !== 'rodada');
+    const avisosCriterio = avisos.filter(a => a.tipo === 'criterio');
+    const avisosZerado = avisos.filter(a => a.tipo !== 'rodada' && a.tipo !== 'criterio');
     const blocoRodada = avisosRodada.length ? `
         <div class="alerta-info">
             <div class="alerta-titulo">⏳ Rodada em preparação</div>
@@ -1819,7 +1847,12 @@ function loadRankingDashboard() {
             <ul>${avisosZerado.map(a => `<li><b>${a.indicador}</b> (${a.semana}) subiu zerado — esse gol não está sendo disputado, então os placares somam menos de 6.</li>`).join('')}</ul>
             <div class="alerta-dica">Dica: na planilha, use <b>Colar Especial → Somente Valores</b> antes de subir, para as fórmulas não zerarem ao fechar a origem.</div>
         </div>` : '';
-    const blocoAvisos = blocoRodada + blocoZerado;
+    const blocoCriterio = avisosCriterio.length ? `
+        <div class="alerta-criterio">
+            <div class="alerta-titulo">🎯 Regra especial nesta rodada</div>
+            <ul>${avisosCriterio.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
+        </div>` : '';
+    const blocoAvisos = blocoRodada + blocoCriterio + blocoZerado;
 
     // ---------- Render ----------
     container.innerHTML = `
@@ -2277,8 +2310,8 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
         return '<div class="table-container"><div class="table-title">Dados indisponíveis</div></div>';
     }
 
-    // Mostrar o nome do arquivo do indicador (sem a extensão .xlsx)
-    const displayName = (indicador || 'Indicador').replace(/\.xlsx$/i, '');
+    // Nome do indicador para exibição (sem extensão e sem o marcador de critério)
+    const displayName = nomeIndicador(indicador || 'Indicador');
     const diasOrdenados = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
     // Tipo detectado automaticamente no backend ('%' ou 'R$')
@@ -2293,6 +2326,11 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     // A linha final é MÉDIA só quando não há coluna 'Total' na planilha.
     const usaTotalPlanilha = ehPct && !!(dados.atual?.dias?.[CHAVE_TOTAL]
                                          || dados.anterior?.dias?.[CHAVE_TOTAL]);
+    // Gol por NÍVEL: vale o valor da própria semana. A semana anterior não
+    // entra na conta, então as colunas passam a comparar direto com o
+    // adversário — mostrar "Evolução 0%" para os dois só confundiria.
+    const ehNivel = (dados.atual?.criterio || dados.anterior?.criterio
+                     || criterioDoNome(indicador)) === 'nivel';
 
     let totalAnterior = 0;
     let totalAtual = 0;
@@ -2313,50 +2351,66 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
         <div class="table-container">
             <div class="table-title${fezGol ? ' marcou' : ''}">
                 <span class="tt-loja">${teamName}</span><span class="tt-ind">${displayName}</span>
+                ${ehNivel ? '<span class="tt-nivel" title="Este gol vale pelo valor da semana atual, não pela evolução">nível</span>' : ''}
                 ${fezGol ? '<span class="tt-gol" title="Está fazendo este gol">⚽</span>' : ''}</div>
             <table>
                 <thead>
                     <tr>
                         <th>Dia</th>
-                        <th>S. Anterior</th>
-                        <th>S. Atual</th>
-                        <th>Evolução</th>
+                        <th>${ehNivel ? 'Adversário' : 'S. Anterior'}</th>
+                        <th>${ehNivel ? 'Esta loja' : 'S. Atual'}</th>
+                        <th>${ehNivel ? 'Diferença' : 'Evolução'}</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
 
     diasOrdenados.forEach(dia => {
-        const valorAnterior = (dados && dados.anterior && dados.anterior.dias) ? (dados.anterior.dias[dia] || 0) : 0;
         const valorAtual = (dados && dados.atual && dados.atual.dias) ? (dados.atual.dias[dia] || 0) : 0;
+        // No gol por nível a coluna de comparação é o adversário no mesmo dia.
+        const valorAnterior = ehNivel
+            ? (dadosAdversario?.atual?.dias?.[dia] || 0)
+            : ((dados && dados.anterior && dados.anterior.dias) ? (dados.anterior.dias[dia] || 0) : 0);
 
         // Mesma regra do placar e da linha de TOTAL: sem lançamento na semana
         // atual a evolução é 0%, não -100%.
-        const evolucao = evolucaoPct(valorAnterior, valorAtual);
+        const evolucao = ehNivel ? (valorAtual - valorAnterior)
+                                 : evolucaoPct(valorAnterior, valorAtual);
         const evoluClass = evolucao > 0 ? 'positive' : evolucao < 0 ? 'negative' : 'neutral';
+        const celulaComp = ehNivel
+            ? `${evolucao > 0 ? '+' : ''}${fmt(evolucao)}`
+            : `${evolucao.toFixed(2)}%`;
 
         html += `
             <tr>
                 <td class="day-label">${dia}</td>
-                <td class="value-anterior">${fmt(valorAnterior)}</td>
+                <td class="value-anterior">${dadosAdversario || !ehNivel ? fmt(valorAnterior) : '—'}</td>
                 <td class="value-atual">${fmt(valorAtual)}</td>
-                <td class="evolution ${evoluClass}">${evolucao.toFixed(2)}%</td>
+                <td class="evolution ${evoluClass}">${dadosAdversario || !ehNivel ? celulaComp : '—'}</td>
             </tr>
         `;
     });
 
     // Totais (soma para R$, média dos dias com dado para %)
-    totalAnterior = agregar(dados.anterior?.dias);
+    totalAnterior = ehNivel ? totalAdversarioAtual : agregar(dados.anterior?.dias);
     totalAtual = agregar(dados.atual?.dias);
 
     // Mesma regra do placar (zerou nesta semana = 0%, não -100%)
-    const evolucaoTotal = evolucaoPct(totalAnterior, totalAtual);
+    const evolucaoTotal = ehNivel ? (totalAtual - totalAdversarioAtual)
+                                  : evolucaoPct(agregar(dados.anterior?.dias), totalAtual);
     const evoluClassTotal = evolucaoTotal > 0 ? 'positive' : evolucaoTotal < 0 ? 'negative' : 'neutral';
 
     // Comparativo com adversário: aplicar cores apenas na célula de evolução
     let classeEvolucao = evoluClassTotal;
     let faltaVirar = null; // R$ que ESTE time precisa vender a mais p/ virar o indicador
-    if (dadosAdversario) {
+    if (dadosAdversario && ehNivel) {
+        // Gol por nível: vence quem tiver o maior valor na semana.
+        if (totalAtual > totalAdversarioAtual) classeEvolucao = 'evolution-melhor';
+        else if (totalAtual < totalAdversarioAtual) {
+            classeEvolucao = 'evolution-pior';
+            faltaVirar = totalAdversarioAtual - totalAtual;
+        }
+    } else if (dadosAdversario) {
         const evolucaoAdversario = evolucaoPct(totalAdversarioAnterior, totalAdversarioAtual);
 
         // Quem tiver evolução melhor (maior) fica verde, pior fica vermelho
@@ -2367,8 +2421,9 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
             // Está perdendo: quanto precisa vender a mais na S. Atual para virar o gol.
             // Precisa que a evolução dele iguale/supere a do adversário:
             //   S.Atual necessária = S.Anterior_dele × (1 + evoluçãoAdv/100)
-            if (totalAnterior > 0) {
-                const necessario = totalAnterior * (1 + evolucaoAdversario / 100);
+            const baseAnterior = agregar(dados.anterior?.dias);
+            if (baseAnterior > 0) {
+                const necessario = baseAnterior * (1 + evolucaoAdversario / 100);
                 const falta = necessario - totalAtual;
                 if (falta > 0) faltaVirar = falta;
             }
@@ -2378,17 +2433,21 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     html += `
                 <tr class="total-row">
                     <td class="day-label">${ehPct && !usaTotalPlanilha ? 'MÉDIA' : 'TOTAL'}</td>
-                    <td style="text-align: center;">${fmt(totalAnterior)}</td>
+                    <td style="text-align: center;">${dadosAdversario || !ehNivel ? fmt(totalAnterior) : '—'}</td>
                     <td style="text-align: center;">${fmt(totalAtual)}</td>
-                    <td class="evolution ${classeEvolucao}" style="text-align: center;">${evolucaoTotal.toFixed(2)}%</td>
+                    <td class="evolution ${classeEvolucao}" style="text-align: center;">${
+                        ehNivel ? (dadosAdversario ? `${evolucaoTotal > 0 ? '+' : ''}${fmt(evolucaoTotal)}` : '—')
+                                : `${evolucaoTotal.toFixed(2)}%`}</td>
                 </tr>
     `;
 
     if (faltaVirar !== null) {
         const rotulo = (ehPct && !usaTotalPlanilha) ? 'Falta p/ virar (média)' : 'Falta p/ virar';
-        const dica = ehPct
-            ? `${teamName} precisa subir +${fmt(faltaVirar)} na média para virar este gol`
-            : `${teamName} precisa vender +${fmt(faltaVirar)} na S. Atual para virar este gol`;
+        const dica = ehNivel
+            ? `${teamName} precisa passar o adversário em +${fmt(faltaVirar)} nesta semana para virar este gol`
+            : (ehPct
+                ? `${teamName} precisa subir +${fmt(faltaVirar)} na média para virar este gol`
+                : `${teamName} precisa vender +${fmt(faltaVirar)} na S. Atual para virar este gol`);
         html += `
                 <tr class="virar-row">
                     <td class="day-label" style="font-size: 0.78em; color: #999;">${rotulo}</td>
@@ -2551,7 +2610,7 @@ function atualizarSeçãoEstatísticas(stats, analise) {
 
     const golsOrdenados = Object.entries(analise)
         .map(([nome, dados]) => ({
-            nome: nome.replace(/\.xlsx$/i, ''),
+            nome: nomeIndicador(nome),
             vitórias: dados.vitórias,
             derrotas: dados.derrotas,
             empates: dados.empates,

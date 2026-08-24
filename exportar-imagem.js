@@ -58,7 +58,7 @@ function expTexto(ctx, txt, x, y, { fonte, cor, align }) {
 
 // Reúne o que precisa ser desenhado para um indicador, aplicando as MESMAS
 // regras de agregação e evolução do dashboard.
-function expLinhasIndicador(dados, dadosAdv) {
+function expLinhasIndicador(dados, dadosAdv, indicador) {
     const tipo = dados.atual?.type || dados.anterior?.type || 'R$';
     const ehPct = tipo === '%';
     const diasAnt = dados.anterior?.dias || {};
@@ -67,28 +67,45 @@ function expLinhasIndicador(dados, dadosAdv) {
         ? agregarPct(o, EXP.dias)
         : EXP.dias.reduce((a, d) => a + ((o || {})[d] || 0), 0);
 
+    // Gol por NÍVEL: a semana anterior não entra na conta, então a coluna de
+    // comparação passa a ser o adversário nesta mesma semana.
+    const ehNivel = (dados.atual?.criterio || dados.anterior?.criterio
+                     || (typeof criterioDoNome === 'function' ? criterioDoNome(indicador) : 'evolucao')) === 'nivel';
+    const diasAdv = dadosAdv?.atual?.dias || {};
+
     const linhas = EXP.dias.map(dia => {
-        const a = diasAnt[dia] || 0;
+        const a = ehNivel ? (diasAdv[dia] || 0) : (diasAnt[dia] || 0);
         const b = diasAtu[dia] || 0;
-        return { dia, ant: a, atu: b, evo: evolucaoPct(a, b) };
+        return { dia, ant: a, atu: b, evo: ehNivel ? (b - a) : evolucaoPct(a, b) };
     });
 
-    const totAnt = agregar(diasAnt);
     const totAtu = agregar(diasAtu);
+    const totAdv = dadosAdv ? agregar(dadosAdv.atual?.dias) : 0;
+    const totAnt = ehNivel ? totAdv : agregar(diasAnt);
     const usaTotalPlanilha = ehPct && !!(diasAtu[CHAVE_TOTAL] || diasAnt[CHAVE_TOTAL]);
 
-    let evoAdv = null, faltaVirar = null;
-    if (dadosAdv) {
-        evoAdv = evolucaoPct(agregar(dadosAdv.anterior?.dias), agregar(dadosAdv.atual?.dias));
-    }
-    const evoTot = evolucaoPct(totAnt, totAtu);
-    if (evoAdv !== null && evoTot < evoAdv && totAnt > 0) {
-        const falta = totAnt * (1 + evoAdv / 100) - totAtu;
-        if (falta > 0) faltaVirar = falta;
+    let evoAdv = null, faltaVirar = null, evoTot;
+    if (ehNivel) {
+        // Vence quem tiver o maior valor na semana: a "evolução" vira a
+        // diferença para o adversário, e o alvo é zero.
+        evoTot = totAtu - totAdv;
+        if (dadosAdv) {
+            evoAdv = 0;
+            if (evoTot < 0) faltaVirar = -evoTot;
+        }
+    } else {
+        if (dadosAdv) {
+            evoAdv = evolucaoPct(agregar(dadosAdv.anterior?.dias), agregar(dadosAdv.atual?.dias));
+        }
+        evoTot = evolucaoPct(totAnt, totAtu);
+        if (evoAdv !== null && evoTot < evoAdv && totAnt > 0) {
+            const falta = totAnt * (1 + evoAdv / 100) - totAtu;
+            if (falta > 0) faltaVirar = falta;
+        }
     }
 
     return {
-        tipo, ehPct, linhas, totAnt, totAtu, evoTot, evoAdv, faltaVirar,
+        tipo, ehPct, ehNivel, linhas, totAnt, totAtu, evoTot, evoAdv, faltaVirar,
         rotuloTotal: (ehPct && !usaTotalPlanilha) ? 'MÉDIA' : 'TOTAL'
     };
 }
@@ -113,7 +130,8 @@ function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
     ctx.fillStyle = c.navy;
     ctx.fillRect(x, y, w, 52);
     expTexto(ctx, loja, x + w / 2, y + 19, { fonte: expFonte(17, 800), cor: '#fff', align: 'center' });
-    expTexto(ctx, indicador.replace(/\.xlsx$/i, ''), x + w / 2, y + 38,
+    expTexto(ctx, (typeof nomeIndicador === 'function' ? nomeIndicador(indicador)
+        : indicador.replace(/\.xlsx$/i, '')), x + w / 2, y + 38,
         { fonte: expFonte(12, 600), cor: 'rgba(255,255,255,.82)', align: 'center' });
     if (marcou) {
         // Bola no canto direito, marcando quem está fazendo o gol.
@@ -131,9 +149,9 @@ function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
     ctx.fillRect(x, cy, w, 30);
     const th = { fonte: expFonte(11.5, 700), cor: c.texto2 };
     expTexto(ctx, 'Dia', cols[0], cy + 15, th);
-    expTexto(ctx, 'S. Anterior', cols[1], cy + 15, { ...th, align: 'right' });
-    expTexto(ctx, 'S. Atual', cols[2], cy + 15, { ...th, align: 'right' });
-    expTexto(ctx, 'Evolução', cols[3], cy + 15, { ...th, align: 'right' });
+    expTexto(ctx, info.ehNivel ? 'Adversário' : 'S. Anterior', cols[1], cy + 15, { ...th, align: 'right' });
+    expTexto(ctx, info.ehNivel ? 'Esta loja' : 'S. Atual', cols[2], cy + 15, { ...th, align: 'right' });
+    expTexto(ctx, info.ehNivel ? 'Diferença' : 'Evolução', cols[3], cy + 15, { ...th, align: 'right' });
     cy += 30;
 
     info.linhas.forEach((l, i) => {
@@ -144,7 +162,7 @@ function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
         expTexto(ctx, l.dia, cols[0], cy + 15, { fonte: expFonte(12.5, 600), cor: c.texto });
         expTexto(ctx, fmt(l.ant), cols[1], cy + 15, { fonte: expFonte(12.5, 400), cor: c.texto3, align: 'right' });
         expTexto(ctx, fmt(l.atu), cols[2], cy + 15, { fonte: expFonte(12.5, 700), cor: c.texto, align: 'right' });
-        expTexto(ctx, `${l.evo.toFixed(2)}%`, cols[3], cy + 15, {
+        expTexto(ctx, info.ehNivel ? `${l.evo > 0 ? '+' : ''}${fmt(l.evo)}` : `${l.evo.toFixed(2)}%`, cols[3], cy + 15, {
             fonte: expFonte(12.5, 700),
             cor: l.evo > 0 ? c.pos : l.evo < 0 ? c.neg : c.texto3, align: 'right'
         });
@@ -162,7 +180,8 @@ function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
     expTexto(ctx, info.rotuloTotal, cols[0], cy + 17, { fonte: expFonte(12.5, 800), cor: c.texto });
     expTexto(ctx, fmt(info.totAnt), cols[1], cy + 17, { fonte: expFonte(12.5, 700), cor: c.texto, align: 'right' });
     expTexto(ctx, fmt(info.totAtu), cols[2], cy + 17, { fonte: expFonte(12.5, 800), cor: c.texto, align: 'right' });
-    expTexto(ctx, `${info.evoTot.toFixed(2)}%`, cols[3], cy + 17, {
+    expTexto(ctx, info.ehNivel ? `${info.evoTot > 0 ? '+' : ''}${fmt(info.evoTot)}`
+        : `${info.evoTot.toFixed(2)}%`, cols[3], cy + 17, {
         fonte: expFonte(13, 800),
         cor: venceu ? c.pos : perdeu ? c.neg : c.texto2, align: 'right'
     });
@@ -211,8 +230,8 @@ function expDesenharJogo(jogoData) {
     // 1ª passada: medir
     const infos = indicadores.map(ind => ({
         ind,
-        a: expLinhasIndicador(dadosTeam1[ind], dadosTeam2[ind]),
-        b: expLinhasIndicador(dadosTeam2[ind], dadosTeam1[ind])
+        a: expLinhasIndicador(dadosTeam1[ind], dadosTeam2[ind], ind),
+        b: expLinhasIndicador(dadosTeam2[ind], dadosTeam1[ind], ind)
     }));
     const alturaCabecalho = 132;
     let altura = alturaCabecalho + EXP.pad;
