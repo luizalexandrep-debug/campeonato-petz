@@ -188,6 +188,40 @@ async function rsmMontar() {
         jejum.sort((a, b) => b.semVencer - a.semVencer || a.vitorias - b.vitorias);
     } catch (e) { console.warn('histórico indisponível', e); }
 
+    /* ---- 5. o quadro do "por pouco": gols decididos por uma diferença mínima ---- */
+    let porPouco = { perdidos: [], ganhos: [] };
+    try {
+        const mg = await pegar(`/margens/${semana}`);
+        (mg.jogos || []).forEach(j => {
+            [[j.team1, j.s1, j.s2, 1], [j.team2, j.s2, j.s1, 2]].forEach(([loja, meu, adv, lado]) => {
+                const i = de[loja];
+                if (!i || i.regional !== REGIONAL_DESTAQUE) return;
+                j.gols.forEach(g => {
+                    if (g.falta === null || g.vencedor === 0) return;
+                    const perdi = g.vencedor !== lado;
+                    // O gol foi decisivo se virá-lo mudaria o resultado do jogo.
+                    const res = (a, b) => a > b ? 'V' : (a === b ? 'E' : 'D');
+                    const atual = res(meu, adv);
+                    const virado = perdi ? res(meu + 1, adv - 1) : res(meu - 1, adv + 1);
+                    const item = {
+                        loja, distrito: i.distrito,
+                        adv: lado === 1 ? j.team2 : j.team1,
+                        advReg: de[lado === 1 ? j.team2 : j.team1]?.regional || '—',
+                        indicador: g.indicador, tipo: g.tipo,
+                        falta: g.falta, placar: `${meu} x ${adv}`,
+                        resultado: atual, viraria: virado,
+                        decisivo: atual !== virado,
+                        meuValor: g.valores[loja]?.atu, advValor: g.valores[lado === 1 ? j.team2 : j.team1]?.atu
+                    };
+                    (perdi ? porPouco.perdidos : porPouco.ganhos).push(item);
+                });
+            });
+        });
+        const ord = (a, b) => a.falta - b.falta;
+        porPouco.perdidos.sort(ord);
+        porPouco.ganhos.sort(ord);
+    } catch (e) { console.warn('margens indisponíveis', e); }
+
     const minhasDaRodada = Object.keys(proj)
         .filter(l => de[l] && de[l].regional === REGIONAL_DESTAQUE)
         .map(l => ({ loja: l, distrito: de[l].distrito, ...proj[l] }));
@@ -197,7 +231,7 @@ async function rsmMontar() {
     return {
         semana, semDados: false, diasLancados,
         rankReg, rankDist, contra, grupos, lideres, golead,
-        viradas, jejum, piores, melhores,
+        viradas, jejum, piores, melhores, porPouco,
         minhaPos: rankReg.findIndex(r => r.nome === REGIONAL_DESTAQUE) + 1,
         minha: rankReg.find(r => r.nome === REGIONAL_DESTAQUE)
     };
@@ -413,7 +447,8 @@ const RSM_ABAS = [
     { id: 'lideres', rot: '3 · Líderes', fn: rsmBlocoLideres },
     { id: 'grupos', rot: '4 · Grupo a grupo', fn: rsmBlocoGrupos },
     { id: 'destaques', rot: '5 · Goleadas e viradas', fn: rsmBlocoDestaques },
-    { id: 'cornetas', rot: '6 · Cornetas', fn: rsmBlocoCornetas }
+    { id: 'cornetas', rot: '6 · Cornetas', fn: rsmBlocoCornetas },
+    { id: 'porpouco', rot: '7 · Por pouco', fn: (d) => rsmBlocoPorPouco(d) }
 ];
 
 function rsmRender() {
@@ -814,6 +849,62 @@ function rsmRoteiroNarrado() {
     }
     S.push({ titulo: '🔥 As viradas', paras: pv });
 
+    /* ---------- por pouco ---------- */
+    if (d.porPouco) {
+        const f = rsmFiltrarPorPouco(d);
+        const pp = [];
+        pp.push(rsmEscolher([
+            `E agora o quadro que dói mais que derrota: **o "por pouco"**. São gols que escaparam por uma diferença que cabe no bolso.`,
+            `Chegou o quadro do "quase": gols decididos por tão pouco que dá vontade de pedir revisão do VAR na planilha.`,
+            `Vamos ao quadro **"por um fio"** — onde a gente descobre que campeonato se ganha no detalhe.`
+        ]));
+        if (f.perdidosDecisivos.length) {
+            const x = f.perdidosDecisivos[0];
+            pp.push(`Começo pelo que mais arde: **${rsmNome(x.loja, x.distrito)}** perdeu o gol de ${x.indicador} para o ${x.adv} por **${rsmValor(x.falta, x.tipo)}**. ` +
+                `E olha o tamanho disso: só esse gol mudaria o jogo de ${x.resultado === 'D' ? 'derrota' : (x.resultado === 'E' ? 'empate' : 'vitória')} para ` +
+                `**${x.viraria === 'V' ? 'vitória' : (x.viraria === 'E' ? 'empate' : 'derrota')}**. O placar era ${x.placar}.`);
+            // A mesma loja pode ter perdido mais de um gol no fio do bigode —
+            // aí a frase é outra, senão parece que ela aparece duas vezes.
+            const mesmaLoja = f.perdidosDecisivos.slice(1).filter(y => y.loja === x.loja);
+            const outrasLojas = f.perdidosDecisivos.slice(1).filter(y => y.loja !== x.loja).slice(0, 4);
+            if (mesmaLoja.length) {
+                pp.push(`E não parou por aí: a **mesma ${x.loja}** ainda perdeu ` +
+                    rsmLista(mesmaLoja.map(y => `${y.indicador} por ${rsmValor(y.falta, y.tipo)}`)) +
+                    `. Cada um desses gols, sozinho, já mudava o resultado. Foi um jogo perdido no detalhe.`);
+            }
+            if (outrasLojas.length) {
+                pp.push(`E não foi só ela: ` +
+                    rsmLista(outrasLojas.map(y => `${y.loja} (${y.indicador}, ${rsmValor(y.falta, y.tipo)})`)) +
+                    ` também ${outrasLojas.length === 1 ? 'deixou' : 'deixaram'} pontos na mesa por muito pouco.`);
+            }
+        } else if (f.perdidos.length) {
+            const x = f.perdidos[0];
+            pp.push(`Perder por pouco a gente perdeu: **${rsmNome(x.loja, x.distrito)}** ficou a **${rsmValor(x.falta, x.tipo)}** de levar o gol de ${x.indicador} contra o ${x.adv}. Não mudava o jogo, mas mostra o tamanho do detalhe.`);
+        } else {
+            pp.push(`Boa notícia: nenhum gol nosso foi perdido por menos de R$ ${rsmLimite} nesta rodada. Quando a gente perdeu, perdeu com o adversário merecendo.`);
+        }
+        if (f.ganhosDecisivos.length) {
+            const y = f.ganhosDecisivos[0];
+            pp.push(rsmEscolher([
+                `Mas nem só de lamento vive a mesa: **${rsmNome(y.loja, y.distrito)}** ganhou o gol de ${y.indicador} contra o ${y.adv} por apenas **${rsmValor(y.falta, y.tipo)}** — e foi esse fio de cabelo que segurou o ${y.resultado === 'V' ? 'triunfo' : 'ponto'} no ${y.placar}.`,
+                `Do lado bom: **${rsmNome(y.loja, y.distrito)}** levou o gol de ${y.indicador} sobre o ${y.adv} por **${rsmValor(y.falta, y.tipo)}** de diferença. Sem esse gol, o jogo virava ${y.viraria === 'D' ? 'derrota' : (y.viraria === 'E' ? 'empate' : 'vitória')}. Passou perto.`
+            ]));
+            const maisGanhos = f.ganhosDecisivos.slice(1).filter(z => z.loja !== y.loja).slice(0, 4);
+            if (maisGanhos.length) {
+                pp.push(`Também ${maisGanhos.length === 1 ? 'escapou' : 'escaparam'} no sufoco: ` +
+                    rsmLista(maisGanhos.map(z => `${z.loja} (${z.indicador}, ${rsmValor(z.falta, z.tipo)})`)) + '.');
+            }
+        } else if (f.ganhos.length) {
+            pp.push(`E teve ${rsmPlural(f.ganhos.length, 'gol ganho', 'gols ganhos')} no sufoco, o mais apertado deles por ${rsmValor(f.ganhos[0].falta, f.ganhos[0].tipo)} — sem mudar o resultado do jogo, mas com o coração na mão.`);
+        }
+        pp.push(rsmEscolher([
+            `Fica o recado: **${rsmLimite} reais decidem gol**. Uma venda a mais na sexta e a conversa aqui era outra.`,
+            `Ou seja: campeonato não se perde por goleada, se perde por detalhe. Uma última venda no domingo muda o placar.`,
+            `Guardem esse número: dá para virar gol com **menos de ${rsmLimite} reais**. É isso que separa a gente do adversário.`
+        ]));
+        S.push({ titulo: '🪙 Por pouco', paras: pp.map(rsmFrase) });
+    }
+
     /* ---------- cornetas ---------- */
     const pc = [];
     pc.push(rsmEscolher([
@@ -912,5 +1003,100 @@ function rsmSugeridoTexto() {
 
 function rsmOutraVersao() {
     rsmSemente = (rsmSemente + 7919) & 0x7fffffff;
+    rsmRender();
+}
+
+/* ==========================================================================
+   O quadro do "por pouco" — gols decididos por quase nada.
+
+   A margem vem do backend: quanto faltava, na semana atual, para o perdedor
+   alcançar a evolução do adversário naquele indicador. Um gol perdido por
+   R$ 80 em vermífugos é o tipo de coisa que muda o humor da reunião — ainda
+   mais quando aquele gol sozinho mudaria o resultado do jogo.
+   ========================================================================== */
+
+// Limites do que conta como "por pouco". O usuário troca na própria tela.
+const RSM_LIMITES = [50, 100, 250, 500, 1000];
+let rsmLimite = 100;                 // R$
+const RSM_LIMITE_PCT = 0.001;        // 0,1 ponto percentual
+
+// "p.p." já termina com ponto: emendar o ponto final da frase vira "p.p.."
+// (ou "p.p.**." quando o valor está em negrito). Aqui a gente tira o ponto
+// sobrando sem mexer em reticências de verdade.
+function rsmFrase(txt) {
+    return txt
+        .replace(/p\.p\.(\*\*)?\./g, 'p.p.$1')
+        .replace(/([^.])\.\.(?!\.)/g, '$1.');
+}
+
+function rsmValor(v, tipo) {
+    if (v == null) return '—';
+    return tipo === '%'
+        ? (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + ' p.p.'
+        : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function rsmDentroDoLimite(it) {
+    return it.tipo === '%' ? it.falta <= RSM_LIMITE_PCT : it.falta <= rsmLimite;
+}
+
+function rsmFiltrarPorPouco(d) {
+    const p = (d.porPouco?.perdidos || []).filter(rsmDentroDoLimite);
+    const g = (d.porPouco?.ganhos || []).filter(rsmDentroDoLimite);
+    return {
+        perdidos: p, ganhos: g,
+        perdidosDecisivos: p.filter(x => x.decisivo),
+        ganhosDecisivos: g.filter(x => x.decisivo)
+    };
+}
+
+function rsmBlocoPorPouco(d) {
+    if (!d.porPouco) return '<div class="rs-nota">Margens indisponíveis para esta rodada.</div>';
+    const f = rsmFiltrarPorPouco(d);
+    const botoes = RSM_LIMITES.map(v =>
+        `<button class="rs-lim${rsmLimite === v ? ' on' : ''}" onclick="rsmTrocarLimite(${v})">até R$ ${v}</button>`).join('');
+
+    const linha = (x, perdeu) => `
+        <tr class="${x.decisivo ? 'decisivo' : ''}">
+            <td class="l"><b>${x.loja}</b> <small>${x.distrito}</small></td>
+            <td class="l">${x.indicador}</td>
+            <td class="c b ${perdeu ? 'd' : 'v'}">${rsmValor(x.falta, x.tipo)}</td>
+            <td class="l pequeno">vs ${x.adv} <small>${x.advReg}</small></td>
+            <td class="c">${x.placar}</td>
+            <td class="c">${x.decisivo
+                ? `<span class="tag ${perdeu ? 'z4' : 'g4'}">${perdeu
+                    ? `viraria ${x.resultado}→${x.viraria}` : `seria ${x.resultado}→${x.viraria}`}</span>`
+                : '<small>não muda o jogo</small>'}</td>
+        </tr>`;
+
+    const tabela = (lista, perdeu, vazio) => lista.length ? `
+        <table class="rs-tab">
+            <thead><tr><th class="l">Loja</th><th class="l">Gol</th><th>Margem</th>
+                <th class="l">Adversário</th><th>Placar</th><th>Impacto</th></tr></thead>
+            <tbody>${lista.slice(0, 25).map(x => linha(x, perdeu)).join('')}</tbody>
+        </table>
+        ${lista.length > 25 ? `<div class="rs-nota">Mostrando os 25 mais apertados de ${lista.length}.</div>` : ''}`
+        : `<div class="rs-nota">${vazio}</div>`;
+
+    return `
+    <div class="rs-limites">
+        <span class="pequeno">Considerar "por pouco" quando faltou:</span> ${botoes}
+        <span class="pequeno">· nos gols de share, até ${(RSM_LIMITE_PCT * 100).toFixed(1).replace('.', ',')} p.p.</span>
+    </div>
+    <div class="rs-nota">A margem é quanto faltava na semana para alcançar a evolução do adversário naquele gol —
+        a mesma conta do "falta p/ virar" do detalhe do jogo. Linha destacada = aquele gol sozinho mudaria o resultado da partida.</div>
+
+    <div class="rs-box ruim">
+        <h5>😖 Perdemos por pouco <small>${f.perdidos.length} ${f.perdidos.length === 1 ? 'gol' : 'gols'}, sendo ${f.perdidosDecisivos.length} que ${f.perdidosDecisivos.length === 1 ? 'mudaria' : 'mudariam'} o jogo</small></h5>
+        ${tabela(f.perdidos, true, 'Nenhum gol perdido dentro desse limite. Ou a gente ganhou, ou perdeu com folga.')}
+    </div>
+    <div class="rs-box bom">
+        <h5>😅 Ganhamos por pouco <small>${f.ganhos.length} ${f.ganhos.length === 1 ? 'gol' : 'gols'}, sendo ${f.ganhosDecisivos.length} que ${f.ganhosDecisivos.length === 1 ? 'segurou' : 'seguraram'} o resultado</small></h5>
+        ${tabela(f.ganhos, false, 'Nenhum gol ganho no sufoco dentro desse limite.')}
+    </div>`;
+}
+
+function rsmTrocarLimite(v) {
+    rsmLimite = v;
     rsmRender();
 }

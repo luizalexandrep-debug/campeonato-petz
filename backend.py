@@ -1373,6 +1373,39 @@ def historico_lojas():
     return {t: [v[k] for k in sorted(v)] for t, v in hist.items()}
 
 
+@app.route('/api/margens/<int:semana>', methods=['GET'])
+@login_required
+def get_margens(semana):
+    """Por quanto cada gol da rodada foi ganho ou perdido.
+
+    Alimenta o quadro "por pouco": quem perdeu um gol por cem reais e quem
+    ganhou por menos ainda. O número é quanto faltava na SEMANA ATUAL para o
+    perdedor alcançar a evolução do adversário — a mesma conta do "falta p/
+    virar" que aparece no detalhe do jogo.
+    """
+    try:
+        garantir_arquivos_frescos()
+        import calculo_rapido as cr
+
+        confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
+        if not confrontos_path.exists():
+            return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
+        confrontos = cr.ler_confrontos(confrontos_path)
+        garantir_rodada(semana)
+        memoria = cr.carregar_tudo(dir_anterior(semana), dir_atual(semana))
+        if cr.semana_atual_vazia(memoria):
+            return jsonify({"semana": semana, "semDados": True, "jogos": []})
+        return jsonify({
+            "semana": semana,
+            "semDados": False,
+            "jogos": cr.margens(confrontos, memoria),
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/historico-lojas', methods=['GET'])
 @login_required
 def get_historico_lojas():

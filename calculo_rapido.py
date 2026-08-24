@@ -6,6 +6,7 @@ abrir os arquivos repetidamente.
 Este módulo é usado tanto pelo gerador de cache local quanto pelo endpoint de
 reprocessamento no servidor.
 """
+import math
 import os
 import re
 from pathlib import Path
@@ -451,6 +452,97 @@ def _placar(memoria, team1, team2, hoje_idx=None, usar_total_pct=True,
             else:
                 gols[arquivo] = 0   # empate real (sem dado em nenhuma semana)
     return score1, score2, gols
+
+
+def _falta_para_virar(ant_perd, atu_perd, ant_venc, atu_venc, criterio):
+    """Quanto faltou, na SEMANA ATUAL, para o perdedor virar o gol.
+
+    A regra do campeonato compara evolução percentual, então "faltar pouco"
+    não é a diferença bruta entre os dois: é quanto o perdedor precisaria ter
+    vendido a mais para a evolução dele alcançar a do adversário.
+
+        evolução do perdedor = (atu + falta - ant) / ant
+        precisa alcançar     = evolução do vencedor
+        =>  falta = ant * (1 + evoVenc/100) - atu
+
+    Casos de borda:
+      - gol por NÍVEL: vale o valor da semana, então falta = atu_venc - atu_perd;
+      - perdedor sem base (ant = 0): a evolução dele é 0 por regra. Se o
+        vencedor evoluiu, nenhum valor vira o gol -> None. Se os dois estão em
+        0%, o desempate é pelo maior valor atual;
+      - vencedor sem base: a evolução dele é 0, então basta o perdedor ficar
+        acima da própria base.
+    """
+    if criterio == 'nivel':
+        return max(0.0, atu_venc - atu_perd)
+
+    ev_venc = evolucao_pct(ant_venc, atu_venc)
+
+    if ant_perd == 0:
+        # Evolução travada em 0: só dá para virar no desempate por valor atual.
+        return max(0.0, atu_venc - atu_perd) if ev_venc <= 0 else None
+
+    alvo = ant_perd * (1 + ev_venc / 100.0)
+    # Empate de evolução ainda perde no desempate (maior valor atual), então o
+    # alvo real é o maior entre alcançar a evolução e passar o valor do rival.
+    if abs(ev_venc - evolucao_pct(ant_perd, alvo)) < 1e-9 and alvo <= atu_venc:
+        alvo = max(alvo, atu_venc)
+    return max(0.0, alvo - atu_perd)
+
+
+def margens(confrontos, memoria, hoje_idx=None):
+    """Por quanto cada gol foi ganho ou perdido, em R$ (ou pontos percentuais).
+
+    Devolve, para cada confronto, o detalhe de cada indicador com a distância
+    que separou os dois — é o "quadro do quase" da mesa redonda: quem perdeu
+    um gol por cem reais e quem ganhou por menos ainda.
+    """
+    dias = DIAS_ORDENADOS[:hoje_idx + 1] if hoje_idx is not None else DIAS_ORDENADOS
+    saida = []
+    for conf in confrontos:
+        t1, t2 = conf["team1"], conf["team2"]
+        s1, s2, gols = _placar(memoria, t1, t2, hoje_idx, truncar_anterior=False)
+        itens = []
+        for arquivo, semanas in memoria.items():
+            venc = gols.get(arquivo)
+            if venc is None:
+                continue
+            ehPct = semanas.get("tipo") == "%"
+            criterio = semanas.get("criterio") or 'evolucao'
+            if ehPct:
+                agg = lambda o: agregar_pct(o, dias)
+            else:
+                agg = lambda o: sum((o or {}).get(d, 0) for d in dias)
+            a1, u1 = agg(semanas["anterior"].get(t1)), agg(semanas["atual"].get(t1))
+            a2, u2 = agg(semanas["anterior"].get(t2)), agg(semanas["atual"].get(t2))
+            if venc == 1:
+                falta = _falta_para_virar(a2, u2, a1, u1, criterio)
+            elif venc == 2:
+                falta = _falta_para_virar(a1, u1, a2, u2, criterio)
+            else:
+                falta = 0.0          # empate real: qualquer venda desempata
+            # Share vive na casa dos milésimos: arredondar para 2 casas
+            # transformaria a margem em zero e mataria justamente o quadro.
+            # E o arredondamento é sempre PARA CIMA: a margem precisa ser
+            # suficiente para virar o gol, não "quase".
+            casas = 6 if ehPct else 2
+            if falta is not None:
+                fator = 10 ** casas
+                falta = math.ceil(falta * fator) / fator
+            itens.append({
+                "indicador": nome_limpo(arquivo),
+                "arquivo": arquivo,
+                "tipo": semanas.get("tipo"),
+                "criterio": criterio,
+                "vencedor": venc,
+                "falta": falta,
+                "valores": {t1: {"ant": round(a1, 4), "atu": round(u1, 4)},
+                            t2: {"ant": round(a2, 4), "atu": round(u2, 4)}},
+            })
+        saida.append({"team1": t1, "team2": t2,
+                      "placar": f"{s1} x {s2}", "s1": s1, "s2": s2,
+                      "gols": itens})
+    return saida
 
 
 def semana_atual_vazia(memoria):
