@@ -463,7 +463,7 @@ def detectar_tipo(file_path):
     return tipo
 
 
-def indicador_meta(arquivo, file_path=None):
+def indicador_meta(arquivo, file_path=None, outro_path=None):
     """Nome/tipo do indicador. O tipo é DETECTADO do arquivo (formato da
     célula); INDICADORES_MAP serve só para o nome amigável."""
     import calculo_rapido as cr
@@ -472,7 +472,9 @@ def indicador_meta(arquivo, file_path=None):
         INDICADORES_MAP.get(arquivo, {}).get("type", "R$")
     # 'nivel' = o gol vale pelo valor da própria semana (marcado no nome do
     # arquivo); 'evolucao' = regra padrão, evolução sobre a semana anterior.
-    return {"name": nome, "type": tipo, "criterio": cr.criterio_do_nome(arquivo)}
+    nomes = [arquivo] + [p.name for p in (file_path, outro_path) if p is not None]
+    criterio = 'nivel' if any(cr.criterio_do_nome(n) == 'nivel' for n in nomes) else 'evolucao'
+    return {"name": nome, "type": tipo, "criterio": criterio}
 
 
 def ler_dias_loja(file_path, sigla):
@@ -1571,7 +1573,8 @@ def get_loja_dias(sigla, semana):
 
         for arquivo, slots in mapa.items():
             # Tipo detectado do arquivo (prefere o da semana atual)
-            info = indicador_meta(arquivo, slots.get("atual") or slots.get("anterior"))
+            info = indicador_meta(arquivo, slots.get("atual") or slots.get("anterior"),
+                                  slots.get("anterior") if slots.get("atual") else None)
 
             for semana_type in ("anterior", "atual"):
                 file_path = slots.get(semana_type)

@@ -266,8 +266,12 @@ def carregar_tudo(semana_anterior, semana_atual):
     for arquivo, slots in mapa.items():
         # Tipo detectado do arquivo (prefere a semana atual)
         tipo = detectar_tipo(slots.get("atual") or slots.get("anterior"))
+        # O marcador vale em qualquer um dos dois arquivos: assim dá para
+        # deixar a rodada configurada antes de a semana atual começar a subir.
+        nomes = [arquivo] + [f.name for f in (slots.get("atual"), slots.get("anterior")) if f]
+        criterio = 'nivel' if any(criterio_do_nome(n) == 'nivel' for n in nomes) else 'evolucao'
         memoria[arquivo] = {"anterior": {}, "atual": {}, "tipo": tipo,
-                            "criterio": criterio_do_nome(arquivo)}
+                            "criterio": criterio}
         for semana_type in ("anterior", "atual"):
             fp = slots.get(semana_type)
             if fp:
