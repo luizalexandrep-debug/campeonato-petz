@@ -954,12 +954,29 @@ def get_historico():
 # CLASSIFICAÇÃO POR LOJA (grupos)
 # ============================================================
 
-def classificacao_lojas():
+def rodadas_classificacao():
+    """Rodadas que têm arquivo de classificação por loja disponível."""
+    base = pasta_dados("ClassificacaoLojas")
+    if not base.exists():
+        return []
+    ns = set()
+    for f in base.glob("*.xlsx"):
+        if f.name.startswith("~"):
+            continue
+        m = re.search(r"(\d+)", f.stem)
+        if m:
+            ns.add(int(m.group(1)))
+    return sorted(ns)
+
+
+def classificacao_lojas(rodada=None):
     """Lê a classificação por loja/grupo exportada do Power BI.
 
     Pasta 'Classificação Lojas' no SharePoint, arquivos 'Rodada N.xlsx' com as
     colunas SERIE_GRUPO | Rank | Time | Pts | Jogos | VIT | EMP | DER | GM | GS | SG.
-    Usa sempre o arquivo da rodada mais alta. Retorna (rodada, {grupo: [linhas]}).
+    Sem `rodada`, usa o arquivo da rodada mais alta; com `rodada`, usa aquele
+    arquivo — é assim que dá para reabrir uma rodada passada, projetando a
+    rodada N sobre a base da rodada N-1. Retorna (rodada, {grupo: [linhas]}).
     """
     base = pasta_dados("ClassificacaoLojas")
     if not base.exists():
@@ -970,8 +987,15 @@ def classificacao_lojas():
         if f.name.startswith("~"):
             continue
         m = re.search(r"(\d+)", f.stem)
-        if m and int(m.group(1)) > melhor_n:
-            melhor, melhor_n = f, int(m.group(1))
+        if not m:
+            continue
+        n = int(m.group(1))
+        if rodada is not None:
+            if n == int(rodada):
+                melhor, melhor_n = f, n
+                break
+        elif n > melhor_n:
+            melhor, melhor_n = f, n
     if not melhor:
         return None, {}
 
@@ -1006,11 +1030,13 @@ def get_classificacao():
     except Exception:
         pass
     try:
-        rodada, grupos = classificacao_lojas()
+        pedida = request.args.get('rodada', type=int)
+        rodada, grupos = classificacao_lojas(pedida)
         return jsonify({
             "rodada": rodada,
             "grupos": grupos,
             "totalGrupos": len(grupos),
+            "disponiveis": rodadas_classificacao(),
         })
     except Exception as e:
         import traceback
@@ -1266,6 +1292,97 @@ def get_farol(semana):
             "referencia": dias[referencia] if referencia >= 0 else None,
             "indicadores": itens,
         })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+def historico_lojas():
+    """Resultado de cada loja em cada rodada já encerrada.
+
+    Duas fontes, nessa ordem de confiança:
+      1) 'Classificação Lojas/Rodada N.xlsx' — a classificação oficial. A
+         diferença entre duas rodadas consecutivas dá o resultado exato da
+         rodada N (gols marcados, sofridos e pontos).
+      2) 'Confrontos/TODOS OS JOGOS.xlsx' — o calendário com placares. Cobre as
+         rodadas antigas, mas a rodada em andamento na hora da captura fica com
+         placar parcial, então ela só entra onde a fonte 1 não alcança.
+
+    Retorna {sigla: [{rodada, adv, gm, gs, res}]}, ordenado por rodada.
+    """
+    hist = {}
+
+    # --- fonte 2: calendário completo (rodadas já realizadas) ---
+    try:
+        jogos_path = dir_confrontos() / "TODOS OS JOGOS.xlsx"
+        if jogos_path.exists():
+            wb = openpyxl.load_workbook(jogos_path, data_only=True, read_only=True)
+            for row in wb.active.iter_rows(min_row=2, values_only=True):
+                if not row or len(row) < 8 or row[0] is None:
+                    continue
+                rod, _id, man, _pl, vis, gm, gs, status = row[:8]
+                if str(status or '').strip().lower() != 'realizado':
+                    continue
+                for time, adv, a, b in ((man, vis, gm, gs), (vis, man, gs, gm)):
+                    if not time:
+                        continue
+                    hist.setdefault(str(time).strip(), {})[int(rod)] = {
+                        "rodada": int(rod), "adv": str(adv).strip(),
+                        "gm": int(a or 0), "gs": int(b or 0),
+                        "res": 'V' if (a or 0) > (b or 0) else ('E' if (a or 0) == (b or 0) else 'D'),
+                        "fonte": "calendario",
+                    }
+            wb.close()
+    except Exception as e:
+        print(f"⚠️ historico_lojas: calendário falhou ({e})")
+
+    # --- fonte 1: diferença entre classificações oficiais consecutivas ---
+    disponiveis = rodadas_classificacao()
+    cache = {}
+    for n in disponiveis:
+        if n - 1 not in disponiveis:
+            continue
+        try:
+            for r in (n - 1, n):
+                if r not in cache:
+                    _rod, grupos = classificacao_lojas(r)
+                    cache[r] = {l["time"]: l for linhas in grupos.values() for l in linhas}
+            ant, atu = cache[n - 1], cache[n]
+            # Adversário daquela rodada, do arquivo de confrontos
+            adv = {}
+            conf_path = dir_confrontos() / f"Semana {n}.xlsx"
+            if conf_path.exists():
+                import calculo_rapido as cr
+                for c in cr.ler_confrontos(conf_path):
+                    adv[c["team1"]] = c["team2"]
+                    adv[c["team2"]] = c["team1"]
+            for time, a in atu.items():
+                b = ant.get(time)
+                if not b or a["jogos"] - b["jogos"] != 1:
+                    continue
+                gm, gs = a["gm"] - b["gm"], a["gs"] - b["gs"]
+                hist.setdefault(time, {})[n] = {
+                    "rodada": n, "adv": adv.get(time, ''), "gm": gm, "gs": gs,
+                    "res": 'V' if gm > gs else ('E' if gm == gs else 'D'),
+                    "fonte": "oficial",
+                }
+        except Exception as e:
+            print(f"⚠️ historico_lojas: rodada {n} falhou ({e})")
+
+    return {t: [v[k] for k in sorted(v)] for t, v in hist.items()}
+
+
+@app.route('/api/historico-lojas', methods=['GET'])
+@login_required
+def get_historico_lojas():
+    """Resultado rodada a rodada de cada loja — base do 'há quanto tempo não
+    vence' e das sequências do resumo da mesa redonda."""
+    try:
+        garantir_arquivos_frescos()
+        h = historico_lojas()
+        ultima = max((j["rodada"] for v in h.values() for j in v), default=None)
+        return jsonify({"lojas": h, "ultimaRodada": ultima, "total": len(h)})
     except Exception as e:
         import traceback
         traceback.print_exc()

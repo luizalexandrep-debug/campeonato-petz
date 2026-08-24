@@ -54,6 +54,7 @@ async function iniciar() {
         st.semana = sem.semana;
         st.semanas = sem.disponiveis || [sem.semana];
         st.rodadaBase = cls.rodada;
+        st.basesDisponiveis = cls.disponiveis || (cls.rodada ? [cls.rodada] : []);
         st.grupos = cls.grupos || {};
         st.estrutura = est.estrutura || est;
 
@@ -72,6 +73,8 @@ async function iniciar() {
         }
 
         montarSelects();
+        liberarResumo();
+        await trocarBase(st.semana - 1);
         await carregarSummary();
         render();
     } catch (e) {
@@ -90,9 +93,12 @@ function montarSelects() {
     st.grupo = '';                 // '' = todos os grupos
     montarChipsGrupo();
 
-    // Só rodadas POSTERIORES à base: projetar uma rodada que a base já inclui
-    // somaria os mesmos pontos duas vezes.
-    const projetaveis = st.semanas.filter(n => n > st.rodadaBase).sort((a, b) => b - a);
+    // Uma rodada N só é projetável se existir a classificação da rodada N-1:
+    // a base precisa parar ANTES da rodada projetada, senão os mesmos pontos
+    // entram duas vezes. Com os arquivos das rodadas 7 e 8 na pasta, dá para
+    // reabrir a rodada 8 (base 7) e a 9 (base 8).
+    const bases = new Set(st.basesDisponiveis || []);
+    const projetaveis = st.semanas.filter(n => bases.has(n - 1)).sort((a, b) => b - a);
     st.semana = projetaveis.includes(st.semanaVigente) ? st.semanaVigente : (projetaveis[0] ?? null);
 
     const sR = document.getElementById('fRodada');
@@ -104,6 +110,7 @@ function montarSelects() {
         st.semana = parseInt(e.target.value, 10);
         _cacheDias.clear();
         info('⏳ Carregando rodada...');
+        await trocarBase(st.semana - 1);
         await carregarSummary();
         render();
     };
@@ -114,8 +121,40 @@ function montarSelects() {
     };
 }
 
+// O resumo da mesa redonda é material de bastidor do regional: só aparece para
+// o usuário administrador (a conta master).
+async function liberarResumo() {
+    try {
+        const r = await fetch('/api/me', { cache: 'no-store' });
+        if (!r.ok) return;
+        const d = await r.json();
+        const u = d.user || d;
+        st.souAdmin = !!u['é_admin'];
+        if (st.souAdmin) {
+            const b = document.getElementById('btResumo');
+            if (b) b.style.display = '';
+        }
+    } catch (e) { /* sem /api/me, o botão fica escondido */ }
+}
+
+// Troca a classificação-base (a foto do campeonato ANTES da rodada projetada).
+async function trocarBase(rodada) {
+    if (rodada == null || rodada === st.rodadaBase) return;
+    try {
+        const cls = await pegar(`/classificacao?rodada=${rodada}`);
+        if (cls.rodada && Object.keys(cls.grupos || {}).length) {
+            st.rodadaBase = cls.rodada;
+            st.grupos = cls.grupos;
+            st.resumo = null;          // o resumo é sempre da rodada aberta
+        }
+    } catch (e) {
+        console.error('Falha ao trocar a base', e);
+    }
+}
+
 async function carregarSummary() {
     st.summary = st.semana ? await pegar(`/games-summary/${st.semana}`) : null;
+    st.resumo = null;
 }
 
 // ---- projeção da rodada atual, por loja ----
