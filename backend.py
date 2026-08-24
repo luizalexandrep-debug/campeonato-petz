@@ -13,7 +13,8 @@ import requests
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
-from auth import db, login_manager, Usuario, Acesso, init_db, autenticar_emergencia
+from auth import (db, login_manager, Usuario, Acesso, init_db,
+                  autenticar_emergencia, invalidar_cache_usuarios)
 
 app = Flask(__name__)
 CORS(app)
@@ -2031,6 +2032,7 @@ def create_usuario():
     novo_usuario.set_password(password)
     db.session.add(novo_usuario)
     db.session.commit()
+    invalidar_cache_usuarios()
 
     return jsonify({
         "message": "Usuário criado com sucesso",
@@ -2066,6 +2068,7 @@ def update_usuario(usuario_id):
             usuario.ativo = data['ativo']
 
     db.session.commit()
+    invalidar_cache_usuarios()
 
     return jsonify({
         "message": "Usuário atualizado com sucesso",
@@ -2089,6 +2092,7 @@ def delete_usuario(usuario_id):
 
     db.session.delete(usuario)
     db.session.commit()
+    invalidar_cache_usuarios()
 
     return jsonify({"message": "Usuário deletado com sucesso"})
 

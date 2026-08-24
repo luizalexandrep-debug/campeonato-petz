@@ -103,16 +103,62 @@ def autenticar_emergencia(username, senha):
     return None
 
 
+class UsuarioSessao(UserMixin):
+    """Cópia leve do usuário, usada durante a sessão.
+
+    O Flask-Login chama load_user em TODA requisição autenticada — com uma
+    consulta por chamada, o app sozinho consumia ~100 mil operações por mês e
+    estourou a cota do banco. Guardamos um retrato em memória por alguns
+    minutos; o login sempre consulta o banco de verdade.
+    """
+    def __init__(self, u):
+        self.id = u.id
+        self.username = u.username
+        self.email = u.email
+        self.nome_completo = u.nome_completo
+        self.ativo = u.ativo
+        setattr(self, 'é_admin', getattr(u, 'é_admin', False))
+
+    def get_id(self):
+        return str(self.id)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'username': self.username, 'email': self.email,
+            'nome_completo': self.nome_completo, 'ativo': self.ativo,
+            'é_admin': getattr(self, 'é_admin', False),
+        }
+
+
+_CACHE_USUARIOS = {}
+CACHE_USUARIO_SEG = 600      # 10 min: mudanças de permissão valem no próximo ciclo
+
+
+def invalidar_cache_usuarios():
+    """Chamado quando um usuário é criado, alterado ou removido."""
+    _CACHE_USUARIOS.clear()
+
+
 @login_manager.user_loader
 def load_user(user_id):
+    import time
     if user_id == 'emergencia':
         return UsuarioEmergencia()
+
+    cached = _CACHE_USUARIOS.get(user_id)
+    if cached and cached[1] > time.time():
+        return cached[0]
+
     try:
-        return Usuario.query.get(int(user_id))
+        u = Usuario.query.get(int(user_id))
     except Exception as e:
-        # Banco fora do ar: não derruba a sessão inteira.
+        # Banco fora do ar: mantém a sessão com o retrato antigo, se houver.
         print(f"⚠️ load_user falhou: {e}")
-        return None
+        return cached[0] if cached else None
+
+    snap = UsuarioSessao(u) if u else None
+    _CACHE_USUARIOS[user_id] = (snap, time.time() + CACHE_USUARIO_SEG)
+    return snap
 
 def init_db(app):
     """Inicializa o banco de dados.

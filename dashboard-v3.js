@@ -371,7 +371,8 @@ function iniciarPresenca() {
     badge.onclick = abrirPainelAcessos;
     atualizarPresenca();
     if (_presencaTimer) clearInterval(_presencaTimer);
-    _presencaTimer = setInterval(atualizarPresenca, 60000);
+    // 5 min: cada atualização são consultas no banco, e a cota é limitada.
+    _presencaTimer = setInterval(atualizarPresenca, 300000);
 }
 
 function _quando(iso) {
