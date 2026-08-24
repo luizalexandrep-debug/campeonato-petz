@@ -66,38 +66,77 @@ class UsuarioEmergencia(UserMixin):
     """Login que funciona sem banco de dados.
 
     Existe para o app não ficar inacessível quando o Postgres está fora do ar
-    (foi o que aconteceu quando o plano do banco foi suspenso). É ativado só
-    se a variável de ambiente MASTER_SENHA_HASH estiver definida.
+    (foi o que aconteceu quando o plano do banco foi suspenso). Atende TODAS as
+    contas — master e as do time —, definidas na variável de ambiente
+    USUARIOS_EMERGENCIA (JSON). MASTER_SENHA_HASH continua valendo como atalho
+    para uma conta master única.
     """
-    id = 0
-    username = 'master'
-    nome_completo = 'Master (modo emergência)'
-    email = None
-    ativo = True
-
-    def __init__(self):
-        setattr(self, 'é_admin', True)
+    def __init__(self, username, nome=None, admin=False):
+        self.id = 0
+        self.username = username
+        self.nome_completo = nome or username
+        self.email = None
+        self.ativo = True
+        setattr(self, 'é_admin', bool(admin))
 
     def get_id(self):
-        return 'emergencia'
+        # O usuário volta da sessão pelo nome, já que não há id de banco.
+        return f'emergencia:{self.username}'
 
     def to_dict(self):
         return {
             'id': 0, 'username': self.username, 'email': None,
             'nome_completo': self.nome_completo, 'ativo': True,
-            'é_admin': True, 'emergencia': True,
+            'é_admin': getattr(self, 'é_admin', False), 'emergencia': True,
         }
 
 
-def autenticar_emergencia(username, senha):
-    """Confere o usuário de emergência. Retorna o usuário ou None."""
+def _contas_emergencia():
+    """Lê as contas de emergência das variáveis de ambiente.
+
+    USUARIOS_EMERGENCIA: JSON com uma lista de
+        {"username": ..., "hash": ..., "nome": ..., "admin": true/false}
+    MASTER_SENHA_HASH: atalho para uma única conta master administradora.
+    """
+    import json
     import os
+    contas = {}
+
+    bruto = os.environ.get('USUARIOS_EMERGENCIA', '').strip()
+    if bruto:
+        try:
+            for c in json.loads(bruto):
+                u = str(c.get('username', '')).strip()
+                if u and c.get('hash'):
+                    contas[u] = {
+                        'hash': c['hash'],
+                        'nome': c.get('nome') or u,
+                        'admin': bool(c.get('admin')),
+                    }
+        except Exception as e:
+            print(f"⚠️ USUARIOS_EMERGENCIA inválida: {e}")
+
     h = os.environ.get('MASTER_SENHA_HASH', '').strip()
-    if not h or username != UsuarioEmergencia.username:
+    if h and 'master' not in contas:
+        contas['master'] = {'hash': h, 'nome': 'Master (modo emergência)', 'admin': True}
+
+    return contas
+
+
+def usuario_emergencia_por_nome(username):
+    """Recria o usuário a partir do nome guardado na sessão."""
+    c = _contas_emergencia().get(username)
+    return UsuarioEmergencia(username, c['nome'], c['admin']) if c else None
+
+
+def autenticar_emergencia(username, senha):
+    """Confere uma conta de emergência. Retorna o usuário ou None."""
+    c = _contas_emergencia().get((username or '').strip())
+    if not c:
         return None
     try:
-        if check_password_hash(h, senha):
-            return UsuarioEmergencia()
+        if check_password_hash(c['hash'], senha):
+            return UsuarioEmergencia(username, c['nome'], c['admin'])
     except Exception as e:
         print(f"⚠️ autenticar_emergencia falhou: {e}")
     return None
@@ -142,8 +181,10 @@ def invalidar_cache_usuarios():
 @login_manager.user_loader
 def load_user(user_id):
     import time
-    if user_id == 'emergencia':
-        return UsuarioEmergencia()
+    if user_id == 'emergencia':                       # sessões antigas
+        return usuario_emergencia_por_nome('master')
+    if str(user_id).startswith('emergencia:'):
+        return usuario_emergencia_por_nome(str(user_id).split(':', 1)[1])
 
     cached = _CACHE_USUARIOS.get(user_id)
     if cached and cached[1] > time.time():
