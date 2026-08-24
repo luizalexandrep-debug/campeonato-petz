@@ -1076,8 +1076,9 @@ def get_jogos():
 # PRESENÇA: quem está online, de onde e desde quando
 # ============================================================
 
-MINUTOS_ONLINE = 5          # sem atividade por mais que isso = offline
-INTERVALO_HEARTBEAT = 60    # só grava "visto agora" a cada N segundos
+MINUTOS_ONLINE = 10         # sem atividade por mais que isso = offline
+INTERVALO_HEARTBEAT = 300   # só grava "visto agora" a cada N segundos
+DIAS_HISTORICO_ACESSO = 30  # acessos mais antigos que isso são descartados
 
 
 def _ip_do_cliente():
@@ -1107,6 +1108,10 @@ def registrar_entrada(user):
             user_agent=(request.headers.get('User-Agent') or '')[:300],
         )
         db.session.add(ac)
+        # Poda o histórico antigo na mesma transação: sem isso a tabela cresce
+        # sem limite e o banco (plano gratuito) estoura a cota.
+        corte = datetime.utcnow() - timedelta(days=DIAS_HISTORICO_ACESSO)
+        Acesso.query.filter(Acesso.entrou_em < corte).delete(synchronize_session=False)
         db.session.commit()
         session['acesso_id'] = ac.id
     except Exception as e:
@@ -1114,13 +1119,21 @@ def registrar_entrada(user):
         print(f"⚠️ registrar_entrada falhou: {e}")
 
 
+# Quando o banco está indisponível (ex.: cota do plano), paramos de tentar
+# escrever presença por um tempo — cada tentativa custa uma conexão.
+_presenca_pausada_ate = 0.0
+
+
 @app.before_request
 def _marcar_presenca():
     """Atualiza 'visto_em' da sessão atual, no máximo uma vez por minuto."""
+    global _presenca_pausada_ate
     try:
         if not request.path.startswith('/api/'):
             return
         if not current_user.is_authenticated:
+            return
+        if time.time() < _presenca_pausada_ate:
             return
         agora = time.time()
         if agora - session.get('ultimo_ping', 0) < INTERVALO_HEARTBEAT:
@@ -1136,6 +1149,7 @@ def _marcar_presenca():
         db.session.commit()
     except Exception as e:
         db.session.rollback()
+        _presenca_pausada_ate = time.time() + 600     # 10 min sem tentar
         print(f"⚠️ _marcar_presenca falhou: {e}")
 
 
@@ -1250,28 +1264,6 @@ def get_farol(semana):
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-
-
-@app.route('/api/diag-db', methods=['GET'])
-def diag_db():
-    """Checagem rápida do banco (temporária, para diagnosticar o login).
-    Não expõe dados — só se cada consulta funciona."""
-    out = {}
-    try:
-        out['usuarios'] = Usuario.query.count()
-    except Exception as e:
-        db.session.rollback()
-        out['usuarios'] = f"ERRO {type(e).__name__}: {str(e)[:200]}"
-    try:
-        out['acessos'] = Acesso.query.count()
-    except Exception as e:
-        db.session.rollback()
-        out['acessos'] = f"ERRO {type(e).__name__}: {str(e)[:200]}"
-    try:
-        out['uri'] = (app.config.get('SQLALCHEMY_DATABASE_URI') or '').split('@')[-1][:60]
-    except Exception:
-        pass
-    return jsonify(out)
 
 
 @app.route('/api/semana', methods=['GET'])
