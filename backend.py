@@ -1252,6 +1252,28 @@ def get_farol(semana):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/diag-db', methods=['GET'])
+def diag_db():
+    """Checagem rápida do banco (temporária, para diagnosticar o login).
+    Não expõe dados — só se cada consulta funciona."""
+    out = {}
+    try:
+        out['usuarios'] = Usuario.query.count()
+    except Exception as e:
+        db.session.rollback()
+        out['usuarios'] = f"ERRO {type(e).__name__}: {str(e)[:200]}"
+    try:
+        out['acessos'] = Acesso.query.count()
+    except Exception as e:
+        db.session.rollback()
+        out['acessos'] = f"ERRO {type(e).__name__}: {str(e)[:200]}"
+    try:
+        out['uri'] = (app.config.get('SQLALCHEMY_DATABASE_URI') or '').split('@')[-1][:60]
+    except Exception:
+        pass
+    return jsonify(out)
+
+
 @app.route('/api/semana', methods=['GET'])
 def get_semana():
     """Semana vigente, detectada pelos arquivos de confronto disponíveis.
