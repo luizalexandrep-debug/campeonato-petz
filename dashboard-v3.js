@@ -1628,6 +1628,24 @@ function loadRankingDashboard() {
         const porBase = [...dadosDist].filter(r => r.sim && r.sim.temHistorico)
             .sort((a, b) => b.sim.histAcum - a.sim.histAcum);
 
+        // Distância para os vizinhos de tabela, como na tabela do acumulado
+        // simulado. O líder só tem o de baixo; o lanterna, o de cima.
+        const distanciaBase = (r) => {
+            const i = porBase.indexOf(r);
+            const linha = (ref, posRef, sentido) => {
+                if (!ref) return '';
+                const d = Math.abs(ref.sim.histAcum - r.sim.histAcum);
+                const alvo = `${posRef}º ${ref.dist}`;
+                if (d < 0.005) return `${sentido === 'cima' ? '▲' : '▼'} empatado com o ${alvo}`;
+                return `${sentido === 'cima' ? '▲' : '▼'} ${f2(d)} pts ${
+                    sentido === 'cima' ? 'atrás do' : 'à frente do'} ${alvo}`;
+            };
+            return [
+                linha(porBase[i - 1], i, 'cima'),
+                linha(porBase[i + 1], i + 2, 'baixo')
+            ].filter(Boolean).join('\n');
+        };
+
         const linhasBase = porBase.filter(r => passaFiltro(r.reg)).map((r, i) => {
             const dest = r.reg === REGIONAL_DESTAQUE;
             const h = state.historico.distritos?.[r.dist] || {};
@@ -1635,7 +1653,7 @@ function loadRankingDashboard() {
                 <td class="c b">${medalhaFn(porBase.indexOf(r))}</td>
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
                     onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${regCurto(r.reg)}</td>
-                <td class="c b">${f2(r.sim.histAcum)}</td>
+                <td class="c b tem-tip" data-tip="${distanciaBase(r)}">${f2(r.sim.histAcum)}</td>
                 <td class="c">${h.vitoriaMedia !== undefined ? f2(h.vitoriaMedia) : '—'}</td></tr>`;
         }).join('') + Object.entries(state.historico.regionais || {})
             .filter(([reg]) => passaFiltro(reg))
