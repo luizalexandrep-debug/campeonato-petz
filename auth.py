@@ -62,9 +62,57 @@ class Usuario(UserMixin, db.Model):
             'criado_em': self.criado_em.isoformat() if self.criado_em else None
         }
 
+class UsuarioEmergencia(UserMixin):
+    """Login que funciona sem banco de dados.
+
+    Existe para o app não ficar inacessível quando o Postgres está fora do ar
+    (foi o que aconteceu quando o plano do banco foi suspenso). É ativado só
+    se a variável de ambiente MASTER_SENHA_HASH estiver definida.
+    """
+    id = 0
+    username = 'master'
+    nome_completo = 'Master (modo emergência)'
+    email = None
+    ativo = True
+
+    def __init__(self):
+        setattr(self, 'é_admin', True)
+
+    def get_id(self):
+        return 'emergencia'
+
+    def to_dict(self):
+        return {
+            'id': 0, 'username': self.username, 'email': None,
+            'nome_completo': self.nome_completo, 'ativo': True,
+            'é_admin': True, 'emergencia': True,
+        }
+
+
+def autenticar_emergencia(username, senha):
+    """Confere o usuário de emergência. Retorna o usuário ou None."""
+    import os
+    h = os.environ.get('MASTER_SENHA_HASH', '').strip()
+    if not h or username != UsuarioEmergencia.username:
+        return None
+    try:
+        if check_password_hash(h, senha):
+            return UsuarioEmergencia()
+    except Exception as e:
+        print(f"⚠️ autenticar_emergencia falhou: {e}")
+    return None
+
+
 @login_manager.user_loader
 def load_user(user_id):
-    return Usuario.query.get(int(user_id))
+    if user_id == 'emergencia':
+        return UsuarioEmergencia()
+    try:
+        return Usuario.query.get(int(user_id))
+    except Exception as e:
+        # Banco fora do ar: não derruba a sessão inteira.
+        print(f"⚠️ load_user falhou: {e}")
+        return None
 
 def init_db(app):
     """Inicializa o banco de dados.

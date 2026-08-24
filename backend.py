@@ -13,7 +13,7 @@ import requests
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
-from auth import db, login_manager, Usuario, Acesso, init_db
+from auth import db, login_manager, Usuario, Acesso, init_db, autenticar_emergencia
 
 app = Flask(__name__)
 CORS(app)
@@ -1941,7 +1941,22 @@ def login():
     if not username or not password:
         return jsonify({"error": "Username e password são obrigatórios"}), 400
 
-    user = Usuario.query.filter_by(username=username).first()
+    try:
+        user = Usuario.query.filter_by(username=username).first()
+    except Exception as e:
+        # Banco indisponível (ex.: plano suspenso). Tenta o acesso de
+        # emergência, que não depende do Postgres.
+        db.session.rollback()
+        print(f"⚠️ login: banco indisponível ({e})")
+        emerg = autenticar_emergencia(username, password)
+        if emerg is None:
+            return jsonify({
+                "error": "O banco de dados está indisponível no momento. "
+                         "Tente novamente em alguns minutos."
+            }), 503
+        login_user(emerg, remember=True)
+        session.permanent = True
+        return jsonify({"message": "Login em modo emergência", "user": emerg.to_dict()})
 
     if user is None or not user.check_password(password):
         return jsonify({"error": "Username ou password inválidos"}), 401
