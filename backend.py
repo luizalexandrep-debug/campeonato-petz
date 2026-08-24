@@ -1942,6 +1942,13 @@ def login():
     if not username or not password:
         return jsonify({"error": "Username e password são obrigatórios"}), 400
 
+    # Com o banco fora, nem chegamos a consultar: tenta a emergência primeiro.
+    emerg = autenticar_emergencia(username, password)
+    if emerg is not None:
+        login_user(emerg, remember=True)
+        session.permanent = True
+        return jsonify({"message": "Login em modo emergência", "user": emerg.to_dict()})
+
     try:
         user = Usuario.query.filter_by(username=username).first()
     except Exception as e:
@@ -1949,15 +1956,10 @@ def login():
         # emergência, que não depende do Postgres.
         db.session.rollback()
         print(f"⚠️ login: banco indisponível ({e})")
-        emerg = autenticar_emergencia(username, password)
-        if emerg is None:
-            return jsonify({
-                "error": "O banco de dados está indisponível no momento. "
-                         "Tente novamente em alguns minutos."
-            }), 503
-        login_user(emerg, remember=True)
-        session.permanent = True
-        return jsonify({"message": "Login em modo emergência", "user": emerg.to_dict()})
+        return jsonify({
+            "error": "O banco de dados está indisponível no momento. "
+                     "Use o acesso de emergência ou tente mais tarde."
+        }), 503
 
     if user is None or not user.check_password(password):
         return jsonify({"error": "Username ou password inválidos"}), 401

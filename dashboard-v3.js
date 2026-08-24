@@ -483,6 +483,15 @@ async function checkAuthentication() {
         const userInfo = document.getElementById('userInfo');
         userInfo.textContent = `👤 ${data.user.nome_completo || data.user.username}`;
 
+        // Sem banco, o app roda com o acesso de emergência: avisamos para não
+        // parecer que a gestão de usuários e o histórico sumiram.
+        if (data.user.emergencia) {
+            const bar = document.getElementById('infoBar');
+            if (bar) bar.innerHTML = '<span>🔑 Modo emergência: o banco de dados está '
+                + 'indisponível. Placares e classificações funcionam normalmente; '
+                + 'gestão de usuários e histórico de acessos ficam fora do ar.</span>';
+        }
+
         // Mostrar link de admin se for admin
         if (data.user.é_admin) {
             document.getElementById('adminLink').style.display = 'inline-block';
