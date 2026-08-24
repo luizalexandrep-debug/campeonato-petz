@@ -641,6 +641,20 @@ def health():
         "message": "API Campeonato Petz funcionando"
     })
 
+# Rótulos da estrutura que não são regionais do campeonato: unidades de apoio
+# (CD, hospital, hub, holding) e a linha placeholder marcada com "-". Elas
+# entravam no filtro por regional e na busca por voz sem nunca ter jogo.
+FORA_DO_CAMPEONATO = {'demaisunids', 'demaisunidades', 'holding', '-', ''}
+
+
+def _fora_do_campeonato(*valores):
+    for v in valores:
+        chave = re.sub(r'[^a-z0-9]', '', str(v or '').strip().lower())
+        if chave in FORA_DO_CAMPEONATO:
+            return True
+    return False
+
+
 def estrutura_do_sharepoint():
     """Lê estrutura.xlsx (Regional | Distrito | Sigla Loja) da pasta raiz do
     SharePoint. Retorna {regional: {distrito: [lojas]}} ou None."""
@@ -664,9 +678,7 @@ def estrutura_do_sharepoint():
             if not reg or not dist or not loja:
                 continue
             reg, dist, loja = str(reg).strip(), str(dist).strip(), str(loja).strip()
-            # Linhas de apoio da planilha (Holding, CD, hospital, hub) não são
-            # regionais do campeonato — entrariam no filtro como "-".
-            if '-' in (reg, dist, loja) or '' in (reg, dist, loja):
+            if _fora_do_campeonato(reg, dist, loja):
                 continue
             est.setdefault(reg, {}).setdefault(dist, []).append(loja)
         return est or None
@@ -713,7 +725,9 @@ def nomes_lojas():
                 continue
             sigla = str(sigla).strip()
             nome = ' '.join(str(nome).split())      # tira tabs e espaços duplos
-            if sigla in ('-', '') or nome in ('-', ''):
+            reg = row[0] if len(row) > 0 else None
+            dist = row[1] if len(row) > 1 else None
+            if _fora_do_campeonato(sigla, nome, reg, dist):
                 continue
             nomes[sigla] = nome
         wb.close()
