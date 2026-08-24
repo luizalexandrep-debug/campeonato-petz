@@ -59,11 +59,77 @@ function vozLetrasFaltando(sigla, dito) {
     return faltam;
 }
 
+/* ---------- adaptador: a mesma voz nas duas telas ----------
+
+   A classificação por grupos e o dashboard têm funções diferentes para abrir
+   as mesmas coisas (e até assinaturas diferentes de abrirDetalhesJogo). Em vez
+   de duplicar o interpretador, cada página descreve aqui o que sabe fazer.
+*/
+function vozCtx() {
+    const ehGrupos = typeof st !== 'undefined' && st && st.grupos;
+    if (ehGrupos) {
+        return {
+            pagina: 'grupos',
+            estrutura: () => st.estrutura || {},
+            semana: () => st.semana,
+            souAdmin: () => !!st.souAdmin,
+            seletorRodada: () => document.getElementById('fRodada'),
+            temJogo: (l) => !!(st.projAtual || {})[l],
+            advDe: (l) => (st.projAtual || {})[l]?.adv,
+            distrito: (l) => (typeof distritoDaLoja === 'function' ? distritoDaLoja(l) : ''),
+            abrirJogo: (l) => abrirDetalhesJogo(l),
+            abrirCalendario: (l) => abrirCalendarioDaLoja(l),
+            abrirGrupoDaLoja: (l) => {
+                const g = grupoDaLoja(l);
+                if (!g) return false;
+                abrirGrupo(g, l); return true;
+            },
+            grupoPorNumero: (n) => (st.nomesGrupos || []).find(g =>
+                parseInt((g.match(/Grupo\s+(\d+)/) || [])[1] || 0, 10) === n),
+            selecionarGrupo: (g) => selecionarGrupo(g),
+            abrirResumo: () => abrirResumoRodada()
+        };
+    }
+    // dashboard
+    return {
+        pagina: 'dashboard',
+        estrutura: () => state.estrutura || {},
+        semana: () => state.semana,
+        souAdmin: () => false,
+        seletorRodada: () => document.getElementById('filterSemana'),
+        temJogo: (l) => !!vozJogoDoDashboard(l),
+        advDe: (l) => {
+            const g = vozJogoDoDashboard(l);
+            return g ? (g.team1 === l ? g.team2 : g.team1) : null;
+        },
+        distrito: (l) => (typeof distritoDaLoja === 'function' ? distritoDaLoja(l) : ''),
+        abrirJogo: (l) => {
+            const g = vozJogoDoDashboard(l);
+            if (!g) return false;
+            abrirDetalhesJogo(g.team1, g.team2); return true;
+        },
+        abrirCalendario: (l) => abrirCalendarioLoja(l),
+        abrirGrupoDaLoja: null,
+        grupoPorNumero: null,
+        selecionarGrupo: null,
+        abrirResumo: null,
+        abrirEvolucao: () => abrirEvolucaoRodada(),
+        abrirDistrito: (reg, dist) => abrirJogosDistrito(reg, dist),
+        filtrarRegional: (reg) => filtrarHomePorRegional(reg)
+    };
+}
+
+function vozJogoDoDashboard(loja) {
+    return (state.gamesSummary?.games || []).find(g => g.team1 === loja || g.team2 === loja);
+}
+
 function vozTodasAsLojas() {
     const lojas = new Set();
-    Object.values(st.estrutura || {}).forEach(dists =>
+    Object.values(vozCtx().estrutura()).forEach(dists =>
         Object.values(dists).forEach(ls => ls.forEach(l => lojas.add(l))));
-    Object.values(st.grupos || {}).forEach(linhas => linhas.forEach(r => lojas.add(r.time)));
+    if (typeof st !== 'undefined' && st && st.grupos) {
+        Object.values(st.grupos).forEach(linhas => linhas.forEach(r => lojas.add(r.time)));
+    }
     return [...lojas];
 }
 
@@ -113,6 +179,15 @@ function vozInterpretar(texto) {
 
     if (/\b(fechar|fecha|sair|cancelar)\b/.test(t)) return { tipo: 'fechar' };
     if (/\b(resumo|mesa redonda|roteiro)\b/.test(t)) return { tipo: 'resumo' };
+    if (/\b(evolucao|grafico|evoluir)\b/.test(t)) return { tipo: 'evolucao' };
+
+    // "regional 2", "minha regional", "regional do Luiz"
+    const reg = t.match(/\bregional\s+(?:r\s*)?(\d)\b/) || (/\bminha regional\b/.test(t) ? [null, '2'] : null);
+    if (reg && !/\bloja\b/.test(t)) return { tipo: 'regional', n: parseInt(reg[1], 10) };
+
+    // "distrito SP4", "jogos do distrito SP6"
+    const dist = t.match(/\bdistrito\s+([a-z0-9\- ]{2,20})/);
+    if (dist) return { tipo: 'distrito', trecho: dist[1].trim() };
 
     const rod = t.match(/\brodada\s+(\d{1,2})\b/);
     if (rod && !/\bloja\b/.test(t)) return { tipo: 'rodada', n: parseInt(rod[1], 10) };
@@ -137,7 +212,19 @@ function vozInterpretar(texto) {
 
 /* ---------- execução ---------- */
 
+function vozAcharDistrito(trecho) {
+    const alvo = vozNormalizar(trecho).replace(/ /g, '');
+    const achados = [];
+    Object.entries(vozCtx().estrutura()).forEach(([reg, dists]) =>
+        Object.keys(dists).forEach(d => {
+            const n = vozNormalizar(d).replace(/ /g, '');
+            if (n.startsWith(alvo) || n.includes(alvo)) achados.push({ regional: reg, distrito: d });
+        }));
+    return achados;
+}
+
 function vozExecutar(cmd) {
+    const ctx = vozCtx();
     switch (cmd.tipo) {
         case 'fechar': {
             const abertos = document.querySelectorAll('.modal-fundo');
@@ -146,24 +233,47 @@ function vozExecutar(cmd) {
             return 'Fechei a janela.';
         }
         case 'resumo':
-            if (!st.souAdmin) return 'O resumo está disponível só no usuário master.';
+            if (!ctx.abrirResumo) return 'O resumo fica na tela de Classificação por grupos.';
+            if (!ctx.souAdmin()) return 'O resumo está disponível só no usuário master.';
             vozFechar();
-            abrirResumoRodada();
+            ctx.abrirResumo();
             return 'Abrindo o resumo.';
+        case 'evolucao':
+            if (!ctx.abrirEvolucao) return 'O gráfico de evolução fica no Dashboard.';
+            vozFechar();
+            ctx.abrirEvolucao();
+            return 'Abrindo a evolução da rodada.';
         case 'rodada': {
-            const sel = document.getElementById('fRodada');
-            const op = [...sel.options].find(o => parseInt(o.value, 10) === cmd.n);
+            const sel = ctx.seletorRodada();
+            const op = sel && [...sel.options].find(o => parseInt(o.value, 10) === cmd.n);
             if (!op) return `A rodada ${cmd.n} não está disponível no seletor.`;
             sel.value = op.value;
             sel.dispatchEvent(new Event('change'));
             vozFechar();
             return `Abrindo a rodada ${cmd.n}.`;
         }
+        case 'regional': {
+            const nome = Object.keys(ctx.estrutura()).find(r => new RegExp(`\\bR?${cmd.n}\\b`).test(r));
+            if (!nome) return `Não achei a regional ${cmd.n}.`;
+            if (!ctx.filtrarRegional) return 'O filtro por regional fica no Dashboard.';
+            ctx.filtrarRegional(nome);
+            vozFechar();
+            return `Filtrando por ${nome}.`;
+        }
+        case 'distrito': {
+            const achados = vozAcharDistrito(cmd.trecho);
+            if (!achados.length) return `Não achei o distrito “${cmd.trecho}”.`;
+            if (!ctx.abrirDistrito) return 'Os jogos por distrito ficam no Dashboard.';
+            if (achados.length > 1) return null;
+            vozFechar();
+            ctx.abrirDistrito(achados[0].regional, achados[0].distrito);
+            return `Abrindo os jogos do ${achados[0].distrito}.`;
+        }
         case 'grupo': {
-            const nome = (st.nomesGrupos || []).find(g =>
-                parseInt((g.match(/Grupo\s+(\d+)/) || [])[1] || 0, 10) === cmd.n);
+            if (!ctx.grupoPorNumero) return 'Os grupos ficam na tela de Classificação por grupos.';
+            const nome = ctx.grupoPorNumero(cmd.n);
             if (!nome) return `Não achei o grupo ${cmd.n}.`;
-            selecionarGrupo(nome);
+            ctx.selecionarGrupo(nome);
             vozFechar();
             return `Mostrando o ${nome}.`;
         }
@@ -176,18 +286,17 @@ function vozExecutar(cmd) {
 }
 
 function vozAbrirLoja(sigla, acao) {
+    const ctx = vozCtx();
     vozFechar();
-    if (acao === 'calendario') { abrirCalendarioDaLoja(sigla); return `Calendário de ${sigla}.`; }
+    if (acao === 'calendario') { ctx.abrirCalendario(sigla); return `Calendário de ${sigla}.`; }
     if (acao === 'grupo') {
-        const g = grupoDaLoja(sigla);
-        if (g) { abrirGrupo(g, sigla); return `Grupo de ${sigla}.`; }
-        return `Não achei o grupo de ${sigla}.`;
+        if (!ctx.abrirGrupoDaLoja) return 'A tabela por grupo fica em “Classificação por grupos”.';
+        return ctx.abrirGrupoDaLoja(sigla) ? `Grupo de ${sigla}.` : `Não achei o grupo de ${sigla}.`;
     }
-    if (!(st.projAtual || {})[sigla]) {
-        return `${sigla} não tem jogo na rodada ${st.semana}.`;
-    }
-    abrirDetalhesJogo(sigla);
-    return `Abrindo o jogo de ${sigla}.`;
+    if (!ctx.temJogo(sigla)) return `${sigla} não tem jogo na rodada ${ctx.semana()}.`;
+    ctx.abrirJogo(sigla);
+    const adv = ctx.advDe(sigla);
+    return `Abrindo ${sigla}${adv ? ' x ' + adv : ''}.`;
 }
 
 /* ---------- painel ---------- */
@@ -203,12 +312,17 @@ function vozPainelHtml() {
             <div class="voz-texto" id="vozTexto">—</div>
             <div class="voz-resposta" id="vozResposta"></div>
             <input id="vozInput" class="voz-input" placeholder="ou digite: jogo da Tietê" autocomplete="off">
-            <div class="voz-dicas">
-                Exemplos: <b>“quanto foi o último jogo da loja Tietê”</b> ·
-                <b>“calendário da Mooca”</b> · <b>“grupo do Anhembi”</b> ·
-                <b>“rodada 8”</b> · <b>“resumo”</b> · <b>“fechar”</b>
-            </div>
+            <div class="voz-dicas">${vozDicas()}</div>
         </div>`;
+}
+
+function vozDicas() {
+    const ctx = vozCtx();
+    const base = ['“quanto foi o último jogo da loja Tietê”', '“calendário da Mooca”', '“rodada 8”'];
+    const extra = ctx.pagina === 'grupos'
+        ? ['“grupo do Anhembi”', '“grupo 7”', '“resumo”']
+        : ['“jogos do distrito SP4”', '“regional 2”', '“evolução”'];
+    return 'Exemplos: ' + [...base, ...extra, '“fechar”'].map(x => `<b>${x}</b>`).join(' · ');
 }
 
 function vozAbrirPainel() {
@@ -258,11 +372,21 @@ function vozProcessar(texto) {
             Tente falar a sigla (por exemplo, <b>T I E T</b>) ou digite abaixo.`);
         return;
     }
+    if (cmd.tipo === 'distrito') {
+        const achados = vozAcharDistrito(cmd.trecho);
+        if (achados.length > 1) {
+            vozEstado('Qual distrito?', '');
+            vozResponder(achados.map(a2 =>
+                `<button class="voz-op" onclick="vozFechar(); vozCtx().abrirDistrito('${a2.regional}','${a2.distrito}')">${a2.distrito}
+                    <small>${a2.regional}</small></button>`).join(''));
+            return;
+        }
+    }
     if (cmd.tipo === 'loja' && cmd.lojas.length > 1) {
         vozEstado('Qual delas?', '');
         vozResponder(`Achei mais de uma: ` + cmd.lojas.map(l =>
             `<button class="voz-op" onclick="vozResponder(vozAbrirLoja('${l.sigla}','${cmd.acao}'))">${l.sigla}
-                <small>${distritoDaLoja(l.sigla) || ''}</small></button>`).join(''));
+                <small>${vozCtx().distrito(l.sigla) || ''}</small></button>`).join(''));
         return;
     }
     const msg = vozExecutar(cmd);
