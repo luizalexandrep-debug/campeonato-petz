@@ -754,3 +754,20 @@
     .modal-resumo .modal-corpo { max-height: none; padding: var(--s-3); }
     .rs-aba.tudo { margin-left: 0; }
 }
+
+/* Aba do roteiro narrado */
+.rs-aba.narrado { border-color: #b7791f; color: #8a5a10; font-weight: 700; }
+.rs-aba.narrado.on { background: #8a5a10; border-color: #8a5a10; color: #fff; }
+.rs-aba.dado { background: #fff4e0; border-color: #e0bd82; color: #8a5a10; }
+
+.rs-roteiro { max-width: 900px; margin: 12px auto 0; }
+.rs-cena { margin-bottom: 20px; }
+.rs-cena h5 {
+    margin: 0 0 8px; font-size: .92em; color: #8a5a10;
+    border-bottom: 1px solid var(--border); padding-bottom: 5px;
+}
+.rs-cena p {
+    margin: 0 0 10px; font-size: 1.02em; line-height: 1.75; color: var(--text-1);
+    text-align: justify;
+}
+.rs-cena p b { color: #7a4f0d; }
