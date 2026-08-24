@@ -663,8 +663,12 @@ def estrutura_do_sharepoint():
             reg, dist, loja = row[0], row[1], row[2]
             if not reg or not dist or not loja:
                 continue
-            est.setdefault(str(reg).strip(), {}) \
-               .setdefault(str(dist).strip(), []).append(str(loja).strip())
+            reg, dist, loja = str(reg).strip(), str(dist).strip(), str(loja).strip()
+            # Linhas de apoio da planilha (Holding, CD, hospital, hub) não são
+            # regionais do campeonato — entrariam no filtro como "-".
+            if '-' in (reg, dist, loja) or '' in (reg, dist, loja):
+                continue
+            est.setdefault(reg, {}).setdefault(dist, []).append(loja)
         return est or None
     except Exception as e:
         print(f"⚠️ Falha ao ler estrutura do SharePoint: {e}")
@@ -682,6 +686,52 @@ def estrutura_ativa():
             return _json.load(f)
     except Exception:
         return {}
+
+
+def nomes_lojas():
+    """{sigla: nome da loja}, da coluna 'Nome Loja' do estrutura.xlsx.
+
+    Serve ao comando de voz: ninguém fala "PDTP-SP", fala "Parada de Taipas".
+    Sem essa coluna o reconhecimento cai na heurística sobre a sigla.
+    """
+    pasta = pasta_dados("Estrutura")
+    arq = pasta / "estrutura.xlsx"
+    if not arq.exists():
+        cands = list(pasta.glob("*.xlsx")) if pasta.exists() else []
+        if not cands:
+            return {}
+        arq = cands[0]
+    try:
+        wb = openpyxl.load_workbook(arq, data_only=True, read_only=True)
+        ws = wb.active
+        nomes = {}
+        for row in list(ws.iter_rows(values_only=True))[1:]:
+            if not row or len(row) < 4:
+                continue
+            sigla, nome = row[2], row[3]
+            if not sigla or not nome:
+                continue
+            sigla = str(sigla).strip()
+            nome = ' '.join(str(nome).split())      # tira tabs e espaços duplos
+            if sigla in ('-', '') or nome in ('-', ''):
+                continue
+            nomes[sigla] = nome
+        wb.close()
+        return nomes
+    except Exception as e:
+        print(f"⚠️ Falha ao ler os nomes das lojas: {e}")
+        return {}
+
+
+@app.route('/api/lojas-nomes', methods=['GET'])
+def get_lojas_nomes():
+    """Nome por extenso de cada loja — usado pelo comando de voz."""
+    try:
+        garantir_arquivos_frescos()
+    except Exception:
+        pass
+    n = nomes_lojas()
+    return jsonify({"nomes": n, "total": len(n)})
 
 
 @app.route('/api/estrutura', methods=['GET'])

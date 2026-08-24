@@ -11,12 +11,33 @@
    dentro de "Anhembi", "MOOC" dentro de "Mooca".
    ========================================================================== */
 
+// Regional do usuário, para o atalho "minha regional".
+const REGIONAL_VOZ = (typeof REGIONAL_DESTAQUE !== 'undefined') ? REGIONAL_DESTAQUE : 'R2';
+
 const voz = {
     rec: null,
     ouvindo: false,
     painel: null,
-    ultimoTexto: ''
+    ultimoTexto: '',
+    nomes: null,        // {sigla: "Parada de Taipas"}
+    indice: null        // lista pronta para busca
 };
+
+// Carrega os nomes das lojas uma vez. Sem eles o casamento cai na heurística
+// sobre a sigla, que erra em nome composto ("Parada de Taipas" -> PDTP).
+async function vozCarregarNomes() {
+    if (voz.nomes) return voz.nomes;
+    try {
+        const r = await fetch('/api/lojas-nomes', { cache: 'no-store' });
+        const d = await r.json();
+        voz.nomes = d.nomes || {};
+    } catch (e) {
+        console.warn('nomes das lojas indisponíveis', e);
+        voz.nomes = {};
+    }
+    voz.indice = null;
+    return voz.nomes;
+}
 
 function vozSuportada() {
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -133,11 +154,62 @@ function vozTodasAsLojas() {
     return [...lojas];
 }
 
+// Palavras que não ajudam a identificar a loja no nome dela.
+const VOZ_LIGACOES = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'a', 'o', 'no', 'na']);
+
+function vozIndice() {
+    if (voz.indice) return voz.indice;
+    const nomes = voz.nomes || {};
+    voz.indice = vozTodasAsLojas().map(sigla => {
+        const nome = nomes[sigla] || '';
+        const n = vozNormalizar(nome);
+        return {
+            sigla,
+            nome,
+            nomeJunto: n.replace(/ /g, ''),
+            // "Parada de Taipas" também vira "paradataipas": as pessoas comem
+            // as preposições ao falar rápido.
+            nomeCurto: n.split(' ').filter(w => !VOZ_LIGACOES.has(w)).join(''),
+            tokens: n.split(' ').filter(w => w && !VOZ_LIGACOES.has(w))
+        };
+    });
+    return voz.indice;
+}
+
 // Devolve os melhores candidatos para o trecho falado.
 function vozAcharLojas(trecho) {
-    const dito = vozNormalizar(trecho).replace(/ /g, '');
+    const ditoBruto = vozNormalizar(trecho);
+    const dito = ditoBruto.replace(/ /g, '');
     if (dito.length < 3) return [];
+    const ditoCurto = ditoBruto.split(' ').filter(w => !VOZ_LIGACOES.has(w)).join('');
     const cand = [];
+
+    // 1) Pelo NOME da loja — é o caminho natural e o mais preciso.
+    vozIndice().forEach(it => {
+        if (!it.nomeJunto) return;
+        let pontos = null;
+        if (dito === it.nomeJunto || ditoCurto === it.nomeCurto) pontos = -10;      // nome exato
+        else if (it.nomeJunto.startsWith(dito) || dito.startsWith(it.nomeJunto)) pontos = -8;
+        else if (it.nomeCurto.startsWith(ditoCurto) || ditoCurto.startsWith(it.nomeCurto)) pontos = -7;
+        else if (it.nomeJunto.includes(dito) && dito.length >= 4) pontos = -5;
+        else {
+            // Todas as palavras ditas aparecem no nome? ("taipas" em
+            // "Parada de Taipas"; "vitória conquista" em "Vitória da Conquista")
+            const palavras = ditoBruto.split(' ').filter(w => w.length > 2 && !VOZ_LIGACOES.has(w));
+            if (palavras.length && palavras.every(w => it.tokens.some(t => t.startsWith(w) || w.startsWith(t)))) {
+                pontos = -4 + (it.tokens.length - palavras.length);
+            }
+        }
+        if (pontos !== null) cand.push({ sigla: it.sigla, nome: it.nome, pontos, via: 'nome' });
+    });
+    if (cand.length) {
+        cand.sort((a, b) => a.pontos - b.pontos || a.sigla.localeCompare(b.sigla));
+        const melhor = cand[0].pontos;
+        const faixa = melhor <= -8 ? 0 : 2;
+        return cand.filter(c => c.pontos <= melhor + faixa).slice(0, 5);
+    }
+
+    // 2) Sem acerto por nome, tenta a sigla (também dá para falar "T I E T").
     vozTodasAsLojas().forEach(sigla => {
         const cheia = vozNormalizar(sigla).replace(/ /g, '');       // tietsp
         const base = cheia.replace(/(sp|rj|mg|rs|sc|pr|ba|pe|ce|go|df|ms|mt|am|pa|pi|rn|al|se|to|es|ma|pb|ro|ac|ap|rr)$/, '');
@@ -159,7 +231,7 @@ function vozAcharLojas(trecho) {
                 }
             }
         }
-        if (pontos !== null) cand.push({ sigla, pontos, base });
+        if (pontos !== null) cand.push({ sigla, pontos, base, nome: (voz.nomes || {})[sigla] || '', via: 'sigla' });
     });
     cand.sort((a, b) => a.pontos - b.pontos || a.sigla.localeCompare(b.sigla));
     // Devolve o bloco dos melhores. A faixa é um pouco larga de propósito:
@@ -181,12 +253,13 @@ function vozInterpretar(texto) {
     if (/\b(resumo|mesa redonda|roteiro)\b/.test(t)) return { tipo: 'resumo' };
     if (/\b(evolucao|grafico|evoluir)\b/.test(t)) return { tipo: 'evolucao' };
 
-    // "regional 2", "minha regional", "regional do Luiz"
-    const reg = t.match(/\bregional\s+(?:r\s*)?(\d)\b/) || (/\bminha regional\b/.test(t) ? [null, '2'] : null);
-    if (reg && !/\bloja\b/.test(t)) return { tipo: 'regional', n: parseInt(reg[1], 10) };
+    // "regional 2", "minha regional", "regional do Thiago"
+    if (/\bminha regional\b/.test(t)) return { tipo: 'regional', trecho: REGIONAL_VOZ };
+    const reg = t.match(/\bregional\s+(?:do |da |de )?([a-z0-9]{1,20})/);
+    if (reg && !/\bloja\b/.test(t)) return { tipo: 'regional', trecho: reg[1].trim() };
 
-    // "distrito SP4", "jogos do distrito SP6"
-    const dist = t.match(/\bdistrito\s+([a-z0-9\- ]{2,20})/);
+    // "distrito SP4", "jogos do distrito da Eliane", "distrito SP6 Patricia"
+    const dist = t.match(/\bdistrito\s+(?:do |da |de )?([a-z0-9\- ]{2,24})/);
     if (dist) return { tipo: 'distrito', trecho: dist[1].trim() };
 
     const rod = t.match(/\brodada\s+(\d{1,2})\b/);
@@ -212,15 +285,53 @@ function vozInterpretar(texto) {
 
 /* ---------- execução ---------- */
 
+// "SP4 - Eliane" pode ser chamado de "SP4" ou de "distrito da Eliane": casa
+// com o nome inteiro ou com qualquer um dos lados do hífen.
+function vozPartes(nome) {
+    const inteiro = vozNormalizar(nome).replace(/ /g, '');
+    const lados = String(nome).split(/[-–—\/]/).map(x => vozNormalizar(x).replace(/ /g, '')).filter(Boolean);
+    return [inteiro, ...lados];
+}
+
+function vozCasaPartes(nome, alvo) {
+    if (alvo.length < 2) return null;
+    const partes = vozPartes(nome);
+    for (let i = 0; i < partes.length; i++) {
+        const p = partes[i];
+        if (!p) continue;
+        if (p === alvo) return i === 0 ? 0 : 1;              // igual
+        if (p.startsWith(alvo) || alvo.startsWith(p)) return 2 + i;   // começo igual
+        if (alvo.length >= 3 && p.includes(alvo)) return 5 + i;       // aparece dentro
+    }
+    return null;
+}
+
 function vozAcharDistrito(trecho) {
     const alvo = vozNormalizar(trecho).replace(/ /g, '');
     const achados = [];
     Object.entries(vozCtx().estrutura()).forEach(([reg, dists]) =>
         Object.keys(dists).forEach(d => {
-            const n = vozNormalizar(d).replace(/ /g, '');
-            if (n.startsWith(alvo) || n.includes(alvo)) achados.push({ regional: reg, distrito: d });
+            const p = vozCasaPartes(d, alvo);
+            if (p !== null) achados.push({ regional: reg, distrito: d, pontos: p });
         }));
-    return achados;
+    achados.sort((a, b) => a.pontos - b.pontos);
+    if (!achados.length) return [];
+    const melhor = achados[0].pontos;
+    return achados.filter(a => a.pontos <= melhor).slice(0, 5);
+}
+
+function vozAcharRegional(trecho) {
+    const bruto = vozNormalizar(trecho).replace(/ /g, '');
+    // "regional 2" quer dizer R2: o número sozinho vira a sigla.
+    const alvos = /^\d$/.test(bruto) ? ['r' + bruto, bruto] : [bruto];
+    const achados = [];
+    Object.keys(vozCtx().estrutura()).forEach(r => {
+        for (const alvo of alvos) {
+            const p = vozCasaPartes(r, alvo);
+            if (p !== null) { achados.push({ regional: r, pontos: p }); break; }
+        }
+    });
+    return achados.sort((a, b) => a.pontos - b.pontos);
 }
 
 function vozExecutar(cmd) {
@@ -253,12 +364,12 @@ function vozExecutar(cmd) {
             return `Abrindo a rodada ${cmd.n}.`;
         }
         case 'regional': {
-            const nome = Object.keys(ctx.estrutura()).find(r => new RegExp(`\\bR?${cmd.n}\\b`).test(r));
-            if (!nome) return `Não achei a regional ${cmd.n}.`;
+            const achadas = vozAcharRegional(cmd.trecho);
+            if (!achadas.length) return `Não achei a regional “${cmd.trecho}”.`;
             if (!ctx.filtrarRegional) return 'O filtro por regional fica no Dashboard.';
-            ctx.filtrarRegional(nome);
+            ctx.filtrarRegional(achadas[0].regional);
             vozFechar();
-            return `Filtrando por ${nome}.`;
+            return `Filtrando por ${achadas[0].regional}.`;
         }
         case 'distrito': {
             const achados = vozAcharDistrito(cmd.trecho);
@@ -296,7 +407,8 @@ function vozAbrirLoja(sigla, acao) {
     if (!ctx.temJogo(sigla)) return `${sigla} não tem jogo na rodada ${ctx.semana()}.`;
     ctx.abrirJogo(sigla);
     const adv = ctx.advDe(sigla);
-    return `Abrindo ${sigla}${adv ? ' x ' + adv : ''}.`;
+    const nome = (voz.nomes || {})[sigla];
+    return `Abrindo ${nome ? nome + ' (' + sigla + ')' : sigla}${adv ? ' x ' + adv : ''}.`;
 }
 
 /* ---------- painel ---------- */
@@ -326,6 +438,7 @@ function vozDicas() {
 }
 
 function vozAbrirPainel() {
+    vozCarregarNomes();          // assíncrono: o primeiro comando já pega
     if (voz.painel) return;
     const el = document.createElement('div');
     el.className = 'voz-painel';
@@ -359,8 +472,9 @@ function vozResponder(html) {
     if (r) r.innerHTML = html;
 }
 
-function vozProcessar(texto) {
+async function vozProcessar(texto) {
     if (!texto || !texto.trim()) return;
+    await vozCarregarNomes();
     voz.ultimoTexto = texto;
     const el = document.getElementById('vozTexto');
     if (el) el.textContent = `“${texto}”`;
@@ -369,7 +483,7 @@ function vozProcessar(texto) {
     if (cmd.tipo === 'naoentendi') {
         vozEstado('Não achei a loja', 'erro');
         vozResponder(`Não reconheci <b>“${cmd.trecho || texto}”</b> como uma loja.
-            Tente falar a sigla (por exemplo, <b>T I E T</b>) ou digite abaixo.`);
+            Tente o nome completo, a sigla soletrada (<b>T I E T</b>) ou digite abaixo.`);
         return;
     }
     if (cmd.tipo === 'distrito') {
@@ -385,8 +499,8 @@ function vozProcessar(texto) {
     if (cmd.tipo === 'loja' && cmd.lojas.length > 1) {
         vozEstado('Qual delas?', '');
         vozResponder(`Achei mais de uma: ` + cmd.lojas.map(l =>
-            `<button class="voz-op" onclick="vozResponder(vozAbrirLoja('${l.sigla}','${cmd.acao}'))">${l.sigla}
-                <small>${vozCtx().distrito(l.sigla) || ''}</small></button>`).join(''));
+            `<button class="voz-op" onclick="vozResponder(vozAbrirLoja('${l.sigla}','${cmd.acao}'))">${l.nome || l.sigla}
+                <small>${l.sigla} · ${vozCtx().distrito(l.sigla) || ''}</small></button>`).join(''));
         return;
     }
     const msg = vozExecutar(cmd);
