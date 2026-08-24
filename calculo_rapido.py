@@ -289,12 +289,82 @@ def evolucao_pct(anterior, atual):
     return (atual - anterior) / anterior * 100
 
 
-def _placar(memoria, team1, team2, hoje_idx=None):
+def dias_com_dado(memoria):
+    """Dias da semana ATUAL que já têm algum lançamento, em ordem.
+
+    É o eixo do gráfico de evolução: só faz sentido reconstruir o placar até
+    um dia que existe na planilha.
+    """
+    presentes = set()
+    for semanas in memoria.values():
+        for dias in (semanas.get("atual") or {}).values():
+            for k, v in dias.items():
+                if k != CHAVE_TOTAL and v:
+                    presentes.add(k)
+    return [d for d in DIAS_ORDENADOS if d in presentes]
+
+
+def evolucao_diaria(confrontos, memoria):
+    """Reconstrói o placar de cada confronto ao final de cada dia da rodada.
+
+    Devolve, por loja, o resultado dela em cada gol dia a dia — a matéria-prima
+    do gráfico de desempenho da semana e do resumo de oscilações.
+
+    Formato: {'dias': [...], 'lojas': {sigla: {'adv': str,
+              'gols': {arquivo: 'VDEV'}}}}, onde o caractere i é o resultado
+    daquele gol considerando os lançamentos até o dia i.
+
+    Ressalva dos indicadores percentuais: a planilha traz uma coluna 'Total'
+    com o número oficial da semana, mas ela é uma foto do momento — não dá
+    para recuperar o total de terça depois que quinta entrou. Nos dias
+    intermediários usamos a média dos dias lançados; no último dia (o que
+    aparece nas tabelas) usamos o Total, para o fim da curva bater exatamente
+    com o placar exibido no site.
+    """
+    dias = dias_com_dado(memoria)
+    lojas = {}
+    if not dias:
+        return {"dias": [], "lojas": lojas, "aproximaPct": False}
+
+    ultimo = DIAS_ORDENADOS.index(dias[-1])
+    aproxima = False
+    for conf in confrontos:
+        t1, t2 = conf["team1"], conf["team2"]
+        e1 = lojas.setdefault(t1, {"adv": t2, "gols": {}})
+        e2 = lojas.setdefault(t2, {"adv": t1, "gols": {}})
+        for dia in dias:
+            idx = DIAS_ORDENADOS.index(dia)
+            # Só o último dia usa a coluna Total dos indicadores percentuais.
+            # Placar PROJETADO do dia: é o que o site mostrava naquele dia —
+            # a semana anterior inteira contra o que já tinha entrado.
+            _s1, _s2, gols = _placar(memoria, t1, t2, idx,
+                                     usar_total_pct=(idx == ultimo),
+                                     truncar_anterior=False)
+            for arquivo, vencedor in gols.items():
+                e1["gols"].setdefault(arquivo, [])
+                e2["gols"].setdefault(arquivo, [])
+                e1["gols"][arquivo].append('V' if vencedor == 1 else ('D' if vencedor == 2 else 'E'))
+                e2["gols"][arquivo].append('V' if vencedor == 2 else ('D' if vencedor == 1 else 'E'))
+    for e in lojas.values():
+        e["gols"] = {a: ''.join(v) for a, v in e["gols"].items()}
+    for semanas in memoria.values():
+        if semanas.get("tipo") == "%":
+            aproxima = True
+    return {"dias": dias, "lojas": lojas, "aproximaPct": aproxima and len(dias) > 1}
+
+
+def _placar(memoria, team1, team2, hoje_idx=None, usar_total_pct=True,
+            truncar_anterior=True):
     """Retorna (score1, score2, gols) onde gols é {arquivo: 1|2|0}:
     1 = team1 venceu o indicador, 2 = team2, 0 = empate."""
     score1 = score2 = 0
     gols = {}
     dias_a_contar = DIAS_ORDENADOS[:hoje_idx + 1] if hoje_idx is not None else DIAS_ORDENADOS
+    # A semana anterior está sempre completa. Truncá-la junto (truncar_anterior)
+    # dá a comparação dia a dia — Seg-Qui contra Seg-Qui — que é o placar
+    # ACUMULADO. O placar PROJETADO, que alimenta as tabelas do site, compara a
+    # semana anterior inteira com o que já entrou nesta semana.
+    dias_anterior = dias_a_contar if truncar_anterior else DIAS_ORDENADOS
     for arquivo, semanas in memoria.items():
         ant = semanas["anterior"]
         atu = semanas["atual"]
@@ -306,10 +376,13 @@ def _placar(memoria, team1, team2, hoje_idx=None):
         # Indicador percentual (ex.: SHARE) agrega por MÉDIA dos dias com dado;
         # indicador monetário agrega por SOMA.
         ehPct = semanas.get("tipo") == "%"
-        agg = (lambda o: agregar_pct(o, dias_a_contar)) if ehPct else \
-              (lambda o: sum((o or {}).get(d, 0) for d in dias_a_contar))
-        t1_ant, t1_atu = agg(d1a), agg(d1t)
-        t2_ant, t2_atu = agg(d2a), agg(d2t)
+        if ehPct:
+            agg = (lambda o, ds: agregar_pct(o, ds)) if usar_total_pct else \
+                  (lambda o, ds: _media_dias(o, ds))
+        else:
+            agg = (lambda o, ds: sum((o or {}).get(d, 0) for d in ds))
+        t1_ant, t1_atu = agg(d1a, dias_anterior), agg(d1t, dias_a_contar)
+        t2_ant, t2_atu = agg(d2a, dias_anterior), agg(d2t, dias_a_contar)
         # Evolução PERCENTUAL em relação à semana anterior (regra do campeonato).
         # Deve casar exatamente com calcularPlacarLocal() no frontend.
         ev1 = evolucao_pct(t1_ant, t1_atu)

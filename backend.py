@@ -1267,6 +1267,35 @@ def get_farol(semana):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route('/api/evolucao/<int:semana>', methods=['GET'])
+@login_required
+def get_evolucao(semana):
+    """Placar de cada loja reconstruído ao final de cada dia da rodada.
+
+    Alimenta o gráfico de desempenho da semana: com isso o front monta a curva
+    de pontuação de cada distrito dia a dia e mostra em que dia (e em qual gol)
+    a posição virou.
+    """
+    try:
+        garantir_arquivos_frescos()
+        import calculo_rapido as cr
+
+        confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
+        if not confrontos_path.exists():
+            return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
+        confrontos = cr.ler_confrontos(confrontos_path)
+        garantir_rodada(semana)
+        memoria = cr.carregar_tudo(dir_anterior(semana), dir_atual(semana))
+        ev = cr.evolucao_diaria(confrontos, memoria)
+        ev["semana"] = semana
+        ev["indicadores"] = sorted(memoria.keys())
+        return jsonify(ev)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/semana', methods=['GET'])
 def get_semana():
     """Semana vigente, detectada pelos arquivos de confronto disponíveis.

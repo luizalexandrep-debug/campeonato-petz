@@ -1949,3 +1949,153 @@ body {
 }
 
 .filtro-limpar:hover { background: #dbe6f7; }
+
+/* ==========================================================
+   Evolução da rodada (gráfico dia a dia + resumo do distrito)
+   ========================================================== */
+.modal-evo {
+    background: var(--surface); border-radius: var(--r-lg);
+    width: min(1280px, 100%); box-shadow: 0 24px 60px rgba(16, 24, 40, .28); overflow: hidden;
+}
+.modal-evo .modal-head { background: var(--brand-grad); }
+.modal-evo .md-titulo b { display: block; font-size: 1.15em; }
+.modal-evo .md-titulo small { opacity: .8; font-size: .8em; }
+.modal-evo .modal-corpo {
+    padding: var(--s-4); max-height: calc(100vh - 170px);
+    overflow-y: auto; overscroll-behavior: contain;
+}
+
+.evo-barra {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.evo-metricas { display: flex; gap: 8px; flex-wrap: wrap; }
+.evo-mb {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-2);
+    padding: 7px 14px; border-radius: 999px; cursor: pointer;
+    font-size: .84em; font-weight: 600; font-family: inherit;
+}
+.evo-mb:hover { border-color: #2b5aa8; color: #2b5aa8; }
+.evo-mb.on { background: #2b5aa8; border-color: #2b5aa8; color: #fff; }
+.evo-dias { font-size: .82em; color: var(--text-3); }
+
+.evo-grafico {
+    display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 14px;
+    align-items: start; border: 1px solid var(--border);
+    border-radius: var(--r-md); padding: 10px; background: var(--surface);
+}
+.evo-svg { width: 100%; height: auto; display: block; }
+.evo-linha.on polyline:first-child { filter: drop-shadow(0 1px 2px rgba(16, 24, 40, .18)); }
+.evo-legenda { max-height: 400px; overflow-y: auto; overscroll-behavior: contain; }
+.evo-leg-tit { font-size: .78em; font-weight: 700; color: var(--text-2); padding: 2px 4px 8px; }
+.evo-leg-tit small { font-weight: 500; color: var(--text-3); }
+.evo-leg {
+    display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto;
+    align-items: center; gap: 7px; width: 100%;
+    border: 1px solid transparent; background: none; cursor: pointer;
+    padding: 4px 6px; border-radius: 6px; font-family: inherit;
+    font-size: .78em; text-align: left; color: var(--text-1);
+}
+.evo-leg:hover { background: var(--surface-2); }
+.evo-leg.sel { background: #eef4ff; border-color: #2b5aa8; font-weight: 700; }
+.evo-leg.off { opacity: .55; }
+.evo-leg .bola { width: 10px; height: 10px; border-radius: 50%; }
+.evo-leg .nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evo-leg .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+.evo-leg .mov { font-size: .9em; font-variant-numeric: tabular-nums; }
+
+.sobe, .evo-leg .mov.sobe { color: #0f7b4f; }
+.desce, .evo-leg .mov.desce { color: #c0392b; }
+.igual, .evo-leg .mov.igual { color: var(--text-3); }
+
+.evo-vazio {
+    margin-top: 14px; text-align: center; color: var(--text-3); font-size: .88em;
+    border: 1px dashed var(--border); border-radius: var(--r-md); padding: 18px;
+}
+.evo-nota { font-size: .8em; color: var(--text-3); margin-top: 8px; line-height: 1.5; }
+.evo-nota.atencao {
+    background: #fff8e6; border: 1px solid #f0d9a0; color: #7a5c12;
+    border-radius: var(--r-md); padding: 10px 12px; margin-top: 12px;
+}
+
+.evo-resumo { margin-top: 16px; border-top: 2px solid var(--border); padding-top: 14px; }
+.evo-res-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.evo-res-head b { font-size: 1.1em; }
+.evo-res-head small { color: var(--text-3); font-size: .8em; }
+.evo-veredito {
+    background: var(--surface-2); border-left: 4px solid #2b5aa8;
+    border-radius: var(--r-md); padding: 10px 14px; font-size: .9em; line-height: 1.55;
+}
+
+.evo-timeline {
+    display: grid; grid-auto-flow: column; grid-auto-columns: minmax(120px, 1fr);
+    gap: 8px; margin: 14px 0; overflow-x: auto; overscroll-behavior-x: contain;
+}
+.evo-dia {
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    padding: 9px 10px; background: var(--surface); font-size: .78em;
+}
+.evo-dia.hoje { border-color: #2b5aa8; background: #f5f9ff; }
+.evo-dia .d { font-weight: 700; font-size: 1.05em; margin-bottom: 4px; }
+.evo-dia .d small { font-weight: 500; color: var(--text-3); }
+.evo-dia .ved b.v { color: #0f7b4f; } .evo-dia .ved b.e { color: #b7791f; }
+.evo-dia .ved b.d { color: #c0392b; }
+.evo-dia .pt { margin-top: 3px; font-weight: 700; }
+.evo-dia .pos, .evo-dia .ac { color: var(--text-3); margin-top: 2px; }
+
+.evo-dupla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.evo-box { border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px; }
+.evo-box h5 { margin: 0 0 8px; font-size: .88em; }
+.evo-box h5 small { font-weight: 500; color: var(--text-3); }
+.evo-tab { width: 100%; border-collapse: collapse; font-size: .78em; }
+.evo-tab th, .evo-tab td { padding: 4px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.evo-tab th { background: var(--surface-2); font-size: .95em; }
+.evo-tab .l { text-align: left; } .evo-tab .c { text-align: center; }
+.evo-tab .b { font-weight: 700; }
+
+.evo-virada { margin-bottom: 10px; font-size: .8em; }
+.evo-virada > b { display: block; margin-bottom: 4px; }
+.evo-virada.ruim > b { color: #c0392b; }
+.evo-virada.bom > b { color: #0f7b4f; }
+.evo-virada ul { margin: 0; padding-left: 16px; }
+.evo-virada li { margin-bottom: 4px; line-height: 1.45; }
+.evo-virada .lj { font-weight: 700; color: #2b5aa8; cursor: pointer; text-decoration: underline dotted; }
+.evo-virada small { color: var(--text-3); }
+
+@media (max-width: 900px) {
+    .evo-grafico { grid-template-columns: minmax(0, 1fr); }
+    .evo-legenda { max-height: 220px; }
+    .evo-dupla { grid-template-columns: minmax(0, 1fr); }
+    .modal-evo { border-radius: 0; min-height: 100vh; }
+    .modal-evo .modal-corpo { max-height: none; padding: var(--s-3); }
+}
+
+/* Botão que abre o gráfico de evolução da rodada */
+.btn-evolucao {
+    padding: 11px 18px;
+    align-self: flex-end;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1f7a5a, #0f5741);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+.btn-evolucao:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 87, 65, .32); }
+
+@media (max-width: 768px) {
+    .btn-evolucao { width: 100%; align-self: stretch; }
+}
+
+/* Destaques da janela de análise (pico → último dia) */
+.evo-pico {
+    margin-top: 8px; background: #fff5f5; border-left: 4px solid #c0392b;
+    border-radius: var(--r-md); padding: 10px 14px; font-size: .88em; line-height: 1.55;
+}
+.evo-dia.pico { border-color: #c0392b; background: #fff7f7; }
+.evo-dia.pico .d small { color: #c0392b; font-weight: 700; }
+.evo-tab th.ref, .evo-tab td.ref { background: #fff2f2; }
+.evo-tab th.fim, .evo-tab td.fim { background: #f2f7ff; }
+.evo-tab th.ref, .evo-tab th.fim { font-weight: 800; }
+.evo-tab-wrap { overflow-x: auto; overscroll-behavior-x: contain; }
