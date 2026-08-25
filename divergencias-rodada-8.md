@@ -63,9 +63,19 @@ A planilha capturada passa em todos estes testes:
 
 Um erro de leitura da tela quebraria alguma dessas invariantes.
 
+## Hipóteses já descartadas
+
+**"Zerou na semana atual = 0%" (testada e descartada em 2026-08-24).**
+A regra devolvia 0% para a loja sem venda na semana atual, o que no meio da
+semana fazia quem não tinha dado passar na frente de quem vendeu. Isso é um
+bug real e foi corrigido (agora vale −100%) — mas **não explica as
+divergências desta rodada**: com a rodada 8 completa, nenhum dos 133 jogos
+muda de placar, e a comparação com o oficial fica idêntica (116 / 12 / 5)
+antes e depois da correção. O efeito só aparece em rodada parcial.
+
 ## Hipóteses a investigar
 
-1. **Agregação do SHARE CLUBZ.** O app usa a coluna `Total` da planilha quando
+1. **Agregação do SHARE CLUBZ.** (principal suspeita) O app usa a coluna `Total` da planilha quando
    ela existe (`agregar_pct`); se o critério oficial for a média dos dias — ou
    vice-versa — o gol vira em jogos apertados. É o candidato mais provável:
    quase todas as divergências são de **um único gol**.
@@ -73,7 +83,9 @@ Um erro de leitura da tela quebraria alguma dessas invariantes.
    maior valor na semana atual e depois na anterior (`_placar`). O critério
    oficial pode ser outro.
 3. **Arredondamento** na evolução percentual, em jogos decididos por diferença
-   mínima.
+   mínima. O quadro "Por pouco" (`/api/margens`) agora dá a margem exata de
+   cada gol — dá para checar se os 17 jogos divergentes são justamente os de
+   margem mínima.
 4. **Base da semana anterior divergente** — o Power BI pode estar usando um
    corte de dados diferente do que está no SharePoint.
 
