@@ -45,10 +45,13 @@ function agregarPct(diasObj, diasAcontar) {
 function evolucaoPct(anterior, atual) {
     // Regras do campeonato (iguais às do backend, em calculo_rapido.evolucao_pct):
     //  - sem base (semana anterior = 0)   -> 0%
-    //  - tinha valor e zerou nesta semana -> 0% (zero = sem dado, não -100%)
+    //  - tinha base e nada nesta semana   -> -100% (não vendeu nada)
     //  - caso normal -> variação percentual
+    // O -100% importa no meio da semana: com um dia contra sete, todo mundo
+    // está perto de -85%, e um 0% de quem não tem dado passaria na frente de
+    // quem vendeu.
     if (anterior === 0) return 0;
-    if (atual === 0) return 0;
+    if (atual === 0) return -100;
     return (atual - anterior) / anterior * 100;
 }
 

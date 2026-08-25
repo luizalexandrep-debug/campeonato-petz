@@ -685,8 +685,11 @@ function ordenarIndicadores(nomes) {
 }
 
 function evolucaoPct(anterior, atual) {
+    // Mesma regra de calculo_rapido.evolucao_pct: sem base = 0%, com base e
+    // nada nesta semana = -100% (senão, no meio da semana, quem não tem dado
+    // passa na frente de quem vendeu).
     if (anterior === 0) return 0;
-    if (atual === 0) return 0;
+    if (atual === 0) return -100;
     return (atual - anterior) / anterior * 100;
 }
 

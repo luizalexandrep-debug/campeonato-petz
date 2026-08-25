@@ -428,15 +428,25 @@ def _media_dias(dias_obj, dias_a_contar):
 def evolucao_pct(anterior, atual):
     """Evolução percentual usada no placar. Regras do campeonato:
       - sem base (semana anterior = 0)  -> 0% (não dá para medir evolução)
-      - tinha valor e zerou nesta semana -> 0% (zero = sem dado, não queda de
-        100%; evita punir a loja por lacuna na planilha)
+      - tinha base e nada nesta semana  -> -100% (não vendeu nada)
       - caso normal -> (atual - anterior) / anterior * 100
+
+    Sobre o -100%: antes isso devolvia 0%, com a intenção de não punir a loja
+    por uma lacuna na planilha. Só que 0% não é neutro, é uma COLOCAÇÃO. No
+    meio da semana, com um dia lançado contra os sete da semana anterior, todo
+    mundo está perto de -85% — e aí o 0% de quem não tem dado passa na frente
+    de quem vendeu. A loja ganhava o gol justamente por não ter aparecido.
+
+    Numa rodada fechada isso não muda nada (os adversários já tinham evolução
+    positiva e o 0% perdia de qualquer jeito): a rodada 8 recalculada dá
+    exatamente o mesmo placar nos 133 jogos.
+
     Precisa casar exatamente com evolucaoPct() no frontend.
     """
     if anterior == 0:
         return 0
     if atual == 0:
-        return 0
+        return -100
     return (atual - anterior) / anterior * 100
 
 
