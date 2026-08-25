@@ -684,6 +684,11 @@ function ordenarIndicadores(nomes) {
     });
 }
 
+// Lojas eliminadas: resultado administrativo (0 x 6), não sai da planilha.
+function lojaEliminada(sigla) {
+    return (st.summary?.eliminadas || []).includes(String(sigla).toUpperCase());
+}
+
 function evolucaoPct(anterior, atual) {
     // Mesma regra de calculo_rapido.evolucao_pct: sem base = 0%, com base e
     // nada nesta semana = -100% (senão, no meio da semana, quem não tem dado
@@ -816,11 +821,18 @@ async function abrirDetalhesJogo(loja) {
             : lado === 'dir' ? todos.filter(i => gols[i] === golDir)
                 : todos;
         const dono = lado === 'esq' ? loja : adv;
-        const aviso = lado ? `
+        const elim = [loja, adv].find(t => lojaEliminada(t));
+        const aviso = (elim ? `
+            <div class="alerta-eliminada">
+                <b>⛔ ${elim} está eliminada do campeonato.</b>
+                O placar deste jogo é <b>administrativo</b> — ela perde por 0 x 6 em todas as
+                rodadas, independentemente das vendas. As tabelas abaixo mostram os números
+                das planilhas, que não valem para o resultado.
+            </div>` : '') + (lado ? `
             <div class="filtro-gols">
                 Mostrando os <b>${inds.length}</b> gol(s) de <b>${dono}</b>
                 <button class="filtro-limpar">ver todos os ${todos.length}</button>
-            </div>` : '';
+            </div>` : '');
 
         corpo.innerHTML = aviso + (inds.length ? inds.map(ind => `
             <div class="tables-wrapper">
@@ -857,11 +869,14 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) 
     const linhas = DIAS_JOGO.map(dia => {
         const a = ant[dia] || 0, b = atu[dia] || 0;
         const ev = evolucaoPct(a, b);
+        // Dia sem valor na semana atual pode ser dia que ainda não chegou:
+        // -100% ali assusta sem informar. O que vale é a linha TOTAL.
+        const semLanc = b === 0;
         const cls = ev > 0 ? 'positive' : ev < 0 ? 'negative' : 'neutral';
         return `<tr><td class="day-label">${dia}</td>
             <td class="value-anterior">${f(a)}</td>
             <td class="value-atual">${f(b)}</td>
-            <td class="evolution ${cls}">${ev.toFixed(2)}%</td></tr>`;
+            <td class="evolution ${semLanc ? 'neutral' : cls}">${semLanc ? '—' : ev.toFixed(2) + '%'}</td></tr>`;
     }).join('');
 
     const tA = agregar(ant), tB = agregar(atu);

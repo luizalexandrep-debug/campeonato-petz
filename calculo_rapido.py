@@ -29,6 +29,26 @@ CHAVE_TOTAL = '__total__'
 # próprio SharePoint e não se confunde com uma base que subiu zerada por erro.
 MARCADORES_NIVEL = ('(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EVOLUÇÃO)')
 
+# Lojas eliminadas do campeonato. Elas continuam no calendário, mas o resultado
+# é administrativo: perdem todos os 6 gols em toda rodada, independentemente do
+# que a planilha de vendas mostrar. É assim que o acompanhamento oficial trata
+# — o W3NT-DF, eliminado por fraude, aparece com 0 gols marcados e 6 sofridos
+# em todas as rodadas, inclusive as já disputadas.
+#
+# Para mexer sem alterar o código, use a variável de ambiente LOJAS_ELIMINADAS
+# com as siglas separadas por vírgula.
+_ELIMINADAS_PADRAO = 'W3NT-DF'
+
+
+def lojas_eliminadas():
+    bruto = os.environ.get('LOJAS_ELIMINADAS')
+    if bruto is None:
+        bruto = _ELIMINADAS_PADRAO
+    return {s.strip().upper() for s in bruto.split(',') if s.strip()}
+
+
+GOLS_POR_JOGO = 6
+
 
 def criterio_do_nome(nome):
     """'nivel' se o nome do arquivo traz um dos marcadores; senão 'evolucao'."""
@@ -516,6 +536,20 @@ def evolucao_diaria(confrontos, memoria):
 
 def _placar(memoria, team1, team2, hoje_idx=None, usar_total_pct=True,
             truncar_anterior=True):
+    elim = lojas_eliminadas()
+    e1, e2 = team1.upper() in elim, team2.upper() in elim
+    if e1 or e2:
+        # Resultado administrativo: a eliminada perde todos os gols.
+        vencedor = 2 if e1 and not e2 else (1 if e2 and not e1 else 0)
+        gols = {arq: vencedor for arq in memoria}
+        n = sum(1 for _ in memoria) if vencedor else 0
+        return (n if vencedor == 1 else 0, n if vencedor == 2 else 0, gols)
+    return _placar_calculado(memoria, team1, team2, hoje_idx, usar_total_pct,
+                             truncar_anterior)
+
+
+def _placar_calculado(memoria, team1, team2, hoje_idx=None, usar_total_pct=True,
+                      truncar_anterior=True):
     """Retorna (score1, score2, gols) onde gols é {arquivo: 1|2|0}:
     1 = team1 venceu o indicador, 2 = team2, 0 = empate."""
     score1 = score2 = 0
@@ -630,10 +664,17 @@ def margens(confrontos, memoria, hoje_idx=None):
     um gol por cem reais e quem ganhou por menos ainda.
     """
     dias = DIAS_ORDENADOS[:hoje_idx + 1] if hoje_idx is not None else DIAS_ORDENADOS
+    elim = lojas_eliminadas()
     saida = []
     for conf in confrontos:
         t1, t2 = conf["team1"], conf["team2"]
         s1, s2, gols = _placar(memoria, t1, t2, hoje_idx, truncar_anterior=False)
+        # Jogo de loja eliminada é resultado administrativo: não existe margem,
+        # nenhuma venda vira o gol. Fora do quadro "por pouco".
+        if t1.upper() in elim or t2.upper() in elim:
+            saida.append({"team1": t1, "team2": t2, "placar": f"{s1} x {s2}",
+                          "s1": s1, "s2": s2, "administrativo": True, "gols": []})
+            continue
         itens = []
         for arquivo, semanas in memoria.items():
             venc = gols.get(arquivo)
@@ -673,7 +714,7 @@ def margens(confrontos, memoria, hoje_idx=None):
             })
         saida.append({"team1": t1, "team2": t2,
                       "placar": f"{s1} x {s2}", "s1": s1, "s2": s2,
-                      "gols": itens})
+                      "administrativo": False, "gols": itens})
     return saida
 
 
@@ -695,6 +736,7 @@ def calcular_todos_jogos(confrontos, memoria, hoje_idx):
     """Calcula projetado + acumulado de todos os confrontos usando memória.
     Inclui 'golsProjetados' e 'golsAcumulados' (quem venceu cada indicador)."""
     jogos = []
+    elim = lojas_eliminadas()
     if semana_atual_vazia(memoria):
         # Rodada ainda não começou a receber vendas: jogos sem resultado.
         return [{
@@ -711,7 +753,7 @@ def calcular_todos_jogos(confrontos, memoria, hoje_idx):
         t1, t2 = conf["team1"], conf["team2"]
         s1p, s2p, gols_proj = _placar(memoria, t1, t2, None)
         s1a, s2a, gols_acum = _placar(memoria, t1, t2, hoje_idx)
-        jogos.append({
+        jogo = {
             "team1": t1,
             "team2": t2,
             "scoreProjected": f"{s1p} x {s2p}",
@@ -719,7 +761,10 @@ def calcular_todos_jogos(confrontos, memoria, hoje_idx):
             "hojeIdx": hoje_idx,
             "golsProjetados": gols_proj,
             "golsAcumulados": gols_acum,
-        })
+        }
+        if t1.upper() in elim or t2.upper() in elim:
+            jogo["administrativo"] = True
+        jogos.append(jogo)
     return jogos
 
 

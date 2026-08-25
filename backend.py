@@ -2064,6 +2064,20 @@ def _calcular_summary(semana):
                                 f"então esse gol não está sendo disputado."
                 })
 
+    elim = sorted(cr.lojas_eliminadas())
+    if elim:
+        no_calendario = [e for e in elim
+                         if any(e in (c["team1"].upper(), c["team2"].upper()) for c in confrontos)]
+        if no_calendario:
+            avisos.append({
+                "tipo": "eliminada",
+                "indicador": ", ".join(no_calendario),
+                "semana": f"rodada {semana}",
+                "mensagem": f"{', '.join(no_calendario)} está eliminada do campeonato: o resultado "
+                            f"é administrativo, perde por 0 x 6 em todas as rodadas, "
+                            f"independentemente da planilha de vendas."
+            })
+
     rod_dados, _raiz = rodada_efetiva(semana)
     if rod_dados == semana and not _listar_xlsx(dir_atual(semana)):
         # Sem planilhas na SEMANA ATUAL da rodada. Duas situações diferentes:
@@ -2102,6 +2116,7 @@ def _calcular_summary(semana):
         "week": semana,
         "rodadaDados": rod_dados,
         "semDadosAtual": cr.semana_atual_vazia(memoria),
+        "eliminadas": sorted(cr.lojas_eliminadas()),
         "lastUpdated": datetime.now().isoformat(),
         "total": len(jogos),
         "games": jogos,

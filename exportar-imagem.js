@@ -156,16 +156,20 @@ function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
 
     info.linhas.forEach((l, i) => {
         if (i % 2) { ctx.fillStyle = c.zebra; ctx.fillRect(x, cy, w, 30); }
-        if (l.evo > 0) { ctx.fillStyle = c.posBg; ctx.fillRect(cols[2] + 8, cy, x + w - cols[2] - 8, 30); }
-        else if (l.evo < 0) { ctx.fillStyle = c.negBg; ctx.fillRect(cols[2] + 8, cy, x + w - cols[2] - 8, 30); }
+        const zerado = !info.ehNivel && l.atu === 0;
+        if (!zerado && l.evo > 0) { ctx.fillStyle = c.posBg; ctx.fillRect(cols[2] + 8, cy, x + w - cols[2] - 8, 30); }
+        else if (!zerado && l.evo < 0) { ctx.fillStyle = c.negBg; ctx.fillRect(cols[2] + 8, cy, x + w - cols[2] - 8, 30); }
 
         expTexto(ctx, l.dia, cols[0], cy + 15, { fonte: expFonte(12.5, 600), cor: c.texto });
         expTexto(ctx, fmt(l.ant), cols[1], cy + 15, { fonte: expFonte(12.5, 400), cor: c.texto3, align: 'right' });
         expTexto(ctx, fmt(l.atu), cols[2], cy + 15, { fonte: expFonte(12.5, 700), cor: c.texto, align: 'right' });
-        expTexto(ctx, info.ehNivel ? `${l.evo > 0 ? '+' : ''}${fmt(l.evo)}` : `${l.evo.toFixed(2)}%`, cols[3], cy + 15, {
-            fonte: expFonte(12.5, 700),
-            cor: l.evo > 0 ? c.pos : l.evo < 0 ? c.neg : c.texto3, align: 'right'
-        });
+        // Dia sem valor na semana atual: pode ser dia que ainda não chegou.
+        const semLanc = !info.ehNivel && l.atu === 0;
+        expTexto(ctx, semLanc ? '—' : (info.ehNivel ? `${l.evo > 0 ? '+' : ''}${fmt(l.evo)}` : `${l.evo.toFixed(2)}%`),
+            cols[3], cy + 15, {
+                fonte: expFonte(12.5, 700),
+                cor: semLanc ? c.texto3 : (l.evo > 0 ? c.pos : l.evo < 0 ? c.neg : c.texto3), align: 'right'
+            });
         ctx.strokeStyle = c.linha; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(x, cy + 30.5); ctx.lineTo(x + w, cy + 30.5); ctx.stroke();
         cy += 30;

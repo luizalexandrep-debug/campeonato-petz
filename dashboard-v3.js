@@ -295,7 +295,20 @@ function setupGolTooltip() {
 // CÁLCULO DO PLACAR (LOCAL, SEM HTTP)
 // ============================================================
 
-function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null) {
+// Lojas eliminadas: o resultado é administrativo (0 x 6), não sai da planilha.
+// A lista vem do backend no resumo dos jogos.
+function lojaEliminada(sigla) {
+    return (state.gamesSummary?.eliminadas || []).includes(String(sigla).toUpperCase());
+}
+
+function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null, team1 = null, team2 = null) {
+    // Jogo de loja eliminada não se calcula: perde todos os gols.
+    if (team1 && team2 && (lojaEliminada(team1) || lojaEliminada(team2))) {
+        const n = ordenarIndicadores(Object.keys(dadosTeam1 || {})).length || 6;
+        const e1 = lojaEliminada(team1), e2 = lojaEliminada(team2);
+        const s1 = e1 ? 0 : (e2 ? n : 0), s2 = e2 ? 0 : (e1 ? n : 0);
+        return { score1: s1, score2: s2, score: `${s1} x ${s2}` };
+    }
     /**
      * Calcula o placar comparando a evolução percentual dos indicadores.
      * Para cada indicador, compara: (total_atual - total_anterior) / total_anterior * 100
@@ -1838,7 +1851,8 @@ function loadRankingDashboard() {
     // 'zerado' (planilha subiu sem valores — aí sim é erro de upload).
     const avisosRodada = avisos.filter(a => a.tipo === 'rodada');
     const avisosCriterio = avisos.filter(a => a.tipo === 'criterio');
-    const avisosZerado = avisos.filter(a => a.tipo !== 'rodada' && a.tipo !== 'criterio');
+    const avisosElim = avisos.filter(a => a.tipo === 'eliminada');
+    const avisosZerado = avisos.filter(a => !['rodada', 'criterio', 'eliminada'].includes(a.tipo));
     const blocoRodada = avisosRodada.length ? `
         <div class="alerta-info">
             <div class="alerta-titulo">⏳ Rodada em preparação</div>
@@ -1855,7 +1869,12 @@ function loadRankingDashboard() {
             <div class="alerta-titulo">🎯 Regra especial nesta rodada</div>
             <ul>${avisosCriterio.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
         </div>` : '';
-    const blocoAvisos = blocoRodada + blocoCriterio + blocoZerado;
+    const blocoElim = avisosElim.length ? `
+        <div class="alerta-eliminada">
+            <div class="alerta-titulo">⛔ Loja eliminada do campeonato</div>
+            <ul>${avisosElim.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
+        </div>` : '';
+    const blocoAvisos = blocoRodada + blocoCriterio + blocoElim + blocoZerado;
 
     // ---------- Render ----------
     container.innerHTML = `
@@ -2199,6 +2218,7 @@ async function abrirDetalhesJogo(team1, team2) {
             </div>
             <div class="modal-corpo"><div class="carregando">⏳ Carregando indicadores...</div></div>
         </div>`;
+    const eliminada = [team1, team2].find(t => lojaEliminada(t));
 
     const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
     const esc = (e) => { if (e.key === 'Escape') fechar(); };
@@ -2237,11 +2257,17 @@ async function abrirDetalhesJogo(team1, team2) {
             : lado === 'dir' ? todos.filter(i => gols[i] === golDir)
                 : todos;
         const dono = lado === 'esq' ? team1 : team2;
-        const aviso = lado ? `
+        const aviso = (eliminada ? `
+            <div class="alerta-eliminada">
+                <b>⛔ ${eliminada} está eliminada do campeonato.</b>
+                O placar deste jogo é <b>administrativo</b> — ela perde por 0 x 6 em todas as
+                rodadas, independentemente das vendas. As tabelas abaixo mostram os números
+                das planilhas, que não valem para o resultado.
+            </div>` : '') + (lado ? `
             <div class="filtro-gols">
                 Mostrando os <b>${inds.length}</b> gol(s) de <b>${dono}</b>
                 <button class="filtro-limpar" data-lado="">ver todos os ${todos.length}</button>
-            </div>` : '';
+            </div>` : '');
 
         corpo.innerHTML = aviso + (inds.length ? inds.map(ind => `
             <div class="tables-wrapper">
@@ -2275,11 +2301,13 @@ async function carregarDadosJogo(jogo) {
         ]);
 
         // Calcular placar projetado e acumulado localmente
-        const placarProjetado = calcularPlacarLocal(dadosTeam1.dados, dadosTeam2.dados);
+        const placarProjetado = calcularPlacarLocal(dadosTeam1.dados, dadosTeam2.dados,
+            null, jogo.team1, jogo.team2);
         const placarAcumulado = calcularPlacarLocal(
             dadosTeam1.dados,
             dadosTeam2.dados,
-            dadosTeam1.hoje_idx  // Calcular até hoje
+            dadosTeam1.hoje_idx,  // Calcular até hoje
+            jogo.team1, jogo.team2
         );
 
         return {
@@ -2380,16 +2408,19 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
         const evolucao = ehNivel ? (valorAtual - valorAnterior)
                                  : evolucaoPct(valorAnterior, valorAtual);
         const evoluClass = evolucao > 0 ? 'positive' : evolucao < 0 ? 'negative' : 'neutral';
-        const celulaComp = ehNivel
+        // Dia sem valor na semana atual: pode ser dia que ainda não chegou.
+        // Mostrar -100% ali assusta sem informar — o que vale é a linha TOTAL.
+        const semLancamento = !ehNivel && valorAtual === 0;
+        const celulaComp = semLancamento ? '—' : (ehNivel
             ? `${evolucao > 0 ? '+' : ''}${fmt(evolucao)}`
-            : `${evolucao.toFixed(2)}%`;
+            : `${evolucao.toFixed(2)}%`);
 
         html += `
             <tr>
                 <td class="day-label">${dia}</td>
                 <td class="value-anterior">${dadosAdversario || !ehNivel ? fmt(valorAnterior) : '—'}</td>
                 <td class="value-atual">${fmt(valorAtual)}</td>
-                <td class="evolution ${evoluClass}">${dadosAdversario || !ehNivel ? celulaComp : '—'}</td>
+                <td class="evolution ${semLancamento ? 'neutral' : evoluClass}">${dadosAdversario || !ehNivel ? celulaComp : '—'}</td>
             </tr>
         `;
     });
