@@ -96,6 +96,29 @@ def detectar_tipo(file_path):
     if file_path is None:
         return "R$"
     try:
+        # No layout longo só uma das colunas é o indicador — olhar as outras
+        # (Realizado em R$) faria um share virar monetário.
+        wbv = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
+        linhas_v = list(wbv.active.iter_rows(values_only=True))
+        wbv.close()
+        if _achar_cabecalho(linhas_v)[0] is None:
+            longo = _achar_cabecalho_longo(linhas_v)
+            if longo:
+                col = longo[3]
+                wbf = openpyxl.load_workbook(file_path)
+                wsf = wbf.active
+                fmts = [str(c.number_format) for c in
+                        list(wsf.iter_cols(min_col=col + 1, max_col=col + 1,
+                                           min_row=longo[0] + 2, max_row=longo[0] + 12))[0]]
+                wbf.close()
+                if any('%' in f for f in fmts):
+                    return "%"
+                vals = [r[col] for r in linhas_v[longo[0] + 1:longo[0] + 30]
+                        if r and col < len(r) and isinstance(r[col], (int, float)) and r[col]]
+                return "%" if vals and all(abs(v) < 1 for v in vals) else "R$"
+    except Exception as e:
+        print(f"⚠️ detectar_tipo (layout longo) falhou ({file_path}): {e}")
+    try:
         wb = openpyxl.load_workbook(file_path)  # precisa do formato
         ws = wb.active
         formatos = [str(c.number_format) for row in
@@ -205,6 +228,101 @@ def _chave_arquivo(file_path):
         return None
 
 
+def _norm_cab(v):
+    """Cabeçalho normalizado: minúsculo, sem acento e sem pontuação."""
+    import unicodedata
+    t = unicodedata.normalize('NFD', str(v or ''))
+    t = ''.join(c for c in t if unicodedata.category(c) != 'Mn')
+    return re.sub(r'[^a-z0-9]', '', t.lower())
+
+
+def _achar_cabecalho_longo(linhas):
+    """Layout "longo": uma linha por loja POR DIA, com a data numa coluna.
+
+    É o formato que sai do Power BI sem pivotar:
+
+        %Chave Data | Sigla Loja | Realizado (R$) | Realizado PIX (R$) | % Participação PIX
+        24/08/2026  | GRUP-SP    |       19832,31 |            7009,30 |             35,34%
+
+    Diferente do layout largo (um dia por coluna), aqui a data é um valor.
+    Retorna (idx_cabecalho, col_sigla, col_data, col_valor, col_pix, col_base)
+    ou None quando a planilha não tem essa cara.
+    """
+    for i, row in enumerate(linhas[:15]):
+        if not row or len(row) < 3:
+            continue
+        cabs = [_norm_cab(c) for c in row]
+        col_sigla = col_data = None
+        for j, c in enumerate(cabs):
+            if col_sigla is None and c in ('siglaloja', 'sigla', 'loja', 'unidade'):
+                col_sigla = j
+            if col_data is None and 'data' in c:
+                col_data = j
+        if col_sigla is None or col_data is None:
+            continue
+        # Só é layout longo se a coluna de data realmente contiver datas.
+        amostra = [r[col_data] for r in linhas[i + 1:i + 6] if r and col_data < len(r)]
+        if not amostra or not any(_dia_da_celula(v) for v in amostra):
+            continue
+        # Colunas de valor: as numéricas que sobraram.
+        numericas = []
+        for j in range(len(row)):
+            if j in (col_sigla, col_data):
+                continue
+            vals = [r[j] for r in linhas[i + 1:i + 8] if r and j < len(r)]
+            if any(isinstance(v, (int, float)) for v in vals):
+                numericas.append(j)
+        if not numericas:
+            continue
+        # A coluna do indicador é a de percentual quando existe uma só
+        # ("% Participação PIX"); senão, a última numérica.
+        pcts = [j for j in numericas if '%' in str(row[j] or '') or 'percent' in cabs[j]
+                or cabs[j].startswith('participacao')]
+        col_valor = pcts[0] if len(pcts) == 1 else numericas[-1]
+        # Para o percentual dá para calcular o total oficial da semana
+        # (soma da parte ÷ soma do total) em vez da média dos dias.
+        col_pix = col_base = None
+        if col_valor in pcts and len(numericas) >= 3:
+            resto = [j for j in numericas if j != col_valor]
+            col_base, col_pix = resto[0], resto[1]
+        return (i, col_sigla, col_data, col_valor, col_pix, col_base)
+    return None
+
+
+def _ler_longo(linhas, head):
+    """Monta {loja: {dia: valor}} a partir do layout longo."""
+    idx, c_sig, c_dat, c_val, c_pix, c_base = head
+    dados, acum = {}, {}
+    for row in linhas[idx + 1:]:
+        if not row or c_sig >= len(row) or c_dat >= len(row):
+            continue
+        sigla = row[c_sig]
+        if not sigla or not str(sigla).strip():
+            continue
+        dia = _dia_da_celula(row[c_dat])
+        if not dia:
+            continue
+        sigla = str(sigla).strip()
+        try:
+            valor = round(float(row[c_val]), 6) if c_val < len(row) and row[c_val] not in (None, '-') else 0
+        except (ValueError, TypeError):
+            valor = 0
+        dados.setdefault(sigla, {})[dia] = valor
+        # Guarda parte e total para fechar o percentual oficial da semana.
+        if c_pix is not None and c_base is not None:
+            a = acum.setdefault(sigla, [0.0, 0.0])
+            for k, col in ((0, c_pix), (1, c_base)):
+                try:
+                    if col < len(row) and row[col] not in (None, '-'):
+                        a[k] += float(row[col])
+                except (ValueError, TypeError):
+                    pass
+    for sigla, (parte, base) in acum.items():
+        if base:
+            dados[sigla][CHAVE_TOTAL] = round(parte / base, 6)
+    return dados
+
+
 def _carregar_arquivo(file_path):
     """Carrega TODAS as lojas de um arquivo de uma vez: {loja: {dia: valor}}.
     Tolera layouts diferentes (cabeçalho fora da 1ª linha, datas reais,
@@ -225,6 +343,10 @@ def _carregar_arquivo(file_path):
     idx_head, col_dias, col_total = _achar_cabecalho(linhas)
     dados = {}
     if idx_head is None or not col_dias:
+        # Sem colunas de dia: pode ser o layout longo (data numa coluna).
+        longo = _achar_cabecalho_longo(linhas)
+        if longo:
+            dados = _ler_longo(linhas, longo)
         _guardar_cache(chave, dados)
         return dados
 
