@@ -415,50 +415,23 @@ _TIPO_CACHE = {}
 
 
 def detectar_tipo(file_path):
-    """Detecta se o indicador é percentual ('%') ou monetário ('R$').
+    """Tipo do indicador ('%' ou 'R$').
 
-    Regra (nesta ordem):
-      1. Se TODAS as células de dados têm formato de porcentagem -> '%'
-         (ex.: SHARE MOL, SHARE DE CLUBZ).
-      2. Senão, quem decide são os VALORES: fração (|v| < 1) -> '%',
-         caso contrário -> 'R$'. Isso evita classificar errado planilhas com
-         formatação mista/resquício de '%' (caso do MP AREIAS, cujos valores
-         são centenas/milhares).
-      3. Sem valores, cai no formato.
+    Delega para calculo_rapido.detectar_tipo, que é a implementação usada no
+    cálculo dos placares. Antes existiam duas cópias da mesma regra aqui e lá,
+    e elas se separaram: quando o SHARE PIX passou a vir no layout longo (uma
+    linha por loja por dia, com colunas de R$ ao lado da coluna de %), a cópia
+    daqui olhava as colunas erradas e devolvia 'R$'. O detalhe do jogo então
+    mostrava "R$ 0,17" em vez de "17,00%" e somava os dias em vez de usar o
+    total da semana. Uma implementação só evita a divergência voltar.
     """
     if file_path is None:
         return "R$"
     chave = str(file_path)
     if chave in _TIPO_CACHE:
         return _TIPO_CACHE[chave]
-    tipo = "R$"
-    try:
-        wb = openpyxl.load_workbook(file_path)  # sem data_only: preserva formato
-        ws = wb.active
-        formatos = []
-        for row in ws.iter_rows(min_row=2, max_row=30, min_col=3, max_col=9):
-            for c in row:
-                if c.number_format:
-                    formatos.append(str(c.number_format))
-        wb.close()
-        com_pct = sum(1 for f in formatos if '%' in f)
-        so_pct = bool(formatos) and com_pct == len(formatos)
-
-        wb = openpyxl.load_workbook(file_path, data_only=True, read_only=True)
-        ws = wb.active
-        vals = [abs(v) for row in ws.iter_rows(min_row=2, min_col=3, max_col=9,
-                                               values_only=True) if row
-                for v in row if isinstance(v, (int, float)) and v != 0]
-        wb.close()
-
-        if so_pct:
-            tipo = "%"
-        elif vals:
-            tipo = "%" if all(v < 1 for v in vals) else "R$"
-        else:
-            tipo = "%" if com_pct else "R$"
-    except Exception as e:
-        print(f"⚠️ detectar_tipo falhou para {file_path}: {e}")
+    import calculo_rapido as cr
+    tipo = cr.detectar_tipo(file_path)
     _TIPO_CACHE[chave] = tipo
     return tipo
 
