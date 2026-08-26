@@ -2192,3 +2192,62 @@ body {
     margin-bottom: var(--s-4); font-size: .88em; line-height: 1.6;
 }
 .alerta-eliminada b { color: #a02a1f; }
+
+/* ==========================================================
+   Cenário de eliminação (simulação)
+   ========================================================== */
+.btn-cenario {
+    padding: 11px 18px; font-weight: 700; white-space: nowrap;
+    background: linear-gradient(135deg, #6b4d9e, #4a3270); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+}
+.btn-cenario:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(74, 50, 112, .3); }
+.btn-cenario.on {
+    background: linear-gradient(135deg, #b7791f, #8a5a10);
+    box-shadow: 0 0 0 3px rgba(183, 121, 31, .28);
+}
+
+.cen-faixa {
+    background: repeating-linear-gradient(45deg, #fff8e6, #fff8e6 12px, #fff3d6 12px, #fff3d6 24px);
+    border: 1px solid #e8c98a; border-radius: var(--r-md);
+    padding: 10px 16px; margin-bottom: var(--s-4);
+    font-size: .86em; color: #7a5c12; line-height: 1.55;
+}
+.cen-faixa b { color: #8a5a10; letter-spacing: .04em; }
+.cen-faixa button {
+    margin-left: 8px; border: 1px solid #d9b878; background: #fff; color: #8a5a10;
+    border-radius: 999px; padding: 3px 12px; cursor: pointer; font-family: inherit;
+    font-size: .92em; font-weight: 600;
+}
+.cen-faixa button:hover { background: #fdf3df; }
+
+.cen-painel { position: fixed; right: 20px; bottom: 20px; z-index: 400; width: min(400px, calc(100vw - 32px)); }
+.cen-cx {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+    box-shadow: 0 18px 44px rgba(16, 24, 40, .26); padding: 14px 16px;
+}
+.cen-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.cen-x { border: none; background: none; cursor: pointer; color: var(--text-3); font-size: 1em; padding: 2px 6px; }
+.cen-x:hover { color: var(--text-1); }
+.cen-nota { font-size: .8em; color: var(--text-3); line-height: 1.55; margin-bottom: 10px; }
+.cen-lista { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
+.cen-item {
+    display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: var(--r-md); cursor: pointer; font-size: .86em;
+}
+.cen-item:hover { background: var(--surface-2); }
+.cen-item small { color: var(--text-3); font-size: .85em; }
+.cen-acoes { display: flex; gap: 8px; margin-top: 12px; }
+.cen-bt {
+    flex: 1; padding: 8px 12px; border-radius: var(--r-md); cursor: pointer; font-family: inherit;
+    font-size: .86em; font-weight: 700; border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-2);
+}
+.cen-bt:hover { border-color: #6b4d9e; color: #4a3270; }
+.cen-bt.aplicar { background: #6b4d9e; border-color: #6b4d9e; color: #fff; }
+.cen-bt.aplicar:hover { background: #5a3f88; color: #fff; }
+
+@media (max-width: 768px) {
+    .btn-cenario { width: 100%; align-self: stretch; }
+    .cen-painel { right: 8px; left: 8px; bottom: 8px; width: auto; }
+}

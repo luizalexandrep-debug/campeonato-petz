@@ -185,6 +185,10 @@ function projecaoDaRodada() {
 const TOTAL_RODADAS = 19;
 
 function classificarGrupo(linhas, proj) {
+    // O cenário de eliminação refaz o acumulado antes de somar a rodada.
+    if (typeof cenAjustarLinha === 'function' && cen.ligado) {
+        linhas = linhas.map(cenAjustarLinha);
+    }
     const sim = ordenar(linhas.map(r => {
         const p = proj[r.time];
         if (!p) return { ...r, semJogo: true };
@@ -1207,7 +1211,9 @@ function panoramaHtml() {
 
 function render() {
     const painel = document.getElementById('painel');
-    const base = st.grupos[st.grupo] || [];
+    // O cenário de eliminação refaz o acumulado antes de qualquer ordenação.
+    let base = st.grupos[st.grupo] || [];
+    if (typeof cenAjustarLinha === 'function' && cen.ligado) base = base.map(cenAjustarLinha);
     const { proj, semDados } = projecaoDaRodada();
     st.projAtual = proj;   // usado pelo tooltip da sigla
 

@@ -858,7 +858,10 @@ function calcularRankingSimulado() {
         Object.keys(state.estrutura[reg]).forEach(dist => {
             const n = N[dist];
             const h = hist?.distritos?.[dist];
-            const histPts = h ? h.pontuacaoMedia * n : 0;
+            // No cenário de eliminação, o acumulado do distrito muda junto.
+            const ajD = (typeof cenAjustePorDistrito === 'function' && cen.ligado)
+                ? (cenAjustePorDistrito()[dist] || { pts: 0 }) : { pts: 0 };
+            const histPts = h ? (h.pontuacaoMedia + ajD.pts) * n : 0;
             const histGm = h ? rodadasAnt * n : 0;
             const cPts = curPts[dist] || 0;
             const cGm = curGm[dist] || 0;
@@ -875,7 +878,7 @@ function calcularRankingSimulado() {
                 // Escala do Power BI: pontos ACUMULADOS ÷ nº de lojas.
                 // histAcum = o próprio número do ranking oficial (ex.: 12,42)
                 // simAcum  = como fica somando a rodada atual (ex.: 13,42)
-                histAcum: h ? h.pontuacaoMedia : 0,
+                histAcum: h ? h.pontuacaoMedia + ajD.pts : 0,
                 simAcum: n > 0 ? totPts / n : 0,
                 acumConq: totPts,   // pontos acumulados (histórico + rodada atual)
                 temHistorico: !!h
@@ -1689,6 +1692,10 @@ function loadRankingDashboard() {
             ].filter(Boolean).join('\n');
         };
 
+        // Vitórias médias também mudam no cenário de eliminação.
+        const ajVit = (d) => (typeof cenAjustePorDistrito === 'function' && cen.ligado)
+            ? (cenAjustePorDistrito()[d]?.vit || 0) : 0;
+
         const linhasBase = porBase.filter(r => passaFiltro(r.reg)).map((r, i) => {
             const dest = r.reg === REGIONAL_DESTAQUE;
             const h = state.historico.distritos?.[r.dist] || {};
@@ -1697,7 +1704,7 @@ function loadRankingDashboard() {
                 <td class="l"><span class="dist-link" title="Jogos do distrito nesta rodada"
                     onclick="event.stopPropagation(); abrirJogosDistrito('${esc(r.reg)}','${esc(r.dist)}')">${r.dist}</span></td><td class="l reg">${regCurto(r.reg)}</td>
                 <td class="c b tem-tip" data-tip="${distanciaBase(r)}">${f2(r.sim.histAcum)}</td>
-                <td class="c">${h.vitoriaMedia !== undefined ? f2(h.vitoriaMedia) : '—'}</td></tr>`;
+                <td class="c">${h.vitoriaMedia !== undefined ? f2(h.vitoriaMedia + ajVit(r.dist)) : '—'}</td></tr>`;
         }).join('') + Object.entries(state.historico.regionais || {})
             .filter(([reg]) => passaFiltro(reg))
             .sort((a, b) => b[1].pontuacaoMedia - a[1].pontuacaoMedia)
