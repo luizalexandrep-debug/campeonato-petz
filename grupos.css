@@ -926,3 +926,21 @@
     .btn-cenario { width: 100%; align-self: stretch; }
     .cen-painel { right: 8px; left: 8px; bottom: 8px; width: auto; }
 }
+
+/* Bloco de rodadas já realizadas no calendário */
+.cal-sep {
+    margin-top: 18px; padding-top: 12px; border-top: 2px solid var(--border);
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+}
+.cal-sep b { font-size: .95em; }
+.cal-placar {
+    display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 5px;
+    font-weight: 800; font-size: .92em;
+}
+.cal-placar.v { background: #dff5e8; color: #0f7b4f; }
+.cal-placar.e { background: #fdf2dd; color: #8a5a10; }
+.cal-placar.d { background: #fdeaea; color: #c0392b; }
+.tag-minha {
+    font-size: .74em; font-weight: 700; background: #eef4ff; color: #2b5aa8;
+    border-radius: 4px; padding: 1px 5px;
+}

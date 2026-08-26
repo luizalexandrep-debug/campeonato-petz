@@ -580,7 +580,36 @@ function jogoDaRodada(time, rodada) {
     };
 }
 
-function abrirCalendario(loja, rival, grupo) {
+// Resultado rodada a rodada, da fonte oficial (/api/historico-lojas). O
+// calendário de TODOS OS JOGOS também traz placares, mas fica desatualizado
+// quando o campeonato corrige uma rodada — foi o caso do W3NT-DF.
+let _histLojas = null;
+
+async function carregarHistoricoLojas() {
+    if (_histLojas) return _histLojas;
+    try {
+        _histLojas = (await pegar('/historico-lojas')).lojas || {};
+    } catch (e) {
+        console.warn('histórico de lojas indisponível', e);
+        _histLojas = {};
+    }
+    return _histLojas;
+}
+
+// Jogos já realizados de uma loja, com o cenário de eliminação aplicado.
+function jogosRealizados(loja) {
+    const h = (_histLojas || {})[loja] || [];
+    const el = (typeof cenSet === 'function') ? cenSet() : new Set();
+    return h.map(j => {
+        if (el.has(loja) && el.has(j.adv)) return { ...j, gm: 0, gs: 0, cenario: true };
+        if (el.has(loja)) return { ...j, gm: 0, gs: 6, cenario: true };
+        if (el.has(j.adv)) return { ...j, gm: 6, gs: 0, cenario: true };
+        return j;
+    });
+}
+
+async function abrirCalendario(loja, rival, grupo) {
+    await carregarHistoricoLojas();
     const linhas = st.grupos[grupo] || [];
     const { proj } = projecaoDaRodada();
     const { sim } = classificarGrupo(linhas, proj);
@@ -629,6 +658,54 @@ function abrirCalendario(loja, rival, grupo) {
             desempate — hoje ele está ${sd.vantagem === 'a favor' ? 'a seu favor' : sd.vantagem === 'contra' ? 'contra você' : 'empatado'}.</small>
         </div>` : '';
 
+    // ---- rodadas já disputadas, com o placar ----
+    const realLoja = jogosRealizados(loja);
+    const realRival = rival ? jogosRealizados(rival) : [];
+    const porRodada = (lista) => Object.fromEntries(lista.map(j => [j.rodada, j]));
+    const rl = porRodada(realLoja), rr = porRodada(realRival);
+    const rodadasFeitas = [...new Set([...realLoja, ...realRival].map(j => j.rodada))].sort((a, b) => a - b);
+
+    const celPassada = (j) => {
+        if (!j) return '<span class="vazio-cel">—</span>';
+        const res = j.gm > j.gs ? 'v' : (j.gm < j.gs ? 'd' : 'e');
+        const minha = st.minhasLojas.has(j.adv);
+        return `<b>${j.adv}</b>${minha ? ' <span class="tag-minha">sua</span>' : ''}
+            <span class="cal-placar ${res}">${j.gm} x ${j.gs}</span>
+            ${j.cenario ? '<small class="cel-origem">cenário</small>' : ''}`;
+    };
+    const corpoPassado = rodadasFeitas.map(r => {
+        const a = rl[r], b = rr[r];
+        const direto = a && rival && a.adv === rival;
+        return `<tr class="${direto ? 'linha-direto' : ''}">
+            <td class="c">R${r}</td>
+            <td>${celPassada(a)}</td>
+            ${rival ? `<td>${celPassada(b)}</td>` : ''}
+            <td class="c motivo">${direto ? '<div>⚔ confronto direto</div>' : ''}
+                ${a ? `<small class="cel-origem">${st.lojaRegional[a.adv] || '—'}</small>` : ''}</td>
+        </tr>`;
+    }).join('');
+
+    const saldo = (lista) => {
+        const v = lista.filter(j => j.gm > j.gs).length, e = lista.filter(j => j.gm === j.gs).length;
+        return `${v}V ${e}E ${lista.length - v - e}D · ${v * 3 + e} pts`;
+    };
+
+    const blocoRealizados = rodadasFeitas.length ? `
+        <div class="cal-legenda cal-sep">
+            <b>Já realizados</b>
+            <span class="cal-nota">${loja}: ${saldo(realLoja)}${
+                rival ? ` · ${rival}: ${saldo(realRival)}` : ''}</span>
+        </div>
+        <table class="tab-grupo tab-cal">
+            <thead><tr>
+                <th class="c">Rodada</th>
+                <th>${loja} <small>(sua loja)</small></th>
+                ${rival ? `<th>${rival} <small>(alvo)</small></th>` : ''}
+                <th class="c">Leitura</th>
+            </tr></thead>
+            <tbody>${corpoPassado}</tbody>
+        </table>` : '';
+
     const fundo = document.createElement('div');
     fundo.className = 'modal-fundo';
     fundo.innerHTML = `
@@ -656,6 +733,7 @@ function abrirCalendario(loja, rival, grupo) {
                     </tr></thead>
                     <tbody>${corpo}</tbody>
                 </table>
+                ${blocoRealizados}
             </div>
         </div>`;
 
