@@ -222,6 +222,7 @@ import threading
 CACHE_TTL_SEGUNDOS = 900         # frescor máximo antes de rebaixar (15 min)
 ESPERA_APOS_THROTTLE = 900       # depois de um 429, aguarda antes de tentar
 RETENTAR_APOS_FALHA = 60         # download parcial: tenta de novo em 1 min
+TTL_INCOMPLETO = 120             # indicadores em dias diferentes: rebaixa em 2 min
 _fetch_lock = threading.Lock()
 _MARKER = TMP_BASE / ".fetched_at"
 
@@ -276,19 +277,50 @@ def _em_espera_throttle():
         return False
 
 
+def _ttl_efetivo():
+    """Quanto tempo o /tmp desta instância vale antes de baixar de novo.
+
+    Normalmente CACHE_TTL_SEGUNDOS. Mas quando os indicadores da rodada estão
+    em dias diferentes, o TTL cai para TTL_INCOMPLETO. O motivo é o jeito como
+    o upload acontece: os arquivos são salvos um a um e o SharePoint sincroniza
+    cada um no seu tempo, então uma instância que baixa no meio do caminho pega
+    metade novo e metade velho — e ficaria congelada assim por 15 minutos,
+    mostrando indicadores "pendentes" que já estão lá.
+
+    Rebaixar mais cedo resolve esse caso. Quando o indicador está realmente
+    atrasado (o usuário ainda não subiu), o custo é só uma consulta a mais de
+    vez em quando.
+    """
+    try:
+        import calculo_rapido as cr
+        sem = semana_atual()
+        memoria = cr.carregar_tudo(dir_anterior(sem), dir_atual(sem))
+        ultimos = set()
+        for _arq, s in memoria.items():
+            dias = [d for d in cr.DIAS_ORDENADOS
+                    if any((v or {}).get(d) for v in (s.get("atual") or {}).values())]
+            ultimos.add(dias[-1] if dias else None)
+        if len(ultimos) > 1:
+            return TTL_INCOMPLETO
+    except Exception:
+        pass
+    return CACHE_TTL_SEGUNDOS
+
+
 def garantir_arquivos_frescos(force=False):
     """Garante que /tmp tenha os arquivos do SharePoint razoavelmente frescos.
     Baixa se nunca baixou, se passou do TTL, ou se force=True. Protegido por
     lock para evitar downloads simultâneos na mesma instância."""
     idade = _idade_tmp()
-    if not force and idade is not None and idade < CACHE_TTL_SEGUNDOS:
+    ttl = _ttl_efetivo()
+    if not force and idade is not None and idade < ttl:
         return  # já está fresco o suficiente
     if _em_espera_throttle() and active_base() == TMP_BASE:
         return  # throttle recente e já temos dados baixados: não insistir
     with _fetch_lock:
         # Re-checar após o lock: outra thread pode ter acabado de baixar
         idade = _idade_tmp()
-        if not force and idade is not None and idade < CACHE_TTL_SEGUNDOS:
+        if not force and idade is not None and idade < ttl:
             return
         try:
             import sharepoint
