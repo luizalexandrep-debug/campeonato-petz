@@ -19,17 +19,22 @@ import requests
 
 # Links de pasta "Qualquer pessoa com o link" (view). Podem ser atualizados aqui.
 # São links de PASTA (:f:), não de arquivo.
+#
+# O caminho pessoal mudou de 'luiz_prado_petz_com_br' para
+# 'luiz_prado_petzcobasi_com_br' (mudança de domínio da conta). O host e o
+# identificador da pasta continuaram os mesmos — só o segmento do usuário
+# mudou. Se acontecer de novo, é esse trecho que precisa ser trocado nos cinco.
 PASTAS_SHAREPOINT = {
-    "SEMANA ANTERIOR": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAraUw_Xz5lQ7wctHpiwl0SAbkW2E_LbgyX5_9MkQb9z_o?e=h5XcMc",
-    "SEMANA ATUAL": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgA5CGHOHMqQSLe5xDfQJDKEAQ_EvUCnYvUUjzlsWuE49eU?e=5TpKZ1",
-    "Confrontos": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAunV-h79oqTpWyR6vr0BgJAbl2b88L_W15BMnnEgE8Jl0?e=cAqSK4",
+    "SEMANA ANTERIOR": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petzcobasi_com_br/IgAraUw_Xz5lQ7wctHpiwl0SAbkW2E_LbgyX5_9MkQb9z_o?e=h5XcMc",
+    "SEMANA ATUAL": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petzcobasi_com_br/IgA5CGHOHMqQSLe5xDfQJDKEAQ_EvUCnYvUUjzlsWuE49eU?e=5TpKZ1",
+    "Confrontos": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petzcobasi_com_br/IgAunV-h79oqTpWyR6vr0BgJAbl2b88L_W15BMnnEgE8Jl0?e=cAqSK4",
     # Ranking acumulado das rodadas já encerradas (export do Power BI).
     # Ver leitura em backend.historico_do_sharepoint().
-    "Historico": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgAJLDGS_b2DSJri9CAzz6dBAWb5DNwKssFacdi6Y9gwm00?e=bcUoZf",
+    "Historico": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petzcobasi_com_br/IgAJLDGS_b2DSJri9CAzz6dBAWb5DNwKssFacdi6Y9gwm00?e=bcUoZf",
     # Mesmo ranking, por REGIONAL. Acessível pela pasta raiz compartilhada,
     # por isso é baixado via SUBPASTAS_RAIZ (abaixo) e não por link próprio.
     # Pasta raiz — contém estrutura.xlsx (Regional | Distrito | Sigla Loja)
-    "Estrutura": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petz_com_br/IgBmj_M4lNJVT5A78h_MKThtAaUgbM2id9_uj_Zjjs-8I3g?e=KLPE4E",
+    "Estrutura": "https://petcentermarginal1-my.sharepoint.com/:f:/g/personal/luiz_prado_petzcobasi_com_br/IgBmj_M4lNJVT5A78h_MKThtAaUgbM2id9_uj_Zjjs-8I3g?e=KLPE4E",
 }
 
 # Subpastas acessíveis DENTRO do link da pasta raiz (não precisam de link
