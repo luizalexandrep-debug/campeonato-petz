@@ -266,11 +266,31 @@ def dir_atual(semana=None):
 
 def dir_confrontos():
     """Pasta de confrontos: prefere a baixada do SharePoint (/tmp), senão a
-    empacotada no repositório."""
+    empacotada no repositório.
+
+    Para pegar UM arquivo específico use arquivo_confrontos(): a pasta escolhida
+    aqui pode não ter a rodada mais nova.
+    """
     tmp_conf = TMP_BASE / "Confrontos"
     if tmp_conf.exists() and any(tmp_conf.glob("Semana *.xlsx")):
         return tmp_conf
     return BUNDLED_BASE / "Confrontos"
+
+
+def arquivo_confrontos(nome):
+    """Caminho de um arquivo de confronto, olhando as duas cópias.
+
+    semanas_disponiveis() já une o que existe no /tmp e no empacotado, então a
+    rodada 10 pode aparecer no seletor vindo só da cópia empacotada. Sem olhar
+    as duas aqui, o app anunciaria a rodada e depois não acharia o arquivo dela.
+    Entre as duas cópias do mesmo arquivo, fica a maior — um confronto novo
+    nunca tem menos jogos que o antigo.
+    """
+    cands = [b / "Confrontos" / nome for b in (TMP_BASE, BUNDLED_BASE)]
+    existentes = [c for c in cands if c.exists()]
+    if not existentes:
+        return dir_confrontos() / nome
+    return max(existentes, key=lambda c: c.stat().st_size)
 
 
 def semanas_disponiveis():
@@ -1217,7 +1237,7 @@ def ler_todos_os_jogos():
     Diferente dos 'Semana N.xlsx', este arquivo traz as 19 rodadas de uma vez
     e serve só para os insights (confronto direto, calendário futuro).
     """
-    caminho = dir_confrontos() / "TODOS OS JOGOS.xlsx"
+    caminho = arquivo_confrontos("TODOS OS JOGOS.xlsx")
     if not caminho.exists():
         return []
     wb = openpyxl.load_workbook(caminho, data_only=True, read_only=True)
@@ -1476,7 +1496,7 @@ def historico_lojas():
 
     # --- fonte 2: calendário completo (rodadas já realizadas) ---
     try:
-        jogos_path = dir_confrontos() / "TODOS OS JOGOS.xlsx"
+        jogos_path = arquivo_confrontos("TODOS OS JOGOS.xlsx")
         if jogos_path.exists():
             wb = openpyxl.load_workbook(jogos_path, data_only=True, read_only=True)
             for row in wb.active.iter_rows(min_row=2, values_only=True):
@@ -1512,7 +1532,7 @@ def historico_lojas():
             ant, atu = cache[n - 1], cache[n]
             # Adversário daquela rodada, do arquivo de confrontos
             adv = {}
-            conf_path = dir_confrontos() / f"Semana {n}.xlsx"
+            conf_path = arquivo_confrontos(f"Semana {n}.xlsx")
             if conf_path.exists():
                 import calculo_rapido as cr
                 for c in cr.ler_confrontos(conf_path):
@@ -1548,7 +1568,7 @@ def get_margens(semana):
         garantir_arquivos_frescos()
         import calculo_rapido as cr
 
-        confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
+        confrontos_path = arquivo_confrontos(f"Semana {semana}.xlsx")
         if not confrontos_path.exists():
             return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
         confrontos = cr.ler_confrontos(confrontos_path)
@@ -1596,7 +1616,7 @@ def get_evolucao(semana):
         garantir_arquivos_frescos()
         import calculo_rapido as cr
 
-        confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
+        confrontos_path = arquivo_confrontos(f"Semana {semana}.xlsx")
         if not confrontos_path.exists():
             return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
         confrontos = cr.ler_confrontos(confrontos_path)
@@ -1829,7 +1849,7 @@ def get_loja(sigla):
 def get_confrontos(semana):
     """Retorna os confrontos de uma semana específica"""
     try:
-        confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
+        confrontos_path = arquivo_confrontos(f"Semana {semana}.xlsx")
 
         if not confrontos_path.exists():
             return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
@@ -2033,7 +2053,7 @@ def precalculate_games(semana):
         print(f"\n⏳ Iniciando pré-cálculo para semana {semana}...")
 
         # Carregar confrontos
-        confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
+        confrontos_path = arquivo_confrontos(f"Semana {semana}.xlsx")
         if not confrontos_path.exists():
             return jsonify({"error": f"Confrontos da semana {semana} não encontrados"}), 404
 
@@ -2112,7 +2132,7 @@ def _calcular_summary(semana):
     """Calcula o resumo de todos os jogos a partir da base ATIVA (/tmp se
     reprocessado, senão empacotada). Retorna o dict do resumo."""
     import calculo_rapido as cr
-    confrontos_path = dir_confrontos() / f"Semana {semana}.xlsx"
+    confrontos_path = arquivo_confrontos(f"Semana {semana}.xlsx")
     if not confrontos_path.exists():
         # Distinguir "arquivo não existe" de "não conseguimos baixar": com o
         # SharePoint limitando as requisições (429) a pasta chega vazia e o

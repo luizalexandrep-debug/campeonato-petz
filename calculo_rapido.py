@@ -738,17 +738,33 @@ def calcular_todos_jogos(confrontos, memoria, hoje_idx):
     jogos = []
     elim = lojas_eliminadas()
     if semana_atual_vazia(memoria):
-        # Rodada ainda não começou a receber vendas: jogos sem resultado.
-        return [{
-            "team1": c["team1"],
-            "team2": c["team2"],
-            "scoreProjected": "0 x 0",
-            "scoreAccumulated": "0 x 0",
-            "hojeIdx": hoje_idx,
-            "golsProjetados": {},
-            "golsAcumulados": {},
-            "semDados": True,
-        } for c in confrontos]
+        # Rodada ainda não começou a receber vendas: jogos sem resultado. A
+        # exceção é a loja eliminada — o 0 x 6 dela é administrativo e não
+        # depende de planilha nenhuma, então já vale desde o primeiro dia.
+        vazios = []
+        for c in confrontos:
+            t1, t2 = c["team1"], c["team2"]
+            e1, e2 = t1.upper() in elim, t2.upper() in elim
+            if e1 or e2:
+                s1, s2, gols = _placar(memoria, t1, t2, hoje_idx)
+                vazios.append({
+                    "team1": t1, "team2": t2,
+                    "scoreProjected": f"{s1} x {s2}",
+                    "scoreAccumulated": f"{s1} x {s2}",
+                    "hojeIdx": hoje_idx,
+                    "golsProjetados": gols, "golsAcumulados": gols,
+                    "administrativo": True,
+                })
+            else:
+                vazios.append({
+                    "team1": t1, "team2": t2,
+                    "scoreProjected": "0 x 0",
+                    "scoreAccumulated": "0 x 0",
+                    "hojeIdx": hoje_idx,
+                    "golsProjetados": {}, "golsAcumulados": {},
+                    "semDados": True,
+                })
+        return vazios
     for conf in confrontos:
         t1, t2 = conf["team1"], conf["team2"]
         s1p, s2p, gols_proj = _placar(memoria, t1, t2, None)
