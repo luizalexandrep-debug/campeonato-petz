@@ -89,6 +89,24 @@ antes e depois da correção. O efeito só aparece em rodada parcial.
 4. **Base da semana anterior divergente** — o Power BI pode estar usando um
    corte de dados diferente do que está no SharePoint.
 
+## Situação em 2026-08-31
+
+Com o `Rodada 7.xlsx` também corrigido (a eliminação do W3NT-DF vale
+retroativamente e mexia em STCE-SP, ALDT-CE e ASAN-DF), a comparação ficou
+limpa: as 266 lojas passam no teste de coerência entre as rodadas 7 e 8
+(exatamente +1 jogo, V/E/D e gols batendo), e o placar do app contra o oficial
+é **117 idênticos, 11 só no placar, 5 com resultado diferente**.
+
+Os 5 são sempre os mesmos e não têm relação com a eliminação:
+
+| Jogo | App | Oficial |
+|---|---|---|
+| IPIR-SP × ITTB-SP | 2x4 | 4x2 |
+| BFRX-RJ × NIGC-RJ | 3x3 | 2x4 |
+| LAUZ-SP × JUND-SP | 3x3 | 4x2 |
+| CXAS-RS × STDU-CE | 3x3 | 2x4 |
+| TTUI-SP × SZNO-SP | 4x2 | 3x3 |
+
 ## Como retomar
 
 Rodar, para cada um dos 17 jogos, `_placar` com detalhe por gol e comparar com
