@@ -1147,18 +1147,27 @@ def get_historico():
 # CLASSIFICAÇÃO POR LOJA (grupos)
 # ============================================================
 
+def _pastas_dados(nome):
+    """As duas cópias possíveis de uma pasta de apoio, na ordem de preferência.
+
+    Igual ao que já é feito com os confrontos e com as semanas: quando a
+    sincronização do SharePoint atrasa, um arquivo pode existir só na cópia
+    empacotada. Olhar as duas evita anunciar uma rodada que depois não é
+    encontrada.
+    """
+    return [b / nome for b in (TMP_BASE, BUNDLED_BASE) if (b / nome).is_dir()]
+
+
 def rodadas_classificacao():
-    """Rodadas que têm arquivo de classificação por loja disponível."""
-    base = pasta_dados("ClassificacaoLojas")
-    if not base.exists():
-        return []
+    """Rodadas que têm arquivo de classificação por loja, nas duas cópias."""
     ns = set()
-    for f in base.glob("*.xlsx"):
-        if f.name.startswith("~"):
-            continue
-        m = re.search(r"(\d+)", f.stem)
-        if m:
-            ns.add(int(m.group(1)))
+    for base in _pastas_dados("ClassificacaoLojas"):
+        for f in base.glob("*.xlsx"):
+            if f.name.startswith("~"):
+                continue
+            m = re.search(r"(\d+)", f.stem)
+            if m:
+                ns.add(int(m.group(1)))
     return sorted(ns)
 
 
@@ -1171,24 +1180,20 @@ def classificacao_lojas(rodada=None):
     arquivo — é assim que dá para reabrir uma rodada passada, projetando a
     rodada N sobre a base da rodada N-1. Retorna (rodada, {grupo: [linhas]}).
     """
-    base = pasta_dados("ClassificacaoLojas")
-    if not base.exists():
-        return None, {}
-
     melhor, melhor_n = None, -1
-    for f in base.glob("*.xlsx"):
-        if f.name.startswith("~"):
-            continue
-        m = re.search(r"(\d+)", f.stem)
-        if not m:
-            continue
-        n = int(m.group(1))
-        if rodada is not None:
-            if n == int(rodada):
+    for base in _pastas_dados("ClassificacaoLojas"):
+        for f in base.glob("*.xlsx"):
+            if f.name.startswith("~"):
+                continue
+            m = re.search(r"(\d+)", f.stem)
+            if not m:
+                continue
+            n = int(m.group(1))
+            if rodada is not None:
+                if n == int(rodada) and melhor is None:
+                    melhor, melhor_n = f, n
+            elif n > melhor_n:
                 melhor, melhor_n = f, n
-                break
-        elif n > melhor_n:
-            melhor, melhor_n = f, n
     if not melhor:
         return None, {}
 
