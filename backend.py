@@ -6,6 +6,7 @@ Integração com dados de Semana Anterior e Semana Atual
 from flask import Flask, jsonify, request, send_from_directory, session
 from flask_cors import CORS
 from flask_login import login_user, logout_user, login_required, current_user
+import shutil
 import openpyxl
 import os
 import re
@@ -152,16 +153,107 @@ def rodada_efetiva(semana=None):
     return semana, True
 
 
+# Pasta onde montamos a combinação do que veio do SharePoint com o que está
+# empacotado no deploy. Fica em /tmp por ser o único lugar gravável no Vercel.
+MERGE_BASE = Path('/tmp/campeonato_merge')
+_merge_cache = {}
+
+
+def _ultimo_dia_do_arquivo(caminho):
+    """Índice do último dia com valor no arquivo (-1 se não tem nenhum).
+
+    É a medida de "mais recente" que importa aqui: entre duas cópias do mesmo
+    indicador, a boa é a que tem mais dias lançados. Data de modificação não
+    serve — a cópia empacotada nasce com a data do deploy e ganharia sempre.
+    """
+    try:
+        import calculo_rapido as cr
+        dados = cr._carregar_arquivo(caminho)
+        ultimo = -1
+        for dias in dados.values():
+            for i, d in enumerate(cr.DIAS_ORDENADOS):
+                if dias.get(d):
+                    ultimo = max(ultimo, i)
+        return ultimo
+    except Exception:
+        return -1
+
+
+def _combinar_semana(pasta, rod):
+    """Junta as duas cópias de uma rodada, arquivo a arquivo, ficando com a
+    mais adiantada de cada indicador.
+
+    O SharePoint sincroniza um arquivo por vez e às vezes trava no meio: dá
+    para ter VENDAS até domingo lá e MARCA ZEE até quarta, enquanto a cópia
+    empacotada tem os dois até domingo. Escolher a pasta inteira não resolve
+    (a do SharePoint "ganha" por causa do VENDAS); escolher arquivo a arquivo,
+    sim. Empate fica com o SharePoint, que é a fonte viva.
+
+    Devolve o diretório combinado, ou None se não valer a pena combinar.
+    """
+    origens = [b / pasta / f"rodada {rod}" for b in (TMP_BASE, BUNDLED_BASE)]
+    tmp_dir, pkg_dir = origens
+    if not tmp_dir.is_dir() or not pkg_dir.is_dir():
+        return None
+
+    # Assinatura barata para não refazer a combinação a cada requisição.
+    try:
+        assinatura = tuple(sorted(
+            (f.name, f.stat().st_mtime_ns, f.stat().st_size)
+            for d in origens for f in d.glob("*.xlsx")))
+    except OSError:
+        return None
+    destino = MERGE_BASE / pasta / f"rodada {rod}"
+    if _merge_cache.get((pasta, rod)) == assinatura and destino.is_dir():
+        return destino
+
+    nomes = {f.name for d in origens for f in d.glob("*.xlsx")
+             if not f.name.startswith("~")}
+    if not nomes:
+        return None
+    escolhas = {}
+    for nome in nomes:
+        cands = [d / nome for d in origens if (d / nome).exists()]
+        # max() com chave estável: em empate fica o primeiro, que é o /tmp.
+        escolhas[nome] = max(cands, key=_ultimo_dia_do_arquivo)
+
+    # Só vale combinar se alguma escolha vier da cópia empacotada.
+    if all(c.is_relative_to(TMP_BASE) for c in escolhas.values()):
+        _merge_cache[(pasta, rod)] = assinatura
+        return None
+
+    try:
+        if destino.exists():
+            shutil.rmtree(destino)
+        destino.mkdir(parents=True, exist_ok=True)
+        for nome, origem in escolhas.items():
+            shutil.copy2(origem, destino / nome)
+        vindos = sorted(n for n, c in escolhas.items() if not c.is_relative_to(TMP_BASE))
+        print(f"🔀 {pasta}/rodada {rod}: usando a cópia empacotada para {', '.join(vindos)} "
+              f"(mais adiantada que a do SharePoint).")
+        _merge_cache[(pasta, rod)] = assinatura
+        return destino
+    except Exception as e:
+        print(f"⚠️ Não consegui combinar {pasta}/rodada {rod}: {e}")
+        return None
+
+
 def _dir_semana(pasta, semana=None):
     """Diretório dos dados de uma semana.
 
     Estrutura preferida (por rodada):  <base>/SEMANA ATUAL/rodada 8
     Cai para a pasta antiga (<base>/SEMANA ATUAL) ou para a última rodada com
     dados, de modo que a migração dos arquivos possa ser feita aos poucos.
+
+    Quando as duas cópias (SharePoint e empacotada) têm a rodada, entra a
+    combinação arquivo a arquivo — ver _combinar_semana().
     """
     base = active_base()
     rod, usou_raiz = rodada_efetiva(semana)
-    return (base / pasta) if usou_raiz else (base / pasta / f"rodada {rod}")
+    if usou_raiz:
+        return base / pasta
+    combinado = _combinar_semana(pasta, rod)
+    return combinado or (base / pasta / f"rodada {rod}")
 
 
 def dir_anterior(semana=None):
