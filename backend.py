@@ -127,9 +127,17 @@ def _rodada_iniciada(base, n):
     Basta a SEMANA ANTERIOR: no primeiro dia da rodada só existe a base de
     comparação, e é assim que deve aparecer — semana anterior com os valores
     e semana atual zerada, evoluindo conforme os dias entram.
+
+    Olha as DUAS cópias (SharePoint e empacotada). Se olhasse só a ativa, uma
+    rodada que chegou pela cópia empacotada — porque a sincronização do
+    SharePoint travou — seria considerada "não iniciada" e o app cairia para a
+    rodada anterior, mostrando os indicadores da semana passada.
     """
-    return (_tem_xlsx(base / "SEMANA ATUAL" / f"rodada {n}")
-            or _tem_xlsx(base / "SEMANA ANTERIOR" / f"rodada {n}"))
+    for b in {base, TMP_BASE, BUNDLED_BASE}:
+        if (_tem_xlsx(b / "SEMANA ATUAL" / f"rodada {n}")
+                or _tem_xlsx(b / "SEMANA ANTERIOR" / f"rodada {n}")):
+            return True
+    return False
 
 
 def rodada_efetiva(semana=None):
@@ -193,8 +201,12 @@ def _combinar_semana(pasta, rod):
     """
     origens = [b / pasta / f"rodada {rod}" for b in (TMP_BASE, BUNDLED_BASE)]
     tmp_dir, pkg_dir = origens
-    if not tmp_dir.is_dir() or not pkg_dir.is_dir():
+    com_arquivos = [d for d in origens if _tem_xlsx(d)]
+    if not com_arquivos:
         return None
+    if len(com_arquivos) == 1:
+        # Só uma das cópias tem a rodada: usa ela direto, sem combinar.
+        return com_arquivos[0]
 
     # Assinatura barata para não refazer a combinação a cada requisição.
     try:
