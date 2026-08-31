@@ -63,13 +63,21 @@ def copiar(src: Path, dst: Path, mudancas: list, aplicar: bool):
 
 
 def rodadas_recentes(pasta: Path):
-    """As RODADAS_MANTIDAS subpastas 'rodada N' de número mais alto."""
+    """As RODADAS_MANTIDAS rodadas mais recentes QUE TÊM ARQUIVOS.
+
+    As pastas 'rodada 10' a 'rodada 19' já existem no OneDrive, vazias,
+    esperando as próximas semanas. Ordenar só pelo número pegaria essas e
+    deixaria de fora a rodada que está valendo.
+    """
     achadas = []
     for p in pasta.glob("rodada *"):
         try:
-            achadas.append((int(p.name.split()[-1]), p))
+            n = int(p.name.split()[-1])
         except ValueError:
             continue
+        if any(f.name.lower().endswith(".xlsx") and not f.name.startswith("~")
+               for f in p.iterdir()):
+            achadas.append((n, p))
     return [p for _n, p in sorted(achadas, reverse=True)[:RODADAS_MANTIDAS]]
 
 
