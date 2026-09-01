@@ -2264,7 +2264,18 @@ async function abrirDetalhesJogo(team1, team2) {
             : lado === 'dir' ? todos.filter(i => gols[i] === golDir)
                 : todos;
         const dono = lado === 'esq' ? team1 : team2;
-        const aviso = (eliminada ? `
+        // Rodada encerrada: o placar é o oficial do campeonato. Quando os gols
+        // calculados não somam esse placar, a lista abaixo é só explicativa —
+        // dizer isso é melhor do que mostrar uma conta que não fecha.
+        const avisoOficial = resumo.calculado ? `
+            <div class="alerta-eliminada">
+                <b>📋 Placar oficial do campeonato: ${invertido ? inverterPlacar(resumo.scoreProjected) : resumo.scoreProjected}.</b>
+                O cálculo sobre as planilhas de venda daria
+                ${invertido ? inverterPlacar(resumo.calculado) : resumo.calculado} — a diferença
+                vem do <b>SHARE CLUBZ</b>, que na apuração oficial considera só o canal físico e
+                só os Clubz novos, recorte que a planilha exportada não tem. Vale o oficial.
+            </div>` : '';
+        const aviso = avisoOficial + (eliminada ? `
             <div class="alerta-eliminada">
                 <b>⛔ ${eliminada} está eliminada do campeonato.</b>
                 O placar deste jogo é <b>administrativo</b> — ela perde por 0 x 6 em todas as

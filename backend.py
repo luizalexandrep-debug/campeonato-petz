@@ -2226,6 +2226,68 @@ def precalculate_games(semana):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+def resultados_oficiais(semana):
+    """Placar oficial de cada jogo da rodada, tirado da Classificação Lojas.
+
+    A classificação por loja é um acumulado. A diferença entre a rodada N e a
+    N-1 dá exatamente o que aconteceu na rodada N: gols marcados, sofridos e
+    pontos de cada loja. Como cada loja joga uma vez por rodada, isso É o
+    placar do jogo dela.
+
+    É a fonte oficial do campeonato. Vale mais que o cálculo do app sempre que
+    existir, porque o app depende das planilhas de venda — e o SHARE CLUBZ
+    exportado usa um recorte diferente do da meta oficial (só canal físico e só
+    Clubz novos), o que troca o dono do gol em jogos de margem apertada.
+
+    Retorna {sigla: {"gm": int, "gs": int}} ou {} quando falta alguma das duas
+    classificações.
+    """
+    import calculo_rapido as cr
+    try:
+        disponiveis = set(rodadas_classificacao())
+        if semana not in disponiveis or (semana - 1) not in disponiveis:
+            return {}
+        atual = {l["time"]: l for g in classificacao_lojas(semana)[1].values() for l in g}
+        anterior = {l["time"]: l for g in classificacao_lojas(semana - 1)[1].values() for l in g}
+        out = {}
+        for sigla, a in atual.items():
+            b = anterior.get(sigla)
+            if not b or a["jogos"] - b["jogos"] != 1:
+                continue          # loja sem jogo nessa rodada, ou base inconsistente
+            gm, gs = a["gm"] - b["gm"], a["gs"] - b["gs"]
+            if gm < 0 or gs < 0 or gm + gs != cr.GOLS_POR_JOGO:
+                continue          # não fecha: melhor não usar
+            out[sigla] = {"gm": gm, "gs": gs}
+        return out
+    except Exception as e:
+        print(f"⚠️ resultados_oficiais({semana}) falhou: {e}")
+        return {}
+
+
+def _aplicar_oficiais(jogos, oficiais):
+    """Troca o placar calculado pelo oficial, marcando onde os dois discordam.
+
+    Os gols individuais continuam sendo os do cálculo — a classificação só
+    informa o placar, não quem levou cada indicador. Quando a soma dos gols
+    calculados não bate com o placar oficial, o jogo fica marcado para a tela
+    poder avisar em vez de mostrar uma conta que não fecha.
+    """
+    trocados = divergentes = 0
+    for g in jogos:
+        o1, o2 = oficiais.get(g["team1"]), oficiais.get(g["team2"])
+        if not o1 or not o2 or (o1["gm"], o1["gs"]) != (o2["gs"], o2["gm"]):
+            continue              # sem dado oficial, ou os dois lados não casam
+        placar = f"{o1['gm']} x {o1['gs']}"
+        if placar != g["scoreProjected"]:
+            divergentes += 1
+            g["calculado"] = g["scoreProjected"]
+        g["scoreProjected"] = placar
+        g["scoreAccumulated"] = placar
+        g["fonte"] = "oficial"
+        trocados += 1
+    return trocados, divergentes
+
+
 def _calcular_summary(semana):
     """Calcula o resumo de todos os jogos a partir da base ATIVA (/tmp se
     reprocessado, senão empacotada). Retorna o dict do resumo."""
@@ -2246,6 +2308,10 @@ def _calcular_summary(semana):
     memoria = cr.carregar_tudo(dir_anterior(semana), dir_atual(semana))
     hoje_idx = (datetime.now().weekday() + 1) % 7
     jogos = cr.calcular_todos_jogos(confrontos, memoria, hoje_idx)
+
+    # Rodada já encerrada e publicada: o placar oficial substitui o cálculo.
+    oficiais = resultados_oficiais(semana)
+    n_oficial, n_diverg = _aplicar_oficiais(jogos, oficiais) if oficiais else (0, 0)
 
     # Alerta: indicador que subiu sem nenhum valor (planilha zerada). Sem base
     # de comparação o gol empata em todos os jogos e o placar não soma 6.
@@ -2327,10 +2393,25 @@ def _calcular_summary(semana):
             "mensagem": f"A rodada {semana} ainda não tem planilhas de venda — "
                         f"os placares estão sendo calculados com os dados da rodada {rod_dados}."
         })
+    if n_oficial:
+        avisos.append({
+            "tipo": "oficial",
+            "indicador": "Classificação oficial",
+            "semana": f"rodada {semana}",
+            "mensagem": f"A rodada {semana} já está encerrada: os placares vêm da "
+                        f"classificação oficial do campeonato, não do cálculo sobre as "
+                        f"planilhas de venda." +
+                        (f" Em {n_diverg} jogo(s) o cálculo dava outro placar — o oficial "
+                         f"prevalece." if n_diverg else "")
+        })
+
     return {
         "week": semana,
         "rodadaDados": rod_dados,
         "semDadosAtual": cr.semana_atual_vazia(memoria),
+        "fonteOficial": bool(n_oficial),
+        "jogosOficiais": n_oficial,
+        "jogosDivergentes": n_diverg,
         "eliminadas": sorted(cr.lojas_eliminadas()),
         "lastUpdated": datetime.now().isoformat(),
         "total": len(jogos),

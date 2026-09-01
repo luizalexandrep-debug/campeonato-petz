@@ -193,3 +193,38 @@ Os 5 são sempre os mesmos e não têm relação com a eliminação:
 Rodar, para cada um dos 17 jogos, `_placar` com detalhe por gol e comparar com
 o que o Power BI mostra no detalhe daquele confronto. Se o padrão for sempre o
 mesmo gol, a hipótese 1 se confirma e o ajuste é em `agregar_pct`.
+
+## Drill-through oficial capturado (2026-09-01) — CAUSA CONFIRMADA NA FONTE
+
+Scrape do Power BI → Jogos → CXAS-RS, Rodada 8 → botão direito → Drill-through →
+"Detalhe do Jogo" (jogo 1036). A definição do indicador aparece escrita na tela:
+
+> **Share Clubz [Evolução Semanal]** — "Evolução semanal do share das vendas de
+> Clubz **no canal físico** em relação ao total de vendas no canal físico no
+> mesmo período. (OBS: apenas **Clubz novos**)."
+
+Ou seja: canal físico apenas, e só Clubz novos. A planilha que baixamos traz o
+share Clubz total (físico + digital, todos os Clubz), que é outra métrica. Não
+há como reproduzir o número oficial a partir dela.
+
+Gols oficiais do jogo (CXAS-RS 2 x 4 STDU-CE):
+
+| Indicador | CXAS-RS | STDU-CE | Gol |
+|---|---|---|---|
+| Vendas (físico e digital) | −9,17% | 2,71% | STDU-CE |
+| Share Clubz | −37,22% | −24,37% | STDU-CE |
+| Tapetes Marca Própria | −9,10% | −7,69% | STDU-CE* |
+| Categoria Antipulgas | −5,12% | 19,73% | STDU-CE |
+| Marca Biofresh | −19,42% | 40,25% | CXAS-RS* |
+| Coleiras Cães e Gatos | −14,10% | 37,84% | STDU-CE |
+
+\* a tela lista o vencedor do gol embaixo do quadro; nesses dois a ordem exibida
+inverte os nomes, o que fecha o 2 x 4.
+
+## Decisão (2026-09-01)
+
+Como a base real do indicador não é acessível, o app passa a **importar o placar
+oficial**: `backend.resultados_oficiais(N)` deriva o resultado de cada jogo do
+delta entre `Classificação Lojas/Rodada N.xlsx` e `Rodada N-1.xlsx` e substitui o
+placar calculado. Os gols individuais continuam sendo os do cálculo, e o jogo em
+que as duas contas discordam ganha um aviso na janela de detalhe.
