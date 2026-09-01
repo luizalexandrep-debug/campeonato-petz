@@ -127,6 +127,33 @@ e comparar com a coluna `Total` da planilha:
 Se os números diferirem, a causa está confirmada e a correção é pedir a
 exportação do share já no recorte certo.
 
+## CAUSA CONFIRMADA (2026-08-31)
+
+O drill-through do CXAS-RS × STDU-CE na rodada 8 deu os números oficiais, e
+eles **não batem com a planilha**:
+
+| | | oficial (Power BI) | planilha exportada |
+|---|---|---|---|
+| CXAS-RS | Sáb | −42,62% | −42,14% |
+| CXAS-RS | **semana** | **−37,22%** | **−36,91%** |
+| STDU-CE | Dom | −3,71% | −3,56% |
+| STDU-CE | Sáb | **+32,34%** | **−18,80%** |
+| STDU-CE | **semana** | **−24,37%** | **−41,18%** |
+
+Os dias de −100% batem, e os demais ficam próximos mas nunca iguais — exceto o
+sábado do STDU-CE, que troca de sinal. Um dia sozinho move a semana de −41,18%
+para −24,37%, e é isso que inverte o gol: no oficial o STDU-CE evolui mais
+(−24,37 > −37,22) e leva o ponto; na planilha o CXAS-RS parece levar.
+
+**A conclusão é que o SHARE CLUBZ exportado não é a mesma métrica do
+campeonato.** A definição oficial usa só o canal físico e só Clubz novos; a
+planilha traz outro recorte. O app está certo em cima do dado que recebe — o
+conserto é na exportação, não no código.
+
+Enquanto a exportação não mudar, esses 5 jogos vão continuar divergindo, e o
+mesmo vale para qualquer jogo cujo gol de share seja decidido por margem
+pequena.
+
 ## Hipóteses a investigar
 
 1. **Agregação do SHARE CLUBZ.** (principal suspeita) O app usa a coluna `Total` da planilha quando
