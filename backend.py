@@ -1649,6 +1649,22 @@ def historico_lojas():
         except Exception as e:
             print(f"⚠️ historico_lojas: rodada {n} falhou ({e})")
 
+    # --- lojas eliminadas: derrota administrativa em todas as rodadas ---
+    # O calendário 'TODOS OS JOGOS' foi exportado antes da eliminação, então
+    # ainda traz os resultados originais dela e dos adversários. A classificação
+    # oficial já aplica o 0 x 6 — aqui alinhamos a fonte antiga com ela.
+    import calculo_rapido as cr
+    elim = set(cr.lojas_eliminadas())
+    if elim:
+        for time, rodadas in hist.items():
+            for n, r in rodadas.items():
+                if r.get("fonte") != "calendario":
+                    continue
+                if time in elim:
+                    r.update(gm=0, gs=cr.GOLS_POR_JOGO, res='D')
+                elif r.get("adv") in elim:
+                    r.update(gm=cr.GOLS_POR_JOGO, gs=0, res='V')
+
     return {t: [v[k] for k in sorted(v)] for t, v in hist.items()}
 
 
