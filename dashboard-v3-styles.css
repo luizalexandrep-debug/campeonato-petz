@@ -2230,7 +2230,23 @@ body {
 .cen-x { border: none; background: none; cursor: pointer; color: var(--text-3); font-size: 1em; padding: 2px 6px; }
 .cen-x:hover { color: var(--text-1); }
 .cen-nota { font-size: .8em; color: var(--text-3); line-height: 1.55; margin-bottom: 10px; }
-.cen-lista { display: flex; flex-direction: column; gap: 2px; max-height: 260px; overflow-y: auto; }
+.cen-lista { display: flex; flex-direction: column; gap: 2px; max-height: 44vh; overflow-y: auto; }
+.cen-busca {
+    width: 100%; margin: 10px 0 6px; padding: 8px 10px; font-size: .9em;
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    background: var(--surface-2); color: var(--text-1);
+}
+.cen-vazio { padding: 14px 8px; color: var(--text-3); font-size: .88em; text-align: center; }
+.cen-rodape {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-top: 8px; font-size: .8em; color: var(--text-3);
+}
+.cen-limpar {
+    background: none; border: none; padding: 0; cursor: pointer;
+    color: var(--text-3); font-size: 1em; text-decoration: underline;
+}
+.cen-limpar:hover { color: var(--text-1); }
+
 .cen-item {
     display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 8px;
     padding: 6px 8px; border-radius: var(--r-md); cursor: pointer; font-size: .86em;

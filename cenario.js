@@ -16,8 +16,8 @@ const CENARIO_PADRAO = ['BTIM-MG', 'SMBA-DF', 'ASTS-SP', 'SCBA-SP', 'ACLR-DF', '
 
 const cen = {
     ligado: false,
-    lojas: [...CENARIO_PADRAO],
     ativas: new Set(CENARIO_PADRAO),
+    busca: '',
     historico: null,     // /api/historico-lojas, para refazer o acumulado
     painel: null
 };
@@ -200,12 +200,13 @@ function cenAbrirPainel() {
             </div>
             <div class="cen-nota">Marque as lojas a eliminar. Todos os jogos contra elas
                 viram <b>6 x 0</b>, nas rodadas passadas e na atual — como aconteceu com o W3NT-DF.</div>
-            <div class="cen-lista">${cen.lojas.map(l => `
-                <label class="cen-item">
-                    <input type="checkbox" value="${l}" ${cen.ativas.has(l) ? 'checked' : ''}
-                           onchange="cenMarcar(this)">
-                    <b>${l}</b><small>${cenOnde(l)}</small>
-                </label>`).join('')}</div>
+            <input class="cen-busca" type="search" placeholder="Buscar loja, distrito ou regional…"
+                   oninput="cenBuscar(this)" value="${cen.busca}">
+            <div class="cen-lista">${cenItensHTML()}</div>
+            <div class="cen-rodape">
+                <span class="cen-conta"></span>
+                <button class="cen-limpar" onclick="cenLimpar()">Desmarcar todas</button>
+            </div>
             <div class="cen-acoes">
                 <button class="cen-bt aplicar" onclick="cenLigar()">Aplicar cenário</button>
                 <button class="cen-bt" onclick="cenDesligar()">Voltar ao real</button>
@@ -213,6 +214,57 @@ function cenAbrirPainel() {
         </div>`;
     document.body.appendChild(el);
     cen.painel = el;
+    cenContador();
+    const busca = el.querySelector('.cen-busca');
+    if (busca) busca.focus();
+}
+
+/* Todas as lojas do campeonato, tiradas da estrutura já carregada na página.
+   As marcadas sobem para o topo para não sumirem no meio das 266. */
+function cenTodasLojas() {
+    const todas = new Set(cen.ativas);
+    for (const dists of Object.values(cenCtx().estrutura() || {})) {
+        for (const lojas of Object.values(dists || {})) {
+            (lojas || []).forEach(l => todas.add(l));
+        }
+    }
+    return [...todas].sort((a, b) => {
+        const ma = cen.ativas.has(a), mb = cen.ativas.has(b);
+        if (ma !== mb) return ma ? -1 : 1;
+        return a.localeCompare(b);
+    });
+}
+
+function cenItensHTML() {
+    const termo = cen.busca.trim().toUpperCase();
+    const lista = cenTodasLojas().filter(l =>
+        !termo || l.toUpperCase().includes(termo) || cenOnde(l).toUpperCase().includes(termo));
+    if (!lista.length) return '<div class="cen-vazio">Nenhuma loja encontrada.</div>';
+    return lista.map(l => `
+        <label class="cen-item">
+            <input type="checkbox" value="${l}" ${cen.ativas.has(l) ? 'checked' : ''}
+                   onchange="cenMarcar(this)">
+            <b>${l}</b><small>${cenOnde(l)}</small>
+        </label>`).join('');
+}
+
+function cenBuscar(input) {
+    cen.busca = input.value;
+    const lista = cen.painel && cen.painel.querySelector('.cen-lista');
+    if (lista) lista.innerHTML = cenItensHTML();
+}
+
+function cenContador() {
+    const el = cen.painel && cen.painel.querySelector('.cen-conta');
+    if (el) el.textContent = cen.ativas.size
+        ? `${cen.ativas.size} loja(s) marcada(s)` : 'nenhuma loja marcada';
+}
+
+function cenLimpar() {
+    cen.ativas.clear();
+    const lista = cen.painel && cen.painel.querySelector('.cen-lista');
+    if (lista) lista.innerHTML = cenItensHTML();
+    cenContador();
 }
 
 function cenOnde(loja) {
@@ -231,6 +283,7 @@ function cenFecharPainel() {
 function cenMarcar(input) {
     if (input.checked) cen.ativas.add(input.value);
     else cen.ativas.delete(input.value);
+    cenContador();
 }
 
 function cenLigar() {
