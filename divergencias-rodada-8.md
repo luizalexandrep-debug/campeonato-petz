@@ -73,6 +73,33 @@ divergências desta rodada**: com a rodada 8 completa, nenhum dos 133 jogos
 muda de placar, e a comparação com o oficial fica idêntica (116 / 12 / 5)
 antes e depois da correção. O efeito só aparece em rodada parcial.
 
+## O que a margem por gol revelou (2026-08-31)
+
+Cruzando os 5 jogos com `/api/margens`, o gol de **SHARE CLUBZ** é o pivô:
+
+- em **4 dos 5**, inverter SOMENTE o gol de SHARE CLUBZ deixa o placar do app
+  idêntico ao oficial (BFRX×NIGC, LAUZ×JUND, CXAS×STDU, TTUI×SZNO);
+- em 4 dos 5, o SHARE CLUBZ é o gol de **menor margem** do jogo — de 0,022 a
+  0,688 ponto percentual;
+- o quinto (IPIR×ITTB) precisa de dois gols trocados: SHARE CLUBZ (0,465 p.p.)
+  e TAPETES MP (R$ 608,41), os dois menores do jogo.
+
+**Mas trocar a agregação não resolve.** Testado na rodada 8 inteira:
+
+| Agregação do indicador % | idênticos | só placar | resultado diferente |
+|---|---|---|---|
+| coluna `Total` (regra atual) | **117** | 11 | **5** |
+| média dos dias com dado | 104 | 19 | 10 |
+
+A média piora bastante — conserta 3 dos 5 e quebra 8 outros. Ou seja, a coluna
+`Total` está certa como regra geral; o que difere é algo dentro do próprio
+critério do share, não a forma de agregar.
+
+Próximo passo sugerido: comparar loja a loja o número de share que o Power BI
+usa com o da coluna `Total` da planilha, em uma das lojas dos 5 jogos — se a
+origem calcular o share com outro denominador (por exemplo receita sem
+descontos), a diferença aparece aí.
+
 ## Hipóteses a investigar
 
 1. **Agregação do SHARE CLUBZ.** (principal suspeita) O app usa a coluna `Total` da planilha quando
