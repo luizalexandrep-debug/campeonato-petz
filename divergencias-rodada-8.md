@@ -95,10 +95,37 @@ A média piora bastante — conserta 3 dos 5 e quebra 8 outros. Ou seja, a colun
 `Total` está certa como regra geral; o que difere é algo dentro do próprio
 critério do share, não a forma de agregar.
 
-Próximo passo sugerido: comparar loja a loja o número de share que o Power BI
-usa com o da coluna `Total` da planilha, em uma das lojas dos 5 jogos — se a
-origem calcular o share com outro denominador (por exemplo receita sem
-descontos), a diferença aparece aí.
+### A definição oficial da meta (do próprio Power BI, tela "Jogos")
+
+> **Share Clubz [Evolução Semanal]** — "Evolução semanal do share das vendas de
+> Clubz **no canal físico** em relação ao total de vendas **no canal físico** no
+> mesmo período. **(OBS: apenas Clubz novos)**."
+
+Compare com a meta de vendas, na mesma tela:
+
+> **Vendas (físico e digital)** — "Evolução semanal do faturamento bruto total
+> vendido pelos canais **físico e digital**."
+
+Ou seja, o share tem **dois recortes** que as outras metas não têm: o
+denominador é só o **canal físico** (sem digital) e o numerador conta só
+**Clubz novos** (sem renovações). Se a coluna `Total` da planilha exportada for
+calculada sobre outra base — por exemplo incluindo o digital, ou todos os
+Clubz — o número fica próximo mas não igual, e a diferença só muda o resultado
+onde a margem é mínima. É exatamente o que se observa: 4 dos 5 jogos decididos
+por 0,022 a 0,688 ponto percentual.
+
+Próximo passo: pegar no Power BI (tela Jogos > filtrar a loja > botão direito >
+Drill-through > Detalhe do Jogo) o valor de share da semana anterior e da atual
+de UMA loja dos 5 jogos — CXAS-RS é a melhor candidata, margem de 0,022 p.p. —
+e comparar com a coluna `Total` da planilha:
+
+| | semana anterior | semana atual |
+|---|---|---|
+| planilha (coluna Total) | 0,3396% | 0,2143% |
+| Power BI | ? | ? |
+
+Se os números diferirem, a causa está confirmada e a correção é pedir a
+exportação do share já no recorte certo.
 
 ## Hipóteses a investigar
 
