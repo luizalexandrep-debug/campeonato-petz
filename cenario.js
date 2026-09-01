@@ -222,10 +222,19 @@ function cenAbrirPainel() {
 /* Todas as lojas do campeonato, tiradas da estrutura já carregada na página.
    As marcadas sobem para o topo para não sumirem no meio das 266. */
 function cenTodasLojas() {
+    const ctx = cenCtx();
     const todas = new Set(cen.ativas);
-    for (const dists of Object.values(cenCtx().estrutura() || {})) {
-        for (const lojas of Object.values(dists || {})) {
-            (lojas || []).forEach(l => todas.add(l));
+    // Os confrontos da rodada são a lista exata de quem disputa o campeonato.
+    // A estrutura tem algumas unidades a mais (e às vezes uma a menos), então
+    // ela só entra como reserva, quando os jogos ainda não carregaram.
+    const jogos = ctx.jogos() || [];
+    if (jogos.length) {
+        jogos.forEach(j => { todas.add(j.team1); todas.add(j.team2); });
+    } else {
+        for (const dists of Object.values(ctx.estrutura() || {})) {
+            for (const lojas of Object.values(dists || {})) {
+                (lojas || []).forEach(l => todas.add(l));
+            }
         }
     }
     return [...todas].sort((a, b) => {
