@@ -167,6 +167,61 @@ MERGE_BASE = Path('/tmp/campeonato_merge')
 _merge_cache = {}
 
 
+def _ultima_data_do_arquivo(caminho):
+    """Data mais recente com valor no arquivo, ou None se não der para saber.
+
+    Comparar por dia da semana não basta: um arquivo que ficou com a data do
+    domingo passado parece "mais adiantado" que o de segunda-feira desta
+    semana, porque domingo é o índice 6 e segunda é o 0. Foi o que aconteceu
+    com o SHARE PIX da rodada 10 — exportado com 30/08 (domingo da rodada 9)
+    enquanto os outros cinco vieram com 31/08 (segunda da rodada 10) — e o
+    farol acusou os cinco certos como pendentes.
+    """
+    try:
+        import calculo_rapido as cr
+        wb = openpyxl.load_workbook(caminho, data_only=True, read_only=True)
+        linhas = list(wb.active.iter_rows(values_only=True))
+        wb.close()
+    except Exception:
+        return None
+
+    def _data(v):
+        from datetime import date, datetime as _dt
+        if isinstance(v, _dt):
+            return v.date()
+        if isinstance(v, date):
+            return v
+        texto = str(v or '').strip()
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+            try:
+                return _dt.strptime(texto[:10], fmt).date()
+            except ValueError:
+                pass
+        return None
+
+    idx, col_dias, _total = cr._achar_cabecalho(linhas)
+    if idx is not None and col_dias:
+        # Layout largo: as datas estão no cabeçalho, uma coluna por dia. Só
+        # conta a coluna que tem algum valor lançado.
+        melhor = None
+        for col, _dia in col_dias:
+            d = _data(linhas[idx][col] if col < len(linhas[idx]) else None)
+            if d is None:
+                continue
+            tem = any(r[col] for r in linhas[idx + 1:] if r and col < len(r))
+            if tem and (melhor is None or d > melhor):
+                melhor = d
+        return melhor
+
+    longo = cr._achar_cabecalho_longo(linhas)
+    if longo:
+        i, _sig, c_dat = longo[0], longo[1], longo[2]
+        datas = [_data(r[c_dat]) for r in linhas[i + 1:] if r and c_dat < len(r)]
+        datas = [d for d in datas if d]
+        return max(datas) if datas else None
+    return None
+
+
 def _ultimo_dia_do_arquivo(caminho):
     """Índice do último dia com valor no arquivo (-1 se não tem nenhum).
 
@@ -226,8 +281,12 @@ def _combinar_semana(pasta, rod):
     escolhas = {}
     for nome in nomes:
         cands = [d / nome for d in origens if (d / nome).exists()]
-        # max() com chave estável: em empate fica o primeiro, que é o /tmp.
-        escolhas[nome] = max(cands, key=_ultimo_dia_do_arquivo)
+        # Data real quando dá para ler; senão, o dia da semana. max() com chave
+        # estável: em empate fica o primeiro, que é o /tmp.
+        def _quao_novo(p):
+            d = _ultima_data_do_arquivo(p)
+            return (1, d.toordinal()) if d else (0, _ultimo_dia_do_arquivo(p))
+        escolhas[nome] = max(cands, key=_quao_novo)
 
     # Só vale combinar se alguma escolha vier da cópia empacotada.
     if all(c.is_relative_to(TMP_BASE) for c in escolhas.values()):
@@ -989,17 +1048,22 @@ def historico_do_sharepoint(nome_pasta="Historico", chave="distrito"):
     O nº de rodadas vem do nome do arquivo ('rodada 6.xlsx'). Cada arquivo é o
     ranking ACUMULADO até aquela rodada. Retorna None se não houver planilha.
     """
-    pasta = pasta_dados(nome_pasta)
-    if not pasta.exists():
-        return None
     # Só arquivos "rodada N" — a pasta pode conter outros itens por engano
     # (ex.: um 'Semana 8.xlsx' de confrontos salvo no lugar errado).
     def num_rodada(f):
         m = re.match(r"\s*rodada\s*(\d+)", f.stem, re.IGNORECASE)
         return int(m.group(1)) if m else -1
 
-    arquivos = [f for f in pasta.glob("*.xlsx")
-                if not f.name.startswith("~") and num_rodada(f) >= 0]
+    # As duas cópias, como no resto do app: a rodada mais nova pode ter chegado
+    # só pela empacotada, se a sincronização do SharePoint estiver atrasada.
+    por_rodada = {}
+    for pasta in _pastas_dados(nome_pasta):
+        for f in pasta.glob("*.xlsx"):
+            n = num_rodada(f)
+            if f.name.startswith("~") or n < 0:
+                continue
+            por_rodada.setdefault(n, f)      # o /tmp vem primeiro e prevalece
+    arquivos = list(por_rodada.values())
     if not arquivos:
         return None
 
@@ -1466,28 +1530,45 @@ def get_farol(semana):
         for arquivo, slots in mapear_indicadores(semana).items():
             fp = slots.get("atual")
             ultimo = -1
+            data = None
             if fp:
                 try:
                     dados = cr._carregar_arquivo(fp)
                     for i, dia in enumerate(dias):
                         if any((v or {}).get(dia) for v in dados.values()):
                             ultimo = i
+                    data = _ultima_data_do_arquivo(fp)
                 except Exception as e:
                     print(f"⚠️ farol falhou em {arquivo}: {e}")
             itens.append({
                 "indicador": cr.nome_limpo(arquivo),
                 "ultimoDiaIdx": ultimo,
                 "ultimoDia": dias[ultimo] if ultimo >= 0 else None,
+                "ultimaData": data.isoformat() if data else None,
             })
 
-        referencia = max((i["ultimoDiaIdx"] for i in itens), default=-1)
-        for i in itens:
-            i["atualizado"] = i["ultimoDiaIdx"] == referencia and referencia >= 0
+        # A comparação é pela DATA quando todos os arquivos trazem uma. Pelo
+        # dia da semana, um arquivo que ficou com o domingo passado apareceria
+        # como o mais adiantado e jogaria os corretos para "pendente".
+        datas = [i["ultimaData"] for i in itens if i["ultimaData"]]
+        por_data = len(datas) == len([i for i in itens if i["ultimoDiaIdx"] >= 0]) and datas
+        if por_data:
+            ref_data = max(datas)
+            for i in itens:
+                i["atualizado"] = i["ultimaData"] == ref_data
+            ref_idx = max((i["ultimoDiaIdx"] for i in itens if i["ultimaData"] == ref_data),
+                          default=-1)
+        else:
+            ref_idx = max((i["ultimoDiaIdx"] for i in itens), default=-1)
+            ref_data = None
+            for i in itens:
+                i["atualizado"] = i["ultimoDiaIdx"] == ref_idx and ref_idx >= 0
 
         itens.sort(key=lambda i: (i["atualizado"], i["indicador"]))
         return jsonify({
             "semana": semana,
-            "referencia": dias[referencia] if referencia >= 0 else None,
+            "referencia": dias[ref_idx] if ref_idx >= 0 else None,
+            "referenciaData": ref_data,
             "indicadores": itens,
         })
     except Exception as e:
