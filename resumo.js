@@ -159,10 +159,16 @@ async function rsmMontar() {
     } catch (e) { console.warn('evolucao indisponível', e); }
 
     /* ---- 4. cornetas: piores da rodada e jejum de vitória ---- */
-    let jejum = [];
+    let jejum = [], jejumAte = semana - 1, rodadaEncerrada = false;
     try {
         const h = await pegar('/historico-lojas');
-        const ate = semana - 1;   // o histórico oficial vai até a rodada anterior
+        // Se a própria rodada em tela já tem resultado oficial no histórico, ela
+        // conta no jejum e no V/Rod. Só quando ainda está em disputa é que o
+        // acumulado precisa parar na rodada anterior.
+        rodadaEncerrada = Object.values(h.lojas || {})
+            .some(lista => (lista || []).some(j => j.rodada === semana));
+        const ate = rodadaEncerrada ? semana : semana - 1;
+        jejumAte = ate;
         Object.entries(h.lojas || {}).forEach(([loja, lista]) => {
             const i = de[loja];
             if (!i || i.regional !== REGIONAL_DESTAQUE) return;
@@ -171,7 +177,9 @@ async function rsmMontar() {
             const ult = [...passado].reverse().find(j => j.res === 'V');
             let semVencer = 0;
             for (let k = passado.length - 1; k >= 0 && passado[k].res !== 'V'; k--) semVencer++;
-            const p = proj[loja];
+            // Rodada encerrada: mostra o resultado oficial dela, não a projeção.
+            const of = rodadaEncerrada ? lista.find(j => j.rodada === semana) : null;
+            const p = of || proj[loja];
             const agora = p ? (p.gm > p.gs ? 'V' : p.gm === p.gs ? 'E' : 'D') : null;
             jejum.push({
                 loja, distrito: i.distrito, semVencer,
@@ -231,7 +239,7 @@ async function rsmMontar() {
     return {
         semana, semDados: false, diasLancados,
         rankReg, rankDist, contra, grupos, lideres, golead,
-        viradas, jejum, piores, melhores, porPouco,
+        viradas, jejum, jejumAte, rodadaEncerrada, piores, melhores, porPouco,
         minhaPos: rankReg.findIndex(r => r.nome === REGIONAL_DESTAQUE) + 1,
         minha: rankReg.find(r => r.nome === REGIONAL_DESTAQUE)
     };
@@ -410,12 +418,15 @@ function rsmBlocoCornetas(d) {
 
     return `
     <div class="rs-box">
-        <h5>😬 Quem está sem vencer <small>rodadas seguidas sem vitória até a rodada ${d.semana - 1}</small></h5>
+        <h5>😬 Quem está sem vencer <small>rodadas seguidas sem vitória até a rodada ${d.jejumAte}</small></h5>
         ${semVencer.length ? `<table class="rs-tab">
             <thead><tr><th class="l">Loja</th><th>Jejum</th><th class="l">Última vitória</th>
                 <th>V/Rod.</th><th>Rodada ${d.semana}</th></tr></thead>
             <tbody>${linhas}</tbody></table>
-            <div class="rs-nota">Linha esverdeada = está vencendo na rodada ${d.semana} e mata o jejum.</div>`
+            ${d.rodadaEncerrada
+                ? `<div class="rs-nota">A rodada ${d.semana} já está encerrada, então ela já entra
+                   no jejum e no V/Rod. — a última coluna é o resultado oficial dela.</div>`
+                : `<div class="rs-nota">Linha esverdeada = está vencendo na rodada ${d.semana} e mata o jejum.</div>`}`
         : '<div class="rs-nota">Todas as lojas da regional venceram na última rodada.</div>'}
     </div>
     <div class="rs-dupla">
