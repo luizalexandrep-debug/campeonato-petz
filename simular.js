@@ -338,7 +338,15 @@ const ROTULO = { v: 'VENCENDO', e: 'EMPATANDO', d: 'PERDENDO' };
 
 function desenharPainel() {
     const alvo = document.getElementById('painel');
-    if (!distritoAberto) { alvo.innerHTML = ''; return; }
+    // Cada tecla redesenha o painel inteiro; guardar a rolagem evita que ele
+    // salte para o topo no meio de uma edição.
+    const rolagem = alvo.querySelector('.fundo')?.scrollTop || 0;
+    if (!distritoAberto) {
+        alvo.innerHTML = '';
+        document.body.style.overflow = '';
+        return;
+    }
+    document.body.style.overflow = 'hidden';
 
     const dist = distritoAberto;
     const souEu = REGIONAL[dist] === MINHA;
@@ -476,6 +484,7 @@ function desenharPainel() {
             </div>
         </div>
     </div>`;
+    if (rolagem) alvo.querySelector('.fundo').scrollTop = rolagem;
 }
 
 /* A lupa abre o detalhe dos gols na janela que já existe no dashboard. Em vez
