@@ -621,6 +621,14 @@ async function carregarResumJogos() {
             console.log('📊 Mostrando dashboard de rankings');
             loadRankingDashboard();
         }
+
+        // A tela "Simular placares" manda o confronto por parâmetro para abrir
+        // o detalhe dos gols aqui, em vez de duplicar esta janela lá.
+        const pedido = new URLSearchParams(location.search).get('jogo');
+        if (pedido && pedido.includes(',')) {
+            const [t1, t2] = pedido.split(',').map(x => x.trim());
+            if (t1 && t2) abrirDetalhesJogo(t1, t2);
+        }
     } catch (error) {
         console.error('❌ Erro ao carregar resumo de jogos:', error);
         state.resumoCarregado = false;

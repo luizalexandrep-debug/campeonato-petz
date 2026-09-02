@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simular placares · Campeonato Petz 2026</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="dashboard-v3-styles.css">
+<link rel="stylesheet" href="simular.css">
+</head>
+<body>
+<div class="container">
+    <header class="header">
+        <div class="header-brand">
+            <img src="logo.png" alt="" class="header-logo">
+            <div class="header-content">
+                <h1>Simular placares</h1>
+                <div class="subtitle" id="subtitulo">Carregando...</div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="/grupos.html" class="btn-header" style="text-decoration:none">Grupos</a>
+            <a href="/" class="btn-header" style="text-decoration:none">← Dashboard</a>
+        </div>
+    </header>
+
+    <div class="filters-section">
+        <div class="filter-group">
+            <label for="fRodada">Rodada:</label>
+            <select id="fRodada"><option>...</option></select>
+        </div>
+        <button class="btn btn-reprocess" id="btZerar">↺ Voltar ao projetado</button>
+    </div>
+
+    <div class="duplas">
+        <section class="sec somado">
+            <div class="sec-head">📊 Acumulado + simulado
+                <small>· o acumulado do campeonato + a projeção do app</small></div>
+            <div class="sec-corpo">
+                <table>
+                    <thead><tr><th class="pos">#</th><th>Distrito</th><th>Regional</th>
+                        <th class="n">Base</th><th class="n">Rodada</th>
+                        <th class="n">Total</th><th class="n">% Aprov.</th></tr></thead>
+                    <tbody id="tSomado"></tbody>
+                </table>
+            </div>
+            <button class="expandir" data-expandir="somado"></button>
+        </section>
+
+        <section class="sec editada">
+            <div class="sec-head">✏️ Acumulado + editado
+                <small>· a mesma conta com os placares que você mexeu</small></div>
+            <div class="sec-corpo">
+                <table>
+                    <thead><tr><th class="pos">#</th><th class="c">Mov.</th><th>Distrito</th><th>Regional</th>
+                        <th class="n">Base</th><th class="n">Rodada</th>
+                        <th class="n">Total</th><th class="n">% Aprov.</th></tr></thead>
+                    <tbody id="tEditada"></tbody>
+                </table>
+            </div>
+            <button class="expandir" data-expandir="editada"></button>
+        </section>
+    </div>
+
+    <div class="chips" id="chips"></div>
+    <div id="grupos"><div class="info-bar"><span>Carregando os jogos...</span></div></div>
+</div>
+<div id="painel"></div>
+<script src="simular.js"></script>
+</body>
+</html>
