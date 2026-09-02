@@ -1357,11 +1357,10 @@ async function carregarClassificacao() {
     return _classificacao;
 }
 
-// Mesmo desempate da classificação oficial: Pts > VIT > SG > GM.
+// Desempate oficial: pontuação, número de vitórias, saldo de gols.
 function grpOrdenar(linhas) {
     return linhas.slice().sort((a, b) =>
-        b.pts - a.pts || b.vit - a.vit || b.sg - a.sg || b.gm - a.gm ||
-        a.time.localeCompare(b.time));
+        b.pts - a.pts || b.vit - a.vit || b.sg - a.sg || a.time.localeCompare(b.time));
 }
 
 // O que cada loja faz nesta rodada, a partir dos jogos já calculados.
@@ -1446,7 +1445,7 @@ async function abrirGrupoLoja(loja) {
         <table class="md-tabela grp-tabela">
             <thead><tr>
                 <th class="c">#</th><th class="l">Loja</th>
-                <th class="c">Pts</th><th class="c">J</th><th class="c">SG</th>
+                <th class="c">Pts</th><th class="c">V</th><th class="c">SG</th>
                 ${simulada ? '<th class="c">Rodada</th>' : ''}
             </tr></thead>
             <tbody>${linhas.map((r, i) => {
@@ -1458,7 +1457,7 @@ async function abrirGrupoLoja(loja) {
                     <td class="c">${pos} ${seta}</td>
                     <td class="l"><b>${r.time}</b> <small>${distritoDaLoja(r.time) || ''}</small></td>
                     <td class="c b">${r.pts}</td>
-                    <td class="c">${r.jogos}</td>
+                    <td class="c">${r.vit}</td>
                     <td class="c">${r.sg > 0 ? '+' : ''}${r.sg}</td>
                     ${simulada ? `<td class="c pequeno">${r.semJogo ? '—'
                         : `${r.placar} <small>vs ${r.adv}</small>`}</td>` : ''}
