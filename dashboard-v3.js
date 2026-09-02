@@ -1336,6 +1336,154 @@ async function abrirCalendarioLoja(loja) {
 }
 
 // ============================================================
+// JANELA "GRUPO DA LOJA"
+// A tabela do grupo como está hoje (acumulado oficial até a rodada anterior)
+// e, ao lado, como fica somando o resultado desta rodada. A loja em que se
+// clicou vem destacada nas duas, para dar para achar de relance quanto ela
+// sobe ou desce.
+// ============================================================
+
+let _classificacao = null;
+
+async function carregarClassificacao() {
+    if (_classificacao) return _classificacao;
+    try {
+        const r = await fetch('/api/classificacao', { cache: 'no-store' });
+        _classificacao = await r.json();
+    } catch (e) {
+        console.error('Não foi possível carregar a classificação:', e);
+        _classificacao = { grupos: {} };
+    }
+    return _classificacao;
+}
+
+// Mesmo desempate da classificação oficial: Pts > VIT > SG > GM.
+function grpOrdenar(linhas) {
+    return linhas.slice().sort((a, b) =>
+        b.pts - a.pts || b.vit - a.vit || b.sg - a.sg || b.gm - a.gm ||
+        a.time.localeCompare(b.time));
+}
+
+// O que cada loja faz nesta rodada, a partir dos jogos já calculados.
+function grpProjecao() {
+    const proj = {};
+    let jogos = state.gamesSummary?.games || [];
+    if (typeof cenTransformarJogos === 'function') jogos = cenTransformarJogos(jogos);
+    jogos.forEach(g => {
+        const [a, b] = String(g.scoreProjected || '0 x 0').split('x').map(v => parseInt(v.trim()) || 0);
+        const põe = (time, adv, gm, gs) => {
+            proj[time] = {
+                adv, gm, gs,
+                pts: gm > gs ? 3 : gm === gs ? 1 : 0,
+                vit: gm > gs ? 1 : 0, emp: gm === gs ? 1 : 0, der: gm < gs ? 1 : 0
+            };
+        };
+        põe(g.team1, g.team2, a, b);
+        põe(g.team2, g.team1, b, a);
+    });
+    return proj;
+}
+
+async function abrirGrupoLoja(loja) {
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo';
+    fundo.innerHTML = `
+        <div class="modal-jogo modal-grupo">
+            <div class="modal-head">
+                <div class="times">
+                    <b>📊 Grupo de ${loja}</b>
+                    <small class="t-dist">${distritoDaLoja(loja) || ''}</small>
+                </div>
+                <div class="modal-acoes">
+                    <button class="modal-btn" data-fechar>✕ Fechar</button>
+                </div>
+            </div>
+            <div class="modal-corpo"><div class="carregando">⏳ Carregando a tabela do grupo...</div></div>
+        </div>`;
+
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.closest('[data-fechar]')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
+
+    const cls = await carregarClassificacao();
+    const corpo = fundo.querySelector('.modal-corpo');
+    if (!corpo) return;   // fechado antes de carregar
+
+    const entrada = Object.entries(cls.grupos || {})
+        .find(([, linhas]) => (linhas || []).some(r => r.time === loja));
+    if (!entrada) {
+        corpo.innerHTML = `<div class="carregando">Não encontrei ${loja} na classificação por grupos.</div>`;
+        return;
+    }
+    const [grupo, linhasBrutas] = entrada;
+
+    // O cenário de eliminação, quando ligado, refaz o acumulado antes de somar.
+    const linhas = (typeof cenAjustarLinha === 'function' && typeof cen !== 'undefined' && cen.ligado)
+        ? linhasBrutas.map(cenAjustarLinha) : linhasBrutas;
+
+    const proj = grpProjecao();
+    const base = grpOrdenar(linhas);
+    const sim = grpOrdenar(linhas.map(r => {
+        const p = proj[r.time];
+        if (!p) return { ...r, semJogo: true };
+        return {
+            ...r,
+            pts: r.pts + p.pts, jogos: r.jogos + 1,
+            vit: r.vit + p.vit, emp: r.emp + p.emp, der: r.der + p.der,
+            gm: r.gm + p.gm, gs: r.gs + p.gs, sg: (r.gm + p.gm) - (r.gs + p.gs),
+            ganhou: p.pts, adv: p.adv, placar: `${p.gm} x ${p.gs}`
+        };
+    }));
+
+    const posBase = {};
+    base.forEach((r, i) => posBase[r.time] = i + 1);
+
+    const tabela = (linhas, simulada) => `
+        <table class="md-tabela grp-tabela">
+            <thead><tr>
+                <th class="c">#</th><th class="l">Loja</th>
+                <th class="c">Pts</th><th class="c">J</th><th class="c">SG</th>
+                ${simulada ? '<th class="c">Rodada</th>' : ''}
+            </tr></thead>
+            <tbody>${linhas.map((r, i) => {
+                const pos = i + 1;
+                const delta = simulada ? posBase[r.time] - pos : 0;
+                const seta = delta > 0 ? `<span class="grp-sobe">▲${delta}</span>`
+                    : delta < 0 ? `<span class="grp-desce">▼${-delta}</span>` : '';
+                return `<tr class="${r.time === loja ? 'grp-eu' : ''}">
+                    <td class="c">${pos} ${seta}</td>
+                    <td class="l"><b>${r.time}</b> <small>${distritoDaLoja(r.time) || ''}</small></td>
+                    <td class="c b">${r.pts}</td>
+                    <td class="c">${r.jogos}</td>
+                    <td class="c">${r.sg > 0 ? '+' : ''}${r.sg}</td>
+                    ${simulada ? `<td class="c pequeno">${r.semJogo ? '—'
+                        : `${r.placar} <small>vs ${r.adv}</small>`}</td>` : ''}
+                </tr>`;
+            }).join('')}</tbody>
+        </table>`;
+
+    corpo.innerHTML = `
+        <div class="cal-legenda">
+            <b>${grupo}</b> · a tabela de hoje vem da classificação oficial até a rodada
+            ${cls.rodada}; a simulada soma o resultado da rodada ${state.semana}.
+        </div>
+        <div class="grp-lado-a-lado">
+            <div class="grp-col">
+                <div class="grp-tit">Hoje <small>até a rodada ${cls.rodada}</small></div>
+                ${tabela(base, false)}
+            </div>
+            <div class="grp-col">
+                <div class="grp-tit">Simulado <small>com a rodada ${state.semana}</small></div>
+                ${tabela(sim, true)}
+            </div>
+        </div>`;
+}
+
+// ============================================================
 // JANELA "JOGOS DO DISTRITO NA RODADA"
 // Pensando a regional como um time só: mostra todos os jogos que um distrito
 // disputa na rodada e destaca os que são contra lojas da minha regional —
@@ -2203,7 +2351,8 @@ async function abrirDetalhesJogo(team1, team2) {
             <div class="modal-head">
                 <div class="times">
                     <span class="t"><span class="t-nome"><button class="bt-cal" title="Próximos jogos de ${team1}"
-                        onclick="abrirCalendarioLoja('${team1}')">📅</button>${team1}</span>
+                        onclick="abrirCalendarioLoja('${team1}')">📅</button><button class="bt-cal" title="Tabela do grupo de ${team1}"
+                        onclick="abrirGrupoLoja('${team1}')">📊</button>${team1}</span>
                         <small class="t-dist">${distritoDaLoja(team1) || ''}</small></span>
                     <span class="placar">
                         <small>Placar Projetado</small>
@@ -2214,7 +2363,8 @@ async function abrirDetalhesJogo(team1, team2) {
                         })()}</b>
                         <small>Acumulado ${placarAcum}</small>
                     </span>
-                    <span class="t"><span class="t-nome">${team2}<button class="bt-cal" title="Próximos jogos de ${team2}"
+                    <span class="t"><span class="t-nome">${team2}<button class="bt-cal" title="Tabela do grupo de ${team2}"
+                        onclick="abrirGrupoLoja('${team2}')">📊</button><button class="bt-cal" title="Próximos jogos de ${team2}"
                         onclick="abrirCalendarioLoja('${team2}')">📅</button></span>
                         <small class="t-dist">${distritoDaLoja(team2) || ''}</small></span>
                 </div>

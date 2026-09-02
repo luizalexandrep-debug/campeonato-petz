@@ -2267,3 +2267,31 @@ body {
     .btn-cenario { width: 100%; align-self: stretch; }
     .cen-painel { right: 8px; left: 8px; bottom: 8px; width: auto; }
 }
+
+/* ====== Janela "grupo da loja": tabela de hoje x tabela simulada ====== */
+.modal-jogo .bt-cal + .bt-cal { margin-left: 4px; }
+.modal-grupo .modal-head .times { flex-direction: column; gap: 2px; }
+.modal-grupo .modal-corpo { padding: 20px 24px 24px; }
+
+.grp-lado-a-lado {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;
+}
+@media (max-width: 860px) { .grp-lado-a-lado { grid-template-columns: 1fr; } }
+
+.grp-tit {
+    font-weight: 700; font-size: .92em; color: var(--text-1);
+    padding: 8px 10px; background: var(--surface-2);
+    border-radius: var(--r-md) var(--r-md) 0 0; border-bottom: 1px solid var(--border);
+}
+.grp-tit small { font-weight: 400; color: var(--text-3); margin-left: 6px; }
+
+.grp-tabela { width: 100%; font-size: .86em; }
+.grp-tabela td, .grp-tabela th { padding: 6px 8px; }
+
+/* A loja em que se clicou, destacada nas duas tabelas. */
+.grp-tabela tr.grp-eu td {
+    background: #fff5d6; font-weight: 700;
+    border-top: 1px solid #e6c86a; border-bottom: 1px solid #e6c86a;
+}
+.grp-sobe { color: #1e8e4e; font-size: .82em; font-weight: 700; }
+.grp-desce { color: #c0392b; font-size: .82em; font-weight: 700; }
