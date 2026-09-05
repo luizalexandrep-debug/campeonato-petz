@@ -488,6 +488,12 @@ async function abrirPainelAcessos() {
 // Verde: está no dia mais recente lançado. Vermelho: ficou para trás.
 // ============================================================
 
+const dataCurta = (iso) => {
+    if (!iso) return '';
+    const [a, m, d] = iso.split('-');
+    return `${d}/${m}`;
+};
+
 async function carregarFarol() {
     const el = document.getElementById('farol');
     if (!el || !state.semana) return;
@@ -498,9 +504,15 @@ async function carregarFarol() {
         if (!d.indicadores?.length) { el.innerHTML = ''; return; }
 
         const atrasados = d.indicadores.filter(i => !i.atualizado).length;
+        // Dois avisos diferentes: a base inteira parada há dias, ou só alguns
+        // indicadores para trás dos demais.
+        const aviso = d.diasAtraso
+            ? ` · <span class="farol-pend">base ${d.diasAtraso} dia(s) atrasada`
+              + ` — esperado até ${dataCurta(d.esperadaData)}</span>`
+            : (atrasados ? ` · <span class="farol-pend">${atrasados} pendente(s)</span>` : '');
         el.innerHTML = `
             <span class="farol-rot">Gols atualizados até <b>${d.referencia || '—'}</b>${
-                atrasados ? ` · <span class="farol-pend">${atrasados} pendente(s)</span>` : ''}:</span>
+                d.referenciaData ? ` (${dataCurta(d.referenciaData)})` : ''}${aviso}:</span>
             ${d.indicadores.map(i => `
                 <span class="farol-item ${i.atualizado ? 'ok' : 'atrasado'}"
                     title="${i.indicador}: ${i.ultimoDia ? 'lançado até ' + i.ultimoDia : 'sem lançamento'}">

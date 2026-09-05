@@ -11,7 +11,7 @@ import openpyxl
 import os
 import re
 import requests
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
 from auth import (db, login_manager, Usuario, Acesso, init_db,
@@ -1564,11 +1564,31 @@ def get_farol(semana):
             for i in itens:
                 i["atualizado"] = i["ultimoDiaIdx"] == ref_idx and ref_idx >= 0
 
+        # Até aqui a comparação é só entre os indicadores: se TODOS pararam na
+        # terça, todos ficam verdes. Falta olhar o calendário — a base costuma
+        # vir com um dia de atraso, então o esperado é ter dado até ontem, sem
+        # passar do domingo que fecha a rodada.
+        esperada = dias_atraso = None
+        if ref_data:
+            ref = date.fromisoformat(ref_data)
+            fim_da_rodada = ref + timedelta(days=6 - ref.weekday())
+            # Horário de Brasília: no Vercel o relógio é UTC, e depois das 21h
+            # ele já virou o dia seguinte — o esperado avançaria cedo demais.
+            hoje = datetime.now(timezone(timedelta(hours=-3))).date()
+            esperada = min(hoje - timedelta(days=1), fim_da_rodada)
+            dias_atraso = max((esperada - ref).days, 0)
+            if dias_atraso:
+                # A rodada inteira está atrasada: ninguém está em dia.
+                for i in itens:
+                    i["atualizado"] = False
+
         itens.sort(key=lambda i: (i["atualizado"], i["indicador"]))
         return jsonify({
             "semana": semana,
             "referencia": dias[ref_idx] if ref_idx >= 0 else None,
             "referenciaData": ref_data,
+            "esperadaData": esperada.isoformat() if esperada else None,
+            "diasAtraso": dias_atraso,
             "indicadores": itens,
         })
     except Exception as e:
