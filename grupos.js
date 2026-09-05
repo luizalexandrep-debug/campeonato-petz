@@ -1016,15 +1016,76 @@ function delta(a, b, menorEhMelhor) {
 
 // Clique num item do panorama: troca o grupo selecionado, rola até as tabelas
 // e destaca a loja por alguns segundos.
+/* Abre a tabela do grupo numa janela, em vez de trocar o filtro da tela.
+   Os insights são uma lista longa: trocar o filtro fazia perder o lugar em que
+   a pessoa estava lendo, sem caminho de volta. */
 function abrirGrupo(grupo, loja) {
-    if (!st.grupos[grupo]) return;
-    st.grupo = grupo;
-    st.lojaFoco = loja || null;
-    montarChipsGrupo();
-    render();
+    const base0 = st.grupos[grupo];
+    if (!base0) return;
 
-    const alvo = document.querySelector('.comparacao');
-    if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const base = (typeof cenAjustarLinha === 'function' && cen.ligado)
+        ? base0.map(cenAjustarLinha) : base0;
+    const { proj } = projecaoDaRodada();
+
+    const atual = ordenar(base);
+    const posBase = {};
+    atual.forEach((r, i) => posBase[r.time] = i + 1);
+
+    const simulado = ordenar(base.map(r => {
+        const p = proj[r.time];
+        if (!p) return { ...r, semJogo: true };
+        return {
+            ...r,
+            pts: r.pts + p.pts, jogos: r.jogos + 1,
+            vit: r.vit + p.vit, emp: r.emp + p.emp, der: r.der + p.der,
+            gm: r.gm + p.gm, gs: r.gs + p.gs, sg: (r.gm + p.gm) - (r.gs + p.gs),
+            ganhou: p.pts
+        };
+    }));
+
+    // `tabela()` destaca a loja em foco lendo st.lojaFoco; devolvemos o valor
+    // anterior logo em seguida para não mexer na tela de trás.
+    const antes = st.lojaFoco;
+    st.lojaFoco = loja || null;
+    const htmlAtual = tabela(atual, null, false);
+    const htmlSim = tabela(simulado, posBase, true);
+    st.lojaFoco = antes;
+
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo';
+    fundo.innerHTML = `
+        <div class="modal-grupo">
+            <div class="modal-head">
+                <div class="md-titulo">
+                    <b>${grupo}</b>
+                    <small>rodada ${st.rodadaBase}${st.semana ? ` + projeção da ${st.semana}` : ''}${
+                        loja ? ` · ${loja} em destaque` : ''}</small>
+                </div>
+                <button class="modal-btn" data-fechar>✕ Fechar</button>
+            </div>
+            <div class="modal-corpo">
+                <div class="comparacao">
+                    <div class="quadro atual">
+                        <div class="quadro-head">📋 Classificação atual
+                            <small>até a rodada ${st.rodadaBase}</small></div>
+                        <div class="tab-wrap">${htmlAtual}</div>
+                    </div>
+                    <div class="quadro sim">
+                        <div class="quadro-head">🔮 Simulada
+                            <small>com a projeção da rodada ${st.semana}</small></div>
+                        <div class="tab-wrap">${htmlSim}</div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
 }
 
 function textoTrocas(trocas) {
