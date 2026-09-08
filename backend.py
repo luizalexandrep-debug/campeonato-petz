@@ -1041,7 +1041,7 @@ def _parear_regionais(regionais_planilha):
     return resultado, pendentes, [a for a in alvos if a not in usados]
 
 
-def historico_do_sharepoint(nome_pasta="Historico", chave="distrito"):
+def historico_do_sharepoint(nome_pasta="Historico", chave="distrito", ate=None):
     """Lê o ranking acumulado das rodadas encerradas, do SharePoint.
 
     nome_pasta: 'Historico' (distritais) ou 'HistoricoRegional' (regionais).
@@ -1071,9 +1071,10 @@ def historico_do_sharepoint(nome_pasta="Historico", chave="distrito"):
     if not arquivos:
         return None
 
-    # A base é a rodada ANTERIOR à vigente (a atual ainda está em disputa e é
-    # somada ao vivo). Se não existir, usa a maior rodada disponível.
-    base_desejada = max(semana_atual() - 1, 1)
+    # A base é a rodada ANTERIOR à que está em tela (essa é somada por cima).
+    # `ate` chega da rodada escolhida no filtro; sem ele, vale a rodada vigente.
+    # Se a rodada pedida não existir, usa a maior disponível abaixo dela.
+    base_desejada = max((ate if ate is not None else semana_atual() - 1), 1)
     candidatos = [f for f in arquivos if num_rodada(f) <= base_desejada]
     arq = max(candidatos or arquivos, key=num_rodada)
 
@@ -1190,9 +1191,17 @@ def get_historico():
         pass
     # Ranking oficial das REGIONAIS (quando disponível, é a fonte preferida
     # para os totais por regional — evita derivar a partir dos distritos).
-    hr = historico_do_sharepoint("HistoricoRegional", chave="regional")
+    # A tela pede o acumulado ATÉ a rodada anterior à que está sendo vista;
+    # sem o parâmetro, vale a rodada vigente (comportamento antigo).
+    try:
+        pedida = request.args.get("semana", type=int)
+    except Exception:
+        pedida = None
+    ate = max(pedida - 1, 1) if pedida else None
 
-    h = historico_do_sharepoint()
+    hr = historico_do_sharepoint("HistoricoRegional", chave="regional", ate=ate)
+
+    h = historico_do_sharepoint(ate=ate)
     if h:
         if hr:
             h["regionais"] = hr.get("distritos")

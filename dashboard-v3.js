@@ -804,6 +804,8 @@ async function onSemanaChange(e) {
     atualizarTituloSemana();
 
     try {
+        // O histórico é acumulado ATÉ a rodada anterior, então muda junto.
+        await loadHistorico();
         await loadConfrontos();
         await carregarResumJogos();
         // loadGames() já decide entre ranking, regional ou distrito conforme
@@ -820,7 +822,10 @@ async function onSemanaChange(e) {
 async function loadHistorico() {
     // Prefere o histórico do SharePoint (via backend); cai para o arquivo local
     try {
-        const r = await fetch('/api/historico', { cache: 'no-store' });
+        // O acumulado tem que parar na rodada ANTERIOR à que está em tela —
+        // senão, ao rever uma rodada encerrada, ela entraria duas vezes.
+        const q = state.semana ? `?semana=${state.semana}` : '';
+        const r = await fetch(`/api/historico${q}`, { cache: 'no-store' });
         if (r.ok) {
             const d = await r.json();
             if (d && d.distritos) {
