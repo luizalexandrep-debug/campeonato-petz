@@ -413,6 +413,13 @@ def carregar_tudo(semana_anterior, semana_atual):
         # deixar a rodada configurada antes de a semana atual começar a subir.
         nomes = [arquivo] + [f.name for f in (slots.get("atual"), slots.get("anterior")) if f]
         criterio = 'nivel' if any(criterio_do_nome(n) == 'nivel' for n in nomes) else 'evolucao'
+        # Sem arquivo na semana anterior não existe evolução para calcular: o
+        # gol vale pelo maior valor da semana atual. Vale como regra, não só
+        # como conserto — é o que a rodada quer dizer quando publica um
+        # indicador só na semana corrente, sem base de comparação.
+        if criterio == 'evolucao' and slots.get("atual") and not slots.get("anterior"):
+            criterio = 'nivel'
+            print(f"ℹ️ {nome_limpo(arquivo)}: sem semana anterior — vale pelo nível da semana atual")
         memoria[arquivo] = {"anterior": {}, "atual": {}, "tipo": tipo,
                             "criterio": criterio}
         for semana_type in ("anterior", "atual"):
