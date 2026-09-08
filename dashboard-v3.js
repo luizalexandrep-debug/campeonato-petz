@@ -2021,12 +2021,17 @@ function loadRankingDashboard() {
 
     // ---------- Alerta de indicador sem dados ----------
     const avisos = state.gamesSummary?.avisos || [];
-    // Dois tipos: 'rodada' (informativo, a rodada ainda não começou) e
-    // 'zerado' (planilha subiu sem valores — aí sim é erro de upload).
+    // Cada tipo tem o seu bloco e o seu texto. O 'zerado' é o único que reescreve
+    // a mensagem, porque acrescenta a dica de upload; todo o resto mostra o que
+    // o backend mandou. Um tipo desconhecido cai no bloco genérico com a própria
+    // mensagem — antes ele virava 'indicador zerado', o que dizia outra coisa.
     const avisosRodada = avisos.filter(a => a.tipo === 'rodada');
     const avisosCriterio = avisos.filter(a => a.tipo === 'criterio');
     const avisosElim = avisos.filter(a => a.tipo === 'eliminada');
-    const avisosZerado = avisos.filter(a => !['rodada', 'criterio', 'eliminada'].includes(a.tipo));
+    const avisosZerado = avisos.filter(a => a.tipo === 'zerado');
+    const avisosOficial = avisos.filter(a => a.tipo === 'oficial');
+    const avisosOutros = avisos.filter(a =>
+        !['rodada', 'criterio', 'eliminada', 'zerado', 'oficial'].includes(a.tipo));
     const blocoRodada = avisosRodada.length ? `
         <div class="alerta-info">
             <div class="alerta-titulo">⏳ Rodada em preparação</div>
@@ -2048,7 +2053,17 @@ function loadRankingDashboard() {
             <div class="alerta-titulo">⛔ Loja eliminada do campeonato</div>
             <ul>${avisosElim.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
         </div>` : '';
-    const blocoAvisos = blocoRodada + blocoCriterio + blocoElim + blocoZerado;
+    const blocoOficial = avisosOficial.length ? `
+        <div class="alerta-info">
+            <div class="alerta-titulo">📋 Resultado oficial</div>
+            <ul>${avisosOficial.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
+        </div>` : '';
+    const blocoOutros = avisosOutros.length ? `
+        <div class="alerta-info">
+            <ul>${avisosOutros.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
+        </div>` : '';
+    const blocoAvisos = blocoRodada + blocoOficial + blocoCriterio + blocoElim
+        + blocoZerado + blocoOutros;
 
     // ---------- Render ----------
     container.innerHTML = `
