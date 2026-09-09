@@ -197,7 +197,10 @@ def load_user(user_id):
         print(f"⚠️ load_user falhou: {e}")
         return cached[0] if cached else None
 
-    snap = UsuarioSessao(u) if u else None
+    # Conta desativada derruba a sessão que já estava aberta. Sem isso, o
+    # 'ativo = false' só valia para logins novos e quem já estava dentro
+    # continuava usando o app.
+    snap = UsuarioSessao(u) if (u and u.ativo) else None
     _CACHE_USUARIOS[user_id] = (snap, time.time() + CACHE_USUARIO_SEG)
     return snap
 
