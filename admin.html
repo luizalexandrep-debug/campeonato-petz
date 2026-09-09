@@ -585,12 +585,25 @@
             currentEditUserId = null;
         }
 
+        // Id do próprio administrador, para saber quando a edição é da própria conta.
+        let meuId = null;
+        fetch('/api/me').then(r => r.json()).then(d => { meuId = d.user?.id ?? null; })
+            .catch(() => {});
+
         async function saveEditUser() {
             if (!currentEditUserId) return;
 
             const email = document.getElementById('editEmail').value.trim();
             const nome = document.getElementById('editName').value.trim();
             const password = document.getElementById('editPassword').value;
+
+            // Trocar a PRÓPRIA senha exige a atual — o backend confere. Para as
+            // outras contas o admin redefine direto, sem saber a senha antiga.
+            let senhaAtual = null;
+            if (password && currentEditUserId === meuId) {
+                senhaAtual = prompt('Para trocar a SUA senha, digite a senha atual:');
+                if (senhaAtual === null) return;
+            }
 
             try {
                 const response = await fetch(`/api/usuarios/${currentEditUserId}`, {
@@ -599,7 +612,8 @@
                     body: JSON.stringify({
                         email: email || null,
                         nome_completo: nome || null,
-                        password: password || null
+                        password: password || null,
+                        senhaAtual
                     })
                 });
 

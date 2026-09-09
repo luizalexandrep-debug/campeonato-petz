@@ -2692,7 +2692,17 @@ def update_usuario(usuario_id):
 
     # Atualizar senha
     if 'password' in data and data['password']:
-        usuario.set_password(data['password'])
+        nova = str(data['password'])
+        if len(nova) < 6:
+            return jsonify({"error": "A senha precisa ter pelo menos 6 caracteres"}), 400
+        # Trocando a PRÓPRIA senha: confere a atual antes. Sem isso, uma sessão
+        # esquecida aberta trocaria a senha de quem estiver logado ali.
+        # O admin redefinindo a senha de outra pessoa não tem como saber a atual.
+        if current_user.id == usuario_id:
+            atual = str(data.get('senhaAtual') or '')
+            if not atual or not usuario.check_password(atual):
+                return jsonify({"error": "A senha atual não confere"}), 403
+        usuario.set_password(nova)
 
     # Apenas admin pode atualizar outros campos
     if current_user.é_admin:

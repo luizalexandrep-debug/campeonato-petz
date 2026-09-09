@@ -427,6 +427,79 @@ function _quando(iso) {
     return `${d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} <small>(${rel})</small>`;
 }
 
+/* Troca da própria senha. Todo mundo pode: a senha que o administrador criou
+   é provisória, e quem usa o app deve poder escolher a sua. O backend confere
+   a senha atual antes de gravar. */
+function abrirTrocarSenha() {
+    const eu = state.usuario;
+    if (!eu || !eu.id) {
+        alert('Não foi possível identificar o seu usuário. Saia e entre de novo.');
+        return;
+    }
+
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo';
+    fundo.innerHTML = `
+        <div class="modal-senha">
+            <div class="modal-head">
+                <div class="md-titulo"><b>🔑 Trocar a minha senha</b>
+                    <small>login <b>${eu.username}</b></small></div>
+                <button class="modal-btn" data-fechar>✕ Fechar</button>
+            </div>
+            <div class="modal-corpo">
+                <label class="cs-campo">Senha atual
+                    <input type="password" id="csAtual" autocomplete="current-password"></label>
+                <label class="cs-campo">Nova senha <small>· mínimo 6 caracteres</small>
+                    <input type="password" id="csNova" autocomplete="new-password"></label>
+                <label class="cs-campo">Repita a nova senha
+                    <input type="password" id="csNova2" autocomplete="new-password"></label>
+                <div class="cs-msg" id="csMsg"></div>
+                <div class="cs-acoes">
+                    <button class="btn btn-reprocess" id="csSalvar">Salvar</button>
+                </div>
+            </div>
+        </div>`;
+
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') fechar(); };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
+    fundo.querySelector('#csAtual').focus();
+
+    const msg = fundo.querySelector('#csMsg');
+    const bt = fundo.querySelector('#csSalvar');
+    bt.onclick = async () => {
+        const atual = fundo.querySelector('#csAtual').value;
+        const nova = fundo.querySelector('#csNova').value;
+        const nova2 = fundo.querySelector('#csNova2').value;
+        msg.className = 'cs-msg';
+        if (nova.length < 6) { msg.classList.add('erro'); msg.textContent = 'A nova senha precisa ter pelo menos 6 caracteres.'; return; }
+        if (nova !== nova2) { msg.classList.add('erro'); msg.textContent = 'As duas senhas novas não são iguais.'; return; }
+
+        bt.disabled = true; bt.textContent = 'Salvando...';
+        try {
+            const r = await fetch(`/api/usuarios/${eu.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ senhaAtual: atual, password: nova })
+            });
+            const d = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(d.error || `HTTP ${r.status}`);
+            msg.classList.add('ok');
+            msg.textContent = '✅ Senha alterada. Use a nova no próximo login.';
+            setTimeout(fechar, 2200);
+        } catch (e) {
+            msg.classList.add('erro');
+            msg.textContent = e.message;
+        } finally {
+            bt.disabled = false; bt.textContent = 'Salvar';
+        }
+    };
+}
+
 async function abrirPainelAcessos() {
     await atualizarPresenca();
     const badge = document.getElementById('onlineBadge');
@@ -538,6 +611,10 @@ async function checkAuthentication() {
         // Mostrar informações do usuário
         const userInfo = document.getElementById('userInfo');
         userInfo.textContent = `👤 ${data.user.nome_completo || data.user.username}`;
+        state.usuario = data.user;
+        // A conta de emergência não existe no banco: não há senha para trocar.
+        const btSenha = document.getElementById('senhaBtn');
+        if (btSenha && (data.user.emergencia || !data.user.id)) btSenha.style.display = 'none';
 
         // Sem banco, o app roda com o acesso de emergência: avisamos para não
         // parecer que a gestão de usuários e o histórico sumiram.
