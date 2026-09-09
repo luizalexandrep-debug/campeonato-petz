@@ -123,6 +123,34 @@ def _contas_emergencia():
     return contas
 
 
+_BANCO_OK_ATE = [0.0, False]      # (validade, último resultado)
+
+
+def banco_disponivel():
+    """O Postgres está respondendo?
+
+    As contas de emergência existem para o dia em que o banco cai. Enquanto ele
+    responde, elas não devem valer — senão um login antigo continua entrando
+    mesmo depois de as contas nominais terem sido criadas.
+
+    O resultado é guardado por alguns segundos para não custar uma conexão a
+    cada requisição.
+    """
+    import time
+    agora = time.time()
+    if agora < _BANCO_OK_ATE[0]:
+        return _BANCO_OK_ATE[1]
+    try:
+        db.session.execute(db.text('SELECT 1'))
+        ok = True
+    except Exception:
+        db.session.rollback()
+        ok = False
+    _BANCO_OK_ATE[0] = agora + 30
+    _BANCO_OK_ATE[1] = ok
+    return ok
+
+
 def usuario_emergencia_por_nome(username):
     """Recria o usuário a partir do nome guardado na sessão."""
     c = _contas_emergencia().get(username)
@@ -130,9 +158,16 @@ def usuario_emergencia_por_nome(username):
 
 
 def autenticar_emergencia(username, senha):
-    """Confere uma conta de emergência. Retorna o usuário ou None."""
+    """Confere uma conta de emergência. Retorna o usuário ou None.
+
+    Só vale com o banco fora do ar. Com o banco de pé, quem entra é a conta do
+    banco — é lá que ficam os logins de verdade, que dá para desativar, renomear
+    e ver no controle de acessos.
+    """
     c = _contas_emergencia().get((username or '').strip())
     if not c:
+        return None
+    if banco_disponivel():
         return None
     try:
         if check_password_hash(c['hash'], senha):
@@ -181,10 +216,14 @@ def invalidar_cache_usuarios():
 @login_manager.user_loader
 def load_user(user_id):
     import time
-    if user_id == 'emergencia':                       # sessões antigas
-        return usuario_emergencia_por_nome('master')
-    if str(user_id).startswith('emergencia:'):
-        return usuario_emergencia_por_nome(str(user_id).split(':', 1)[1])
+    # Sessão de emergência: só continua valendo enquanto o banco estiver fora.
+    # Assim que ele volta, a sessão cai e a pessoa entra pela conta de verdade.
+    if user_id == 'emergencia' or str(user_id).startswith('emergencia:'):
+        if banco_disponivel():
+            return None
+        nome = ('master' if user_id == 'emergencia'
+                else str(user_id).split(':', 1)[1])
+        return usuario_emergencia_por_nome(nome)
 
     cached = _CACHE_USUARIOS.get(user_id)
     if cached and cached[1] > time.time():

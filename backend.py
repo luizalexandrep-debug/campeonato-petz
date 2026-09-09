@@ -2577,6 +2577,7 @@ def login():
         return jsonify({"error": "Username e password são obrigatórios"}), 400
 
     # Com o banco fora, nem chegamos a consultar: tenta a emergência primeiro.
+    # (autenticar_emergencia devolve None enquanto o banco estiver de pé.)
     emerg = autenticar_emergencia(username, password)
     if emerg is not None:
         login_user(emerg, remember=True)
