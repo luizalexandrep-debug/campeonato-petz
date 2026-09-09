@@ -1157,8 +1157,14 @@ function insightsR2Html(simulado) {
         </div>`;
     }).join('');
 
-    const melhorMeu = meus.reduce((a, b) => (b.simAvg > a.simAvg ? b : a), meus[0]);
-    const piorMeu = meus.reduce((a, b) => (b.simAvg < a.simAvg ? b : a), meus[0]);
+    // O quadro é sobre a RODADA, então o destaque tem que ser o desempenho
+    // nela (curAvg), não o acumulado: um distrito pode liderar a tabela e estar
+    // indo mal na semana — era o que acontecia antes, e o texto dizia o oposto.
+    const melhorRodada = meus.reduce((a, b) => (b.curAvg > a.curAvg ? b : a), meus[0]);
+    const piorRodada = meus.reduce((a, b) => (b.curAvg < a.curAvg ? b : a), meus[0]);
+    // A posição na tabela continua interessando, só que como outra informação.
+    const lider = meus.reduce((a, b) => (b.simAcum > a.simAcum ? b : a), meus[0]);
+    const ultimo = meus.reduce((a, b) => (b.simAcum < a.simAcum ? b : a), meus[0]);
     const subindo = meus.filter(r => r.curAvg > r.histAvg + 0.05);
     const caindo = meus.filter(r => r.curAvg < r.histAvg - 0.05);
 
@@ -1167,8 +1173,12 @@ function insightsR2Html(simulado) {
         <div style="background:linear-gradient(135deg,#2b5aa8,#1e2a5a); color:white; border-radius:12px; padding:16px 20px; margin-bottom:16px;">
             <h2 style="margin:0 0 6px;">🔥 Seus Distritos — ${REGIONAL_DESTAQUE}</h2>
             <div style="opacity:0.9; font-size:0.92em;">
-                Melhor: <b>${melhorMeu.distrito}</b> (#${melhorMeu.posicao}, ${melhorMeu.simAcum.toFixed(2)}) ·
-                Atenção: <b>${piorMeu.distrito}</b> (#${piorMeu.posicao}, ${piorMeu.simAcum.toFixed(2)})<br>
+                <b>Nesta rodada</b> — melhor: <b>${melhorRodada.distrito}</b>
+                (${melhorRodada.curAvg.toFixed(2)} pts/jogo) ·
+                atenção: <b>${piorRodada.distrito}</b> (${piorRodada.curAvg.toFixed(2)})<br>
+                <b>Na tabela</b> — ${lider.distrito} em #${lider.posicao} com
+                ${lider.simAcum.toFixed(2)} · ${ultimo.distrito} em #${ultimo.posicao} com
+                ${ultimo.simAcum.toFixed(2)}<br>
                 ${subindo.length ? `📈 Subindo: ${subindo.map(r => r.distrito).join(', ')}. ` : ''}
                 ${caindo.length ? `📉 Caindo: ${caindo.map(r => r.distrito).join(', ')}.` : ''}
             </div>
