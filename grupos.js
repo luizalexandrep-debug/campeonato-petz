@@ -865,7 +865,10 @@ async function abrirDetalhesJogo(loja) {
                         onclick="abrirCalendarioDaLoja('${adv}')">📅</button></span>
                         <small class="t-dist">${distritoDaLoja(adv) || ''}</small></span>
                 </div>
-                <button class="modal-btn" data-fechar>✕ Fechar</button>
+                <div class="modal-acoes">
+                    <button class="modal-btn" id="btExpModal">📋 Copiar imagem</button>
+                    <button class="modal-btn" data-fechar>✕ Fechar</button>
+                </div>
             </div>
             <div class="modal-corpo"><div class="carregando">⏳ Carregando indicadores...</div></div>
         </div>`;
@@ -877,6 +880,10 @@ async function abrirDetalhesJogo(loja) {
     });
     document.addEventListener('keydown', esc);
     document.body.appendChild(fundo);
+
+    // Mesmo exportador do dashboard: desenha o card num canvas e copia.
+    const btExp = fundo.querySelector('#btExpModal');
+    if (btExp) btExp.onclick = (e) => exportarJogoImagem(loja, adv, e.currentTarget);
 
     let d1, d2;
     try {

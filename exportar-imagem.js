@@ -32,6 +32,58 @@ const EXP = {
     }
 };
 
+/* ---------- adaptador por página ----------
+   O mesmo exportador serve o dashboard e a classificação por grupos, que
+   guardam a rodada e o resumo em objetos diferentes (`state` e `st`). Em vez
+   de duplicar o desenho, cada página é lida por aqui. */
+function expCtx() {
+    if (typeof state !== 'undefined' && state && state.gamesSummary !== undefined) {
+        return {
+            semana: state.semana,
+            jogos: () => state.gamesSummary?.games || [],
+            semDadosAtual: () => !!state.gamesSummary?.semDadosAtual,
+            cache: state.jogosCalculados,
+            carregar: (t1, t2) => carregarDadosJogo({ team1: t1, team2: t2 })
+        };
+    }
+    // Classificação por grupos
+    return {
+        semana: st.semana,
+        jogos: () => st.summary?.games || [],
+        semDadosAtual: () => !!st.summary?.semDadosAtual,
+        cache: (st._expCache = st._expCache || {}),
+        carregar: async (t1, t2) => {
+            const [d1, d2] = await Promise.all([buscarDias(t1), buscarDias(t2)]);
+            const j = (st.summary?.games || []).find(g =>
+                (g.team1 === t1 && g.team2 === t2) || (g.team1 === t2 && g.team2 === t1)) || {};
+            const inverter = j.team1 === t2;
+            const vira = (p) => {
+                if (!p || !p.includes('x')) return p;
+                const [a, b] = p.split('x').map(v => v.trim());
+                return `${b} x ${a}`;
+            };
+            return {
+                team1: t1, team2: t2,
+                score: inverter ? vira(j.scoreProjected) : j.scoreProjected,
+                scoreAcumulado: inverter ? vira(j.scoreAccumulated) : j.scoreAccumulated,
+                hojeIdx: d1.hoje_idx,
+                dadosTeam1: d1.dados, dadosTeam2: d2.dados
+            };
+        }
+    };
+}
+
+/* Nome do indicador sem a extensão e sem o marcador de nível. Usa a função da
+   página quando ela existe; a classificação por grupos não tem uma. */
+function expNome(arquivo) {
+    if (typeof nomeIndicador === 'function') return nomeIndicador(arquivo);
+    let n = String(arquivo || '').replace(/\.xlsx$/i, '');
+    ['(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EVOLUÇÃO)'].forEach(m => {
+        n = n.replace(new RegExp(m.replace(/[()]/g, '\\$&'), 'ig'), '');
+    });
+    return n.replace(/\s+/g, ' ').trim();
+}
+
 function expFonte(tam, peso) {
     return `${peso || 400} ${tam}px -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`;
 }
@@ -130,8 +182,7 @@ function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
     ctx.fillStyle = c.navy;
     ctx.fillRect(x, y, w, 52);
     expTexto(ctx, loja, x + w / 2, y + 19, { fonte: expFonte(17, 800), cor: '#fff', align: 'center' });
-    expTexto(ctx, (typeof nomeIndicador === 'function' ? nomeIndicador(indicador)
-        : indicador.replace(/\.xlsx$/i, '')), x + w / 2, y + 38,
+    expTexto(ctx, expNome(indicador), x + w / 2, y + 38,
         { fonte: expFonte(12, 600), cor: 'rgba(255,255,255,.82)', align: 'center' });
     if (marcou) {
         // Bola no canto direito, marcando quem está fazendo o gol.
@@ -209,7 +260,7 @@ function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
 
 function expDesenharJogo(jogoData) {
     const { team1, team2, score, scoreAcumulado, dadosTeam1, dadosTeam2 } = jogoData;
-    const semRes = semResultado(jogoData);
+    const semRes = !!(jogoData && jogoData.semDados) || expCtx().semDadosAtual();
     const [s1, s2] = (!semRes && score && score.includes('x'))
         ? score.split('x').map(v => parseInt(v.trim())) : [0, 0];
 
@@ -220,7 +271,7 @@ function expDesenharJogo(jogoData) {
     // O jogo pode chegar na ordem invertida (o card lidera com a loja do
     // distrito selecionado), então achamos nos dois sentidos e traduzimos o
     // lado de quem marcou.
-    const resumo = (state.gamesSummary?.games || []).find(g =>
+    const resumo = expCtx().jogos().find(g =>
         (g.team1 === team1 && g.team2 === team2) || (g.team1 === team2 && g.team2 === team1)) || {};
     const invertido = resumo.team1 === team2;
     const golsResumo = semRes ? {} : (resumo.golsProjetados || {});
@@ -261,7 +312,7 @@ function expDesenharJogo(jogoData) {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, EXP.largura, alturaCabecalho);
 
-    expTexto(ctx, `CAMPEONATO PETZ 2026 · RODADA ${state.semana}`, EXP.largura / 2, 26,
+    expTexto(ctx, `CAMPEONATO PETZ 2026 · RODADA ${expCtx().semana}`, EXP.largura / 2, 26,
         { fonte: expFonte(12, 700), cor: 'rgba(255,255,255,.75)', align: 'center' });
     expTexto(ctx, team1, EXP.largura * 0.22, 68, { fonte: expFonte(30, 800), cor: '#fff', align: 'center' });
     expTexto(ctx, team2, EXP.largura * 0.78, 68, { fonte: expFonte(30, 800), cor: '#fff', align: 'center' });
@@ -293,21 +344,22 @@ function expDesenharJogo(jogoData) {
 }
 
 async function exportarJogoImagem(team1, team2, btn) {
+    const ctx = expCtx();
     const chave = `${team1}_${team2}`;
     const txt = btn ? btn.innerHTML : null;
     let avisou = false;
     if (btn) { btn.disabled = true; btn.innerHTML = '⏳'; btn.title = 'Copiando...'; }
     try {
         // O card do resumo não traz as tabelas; busca sob demanda.
-        let jogoData = state.jogosCalculados[chave];
+        let jogoData = ctx.cache[chave];
         if (!jogoData || jogoData.erro || !jogoData.dadosTeam1) {
-            jogoData = await carregarDadosJogo({ team1, team2 });
+            jogoData = await ctx.carregar(team1, team2);
             if (!jogoData || jogoData.erro) throw new Error('dados indisponíveis');
-            state.jogosCalculados[chave] = jogoData;
+            ctx.cache[chave] = jogoData;
         }
         const cv = expDesenharJogo(jogoData);
         const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
-        const nome = `${team1}-x-${team2}-rodada-${state.semana}.png`;
+        const nome = `${team1}-x-${team2}-rodada-${ctx.semana}.png`;
         const file = new File([blob], nome, { type: 'image/png' });
 
         // Copiar é a ação principal. Só se o navegador recusar é que caímos
