@@ -2295,3 +2295,6 @@ body {
 }
 .grp-sobe { color: #1e8e4e; font-size: .82em; font-weight: 700; }
 .grp-desce { color: #c0392b; font-size: .82em; font-weight: 700; }
+
+/* Nome da pessoa embaixo do login, no controle de acessos */
+.ac-nome { display: block; color: var(--text-3); font-weight: 400; font-size: .82em; }

@@ -1478,10 +1478,20 @@ def get_acessos():
                 dt = dt.replace(tzinfo=timezone.utc)
             return dt.isoformat()
 
+        # Nome de cada login, para a tela mostrar quem é a pessoa e não só a
+        # conta. Uma consulta só, em vez de uma por linha.
+        nomes = {}
+        try:
+            for u in Usuario.query.all():
+                nomes[u.username] = u.nome_completo or ''
+        except Exception as e:
+            print(f"⚠️ acessos: nomes indisponíveis ({e})")
+
         def fmt(a):
             partes = [p for p in (a.cidade, a.regiao, a.pais) if p]
             return {
                 "username": a.username,
+                "nome": nomes.get(a.username) or '',
                 "ip": a.ip,
                 "local": " · ".join(partes) or "—",
                 "dispositivo": _dispositivo(a.user_agent or ''),

@@ -433,7 +433,8 @@ async function abrirPainelAcessos() {
     const d = JSON.parse(badge.dataset.detalhe || '{}');
 
     const linha = (a, online) => `<tr>
-        <td class="l"><b>${a.username}</b>${online ? ' <span class="ponto-min"></span>' : ''}</td>
+        <td class="l"><b>${a.username}</b>${online ? ' <span class="ponto-min"></span>' : ''}
+            ${a.nome ? `<small class="ac-nome">${a.nome}</small>` : ''}</td>
         <td class="l">${a.local}</td>
         <td class="l"><small>${a.ip}</small></td>
         <td class="l"><small>${a.dispositivo}</small></td>
@@ -541,10 +542,18 @@ async function checkAuthentication() {
         // Sem banco, o app roda com o acesso de emergência: avisamos para não
         // parecer que a gestão de usuários e o histórico sumiram.
         if (data.user.emergencia) {
+            // A sessão de emergência dura dias: o banco pode já ter voltado.
+            // Nesse caso o caminho é sair e entrar com o login normal.
             const bar = document.getElementById('infoBar');
-            if (bar) bar.innerHTML = '<span>🔑 Modo emergência: o banco de dados está '
-                + 'indisponível. Placares e classificações funcionam normalmente; '
-                + 'gestão de usuários e histórico de acessos ficam fora do ar.</span>';
+            const bancoOk = await fetch('/api/usuarios', { cache: 'no-store' })
+                .then(r => r.ok).catch(() => false);
+            if (bar) bar.innerHTML = bancoOk
+                ? '<span>🔑 Você entrou pela conta de <b>emergência</b>, mas o banco de dados '
+                  + 'já está no ar. Saia e entre com o seu login para voltar ao normal — '
+                  + 'assim o seu acesso aparece com o nome certo no controle de acessos.</span>'
+                : '<span>🔑 Modo emergência: o banco de dados está '
+                  + 'indisponível. Placares e classificações funcionam normalmente; '
+                  + 'gestão de usuários e histórico de acessos ficam fora do ar.</span>';
         }
 
         // Mostrar link de admin se for admin
