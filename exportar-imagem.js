@@ -75,6 +75,17 @@ function expCtx() {
 
 /* Nome do indicador sem a extensão e sem o marcador de nível. Usa a função da
    página quando ela existe; a classificação por grupos não tem uma. */
+/* Formatação de valor. Cada página tem a sua (`formatarValor` no dashboard,
+   `fmtValor` na classificação por grupos); usa a que existir e, na falta das
+   duas, formata aqui — o exportador não pode depender de quem o carregou. */
+function expValor(v, tipo) {
+    if (typeof formatarValor === 'function') return formatarValor(v, tipo);
+    if (typeof fmtValor === 'function') return fmtValor(v, tipo);
+    return tipo === '%'
+        ? (v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%'
+        : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+}
+
 function expNome(arquivo) {
     if (typeof nomeIndicador === 'function') return nomeIndicador(arquivo);
     let n = String(arquivo || '').replace(/\.xlsx$/i, '');
@@ -169,7 +180,7 @@ function expAlturaTabela(info) {
 function expDesenhaTabela(ctx, x, y, w, loja, indicador, info, marcou) {
     const c = EXP.cor;
     const alt = expAlturaTabela(info);
-    const fmt = (v) => formatarValor(v, info.tipo);
+    const fmt = (v) => expValor(v, info.tipo);
 
     // moldura
     expRet(ctx, x, y, w, alt, 10, '#ffffff');
