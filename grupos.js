@@ -18,8 +18,25 @@ const st = {
     rodadaBase: null, grupos: {}, summary: null,
     estrutura: {}, minhasLojas: new Set(),
     grupo: '', destacar: true,     // destaque das minhas lojas ligado por padrão
-    calendario: [], lojaFoco: null
+    calendario: [], lojaFoco: null,
+    // Placares mexidos à mão: "TEAM1|TEAM2" -> gols do team1. Vazio = projeção.
+    editados: {}, simAberto: false
 };
+
+const GOLS_JOGO = 6;
+const chaveJogo = (g) => `${g.team1}|${g.team2}`;
+
+/* Placar do jogo em gols do team1 e do team2. Com `original`, ignora o que foi
+   editado e devolve a projeção do app. */
+function placarDoJogo(g, original) {
+    const [a, b] = g.scoreProjected.split('x').map(v => parseInt(v.trim()));
+    const k = chaveJogo(g);
+    if (!original && k in st.editados) {
+        const gm = st.editados[k];
+        return [gm, GOLS_JOGO - gm];
+    }
+    return [a, b];
+}
 
 // Foco dos insights: disputa da parte de cima da tabela.
 const CORTE_TOPO = 8;
@@ -108,6 +125,7 @@ function montarSelects() {
     sR.disabled = !projetaveis.length;
     sR.onchange = async (e) => {
         st.semana = parseInt(e.target.value, 10);
+        st.editados = {};          // os jogos mudam com a rodada: placares mexidos não valem mais
         _cacheDias.clear();
         info('⏳ Carregando rodada...');
         await trocarBase(st.semana - 1);
@@ -158,14 +176,16 @@ async function carregarSummary() {
 }
 
 // ---- projeção da rodada atual, por loja ----
-function projecaoDaRodada() {
+function projecaoDaRodada(original) {
     const jogos = st.summary?.games || [];
     const semDados = !!st.summary?.semDadosAtual;
     const proj = {};
     if (semDados) return { proj, semDados };
 
+    // Os placares editados valem para a tela inteira — tabelas e insights —,
+    // para a simulação contar a mesma história em todo lugar.
     jogos.forEach(g => {
-        const [a, b] = g.scoreProjected.split('x').map(v => parseInt(v.trim()));
+        const [a, b] = placarDoJogo(g, original);
         [[g.team1, a, b], [g.team2, b, a]].forEach(([time, gm, gs]) => {
             proj[time] = {
                 pts: gm > gs ? 3 : gm === gs ? 1 : 0,
@@ -1355,6 +1375,102 @@ function panoramaHtml() {
     </div>`;
 }
 
+/* ---------- Simular placares do grupo ---------- */
+
+function alternarSimulador() {
+    st.simAberto = !st.simAberto;
+    render();
+}
+
+/* Jogos do grupo em tela, na ordem da classificação atual: o líder primeiro,
+   com ele à esquerda. Mesmo critério da tela 'Simular placares'. */
+function jogosDoGrupoOrdenados(classificacao) {
+    const lojas = new Set(classificacao.map(r => r.time));
+    const jogos = (st.summary?.games || []).filter(g => lojas.has(g.team1));
+    const usados = new Set(), saida = [];
+    classificacao.forEach(r => {
+        const g = jogos.find(j => !usados.has(chaveJogo(j)) && (j.team1 === r.time || j.team2 === r.time));
+        if (!g) return;
+        usados.add(chaveJogo(g));
+        saida.push({ g, inverter: g.team2 === r.time });
+    });
+    return saida;
+}
+
+function painelSimulador(classificacao) {
+    const lista = jogosDoGrupoOrdenados(classificacao);
+    const n = lista.filter(x => chaveJogo(x.g) in st.editados).length;
+    const linha = ({ g, inverter }) => {
+        const [a, b] = placarDoJogo(g);
+        const [oa] = placarDoJogo(g, true);
+        const editado = chaveJogo(g) in st.editados && st.editados[chaveJogo(g)] !== oa;
+        const esq = inverter ? g.team2 : g.team1, dir = inverter ? g.team1 : g.team2;
+        const ge = inverter ? b : a, gd = inverter ? a : b;
+        const le = inverter ? 'fora' : 'casa', ld = inverter ? 'casa' : 'fora';
+        const k = chaveJogo(g).replace(/"/g, '');
+        return `<div class="sp-jogo">
+            <span class="sp-casa">${esq}</span>
+            <span class="sp-placar ${editado ? 'editado' : ''}">
+                <input class="sp-gol" type="number" min="0" max="${GOLS_JOGO}" value="${ge}"
+                    data-jogo="${k}" data-lado="${le}" aria-label="Gols de ${esq}">
+                <span class="sp-x">×</span>
+                <input class="sp-gol" type="number" min="0" max="${GOLS_JOGO}" value="${gd}"
+                    data-jogo="${k}" data-lado="${ld}" aria-label="Gols de ${dir}">
+                ${editado ? `<button class="sp-desfazer" data-desfazer="${k}"
+                    title="Voltar ao placar projetado">↺</button>` : ''}
+            </span>
+            <span class="sp-fora">${dir}</span>
+        </div>`;
+    };
+    return `<div class="sp-painel">
+        <div class="sp-topo">
+            <span>Mexa num placar e a tabela abaixo se reorganiza. Todo jogo distribui
+                ${GOLS_JOGO} gols — o outro lado se ajusta sozinho.</span>
+            ${n ? `<button class="sp-zerar" onclick="zerarSimulacao()">↺ Voltar ao projetado (${n})</button>` : ''}
+        </div>
+        <div class="sp-lista">${lista.map(linha).join('')}</div>
+        ${n ? `<div class="sp-nota">O número entre parênteses ao lado da posição é onde a loja
+            ficaria só com a projeção do app.</div>` : ''}
+    </div>`;
+}
+
+function zerarSimulacao() {
+    st.editados = {};
+    render();
+}
+
+function aplicarGol(input) {
+    const [t1, t2] = input.dataset.jogo.split('|');
+    const g = (st.summary?.games || []).find(j => j.team1 === t1 && j.team2 === t2);
+    if (!g) return;
+    let v = parseInt(input.value, 10);
+    if (isNaN(v)) return;                 // campo vazio no meio da digitação
+    v = Math.max(0, Math.min(GOLS_JOGO, v));
+    const gm = input.dataset.lado === 'casa' ? v : GOLS_JOGO - v;
+    const [orig] = placarDoJogo(g, true);
+    if (gm === orig) delete st.editados[chaveJogo(g)];
+    else st.editados[chaveJogo(g)] = gm;
+
+    // render() refaz o painel inteiro; devolvemos o foco para a mesma casa.
+    const alvo = `.sp-gol[data-jogo="${input.dataset.jogo}"][data-lado="${input.dataset.lado}"]`;
+    render();
+    const novo = document.querySelector(alvo);
+    if (novo) { novo.focus(); novo.select(); }
+}
+
+document.addEventListener('input', (e) => {
+    if (e.target.classList && e.target.classList.contains('sp-gol')) aplicarGol(e.target);
+});
+document.addEventListener('focusin', (e) => {
+    if (e.target.classList && e.target.classList.contains('sp-gol')) e.target.select();
+});
+document.addEventListener('click', (e) => {
+    const d = e.target.closest && e.target.closest('[data-desfazer]');
+    if (!d || !d.closest('.sp-painel')) return;
+    delete st.editados[d.dataset.desfazer];
+    render();
+});
+
 function render() {
     const painel = document.getElementById('painel');
     // O cenário de eliminação refaz o acumulado antes de qualquer ordenação.
@@ -1380,6 +1496,21 @@ function render() {
     }));
 
     const semJogo = simulado.filter(r => r.semJogo).length;
+
+    // Posições só com a projeção do app, para medir o efeito das edições.
+    const nEditados = Object.keys(st.editados).length;
+    let posOriginal = null;
+    if (nEditados) {
+        const { proj: projOrig } = projecaoDaRodada(true);
+        posOriginal = {};
+        ordenar(base.map(r => {
+            const p = projOrig[r.time];
+            if (!p) return r;
+            return { ...r, pts: r.pts + p.pts, vit: r.vit + p.vit, emp: r.emp + p.emp,
+                der: r.der + p.der, gm: r.gm + p.gm, gs: r.gs + p.gs,
+                sg: (r.gm + p.gm) - (r.gs + p.gs) };
+        })).forEach((r, i) => posOriginal[r.time] = i + 1);
+    }
 
     // Insights: todos os grupos, ou só o escolhido nos chips.
     const todosItens = calcularInsightsTopo();
@@ -1421,8 +1552,12 @@ function render() {
             <div class="legenda">Fonte: pasta “Classificação Lojas” do SharePoint.</div>
         </div>
         <div class="quadro sim">
-            <div class="quadro-head">🔮 Simulada <small>rodada ${st.rodadaBase}${st.semana ? ` + projeção da ${st.semana}` : ''}</small></div>
-            <div class="tab-wrap">${tabela(simulado, posBase, true)}</div>
+            <div class="quadro-head">🔮 Simulada <small>rodada ${st.rodadaBase}${st.semana
+                ? (nEditados ? ` + a ${st.semana} com os seus placares` : ` + projeção da ${st.semana}`) : ''}</small>
+                ${st.semana && !semDados ? `<button class="sp-bt" onclick="alternarSimulador()">
+                    ${st.simAberto ? '✕ Fechar simulação' : '🎯 Simular placares'}</button>` : ''}</div>
+            ${st.simAberto ? painelSimulador(atual) : ''}
+            <div class="tab-wrap">${tabela(simulado, posBase, true, posOriginal)}</div>
             <div class="legenda">Desempate: Pts › VIT › SG › GM — mesma ordem do
                 painel oficial. Pelo regulamento, empates que persistem no saldo vão a
                 confronto direto, share MP e turn over, que o app não calcula.${semJogo ? ` ${semJogo} loja(s) sem jogo nesta rodada.` : ''}</div>
@@ -1463,9 +1598,15 @@ function render() {
           + (st.semana ? ` + projeção da rodada ${st.semana}` : ''));
 }
 
-function tabela(linhas, posBase, ehSim) {
+function tabela(linhas, posBase, ehSim, posOriginal) {
     const corpo = linhas.map((r, i) => {
         const pos = i + 1;
+        // Com placares editados, mostra onde a loja estaria só com a projeção
+        // do app — é essa diferença que diz 'quanto mexeu'.
+        const orig = posOriginal ? posOriginal[r.time] : null;
+        const difOrig = orig && orig !== pos
+            ? ` <span class="sp-orig ${orig > pos ? 'sobe' : 'desce'}"
+                title="Na projeção do app ficaria em ${orig}º">(${orig}º)</span>` : '';
         let mov = '';
         if (posBase) {
             const d = posBase[r.time] - pos;
@@ -1481,8 +1622,9 @@ function tabela(linhas, posBase, ehSim) {
             ? `<td class="c" title="Pontos ganhos na rodada ${st.semana}">+${r.ganhou}${
                 letra ? ` <span class="res-letra ${letra[1]}">${letra[0]}</span>` : ''}</td>`
             : (ehSim ? '<td class="c">—</td>' : '');
-        return `<tr class="${(dest + foco).trim()}">
-            <td>${pos}</td>
+        const mexeu = orig && orig !== pos ? ' sp-mexeu' : '';
+        return `<tr class="${(dest + foco + mexeu).trim()}">
+            <td>${pos}${difOrig}</td>
             ${posBase ? `<td>${mov}</td>` : ''}
             <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}"
                 onclick="event.stopPropagation(); abrirDetalhesJogo('${r.time}')">${r.time}</span></td>
