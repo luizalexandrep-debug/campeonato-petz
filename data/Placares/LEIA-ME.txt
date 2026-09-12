@@ -1,0 +1,32 @@
+PLACARES DO POWER BI
+====================
+
+Para quando a base de vendas atrasa e o Power BI do campeonato não.
+
+Salve aqui um arquivo por rodada, com o nome "Rodada N.xlsx". O app passa a
+usar esses placares no lugar do cálculo dele — inclusive no meio da rodada,
+que é quando a classificação oficial ainda não ajuda.
+
+Como pegar no Power BI
+----------------------
+1. Campeonato Petz -> Jogos, escolha a Rodada.
+2. Botão direito em cima de qualquer partida -> "Mostrar como uma tabela".
+   Aparece a lista com ID do jogo, mandante, resultado e visitante.
+3. Repita para cada Série - Grupo (o visual mostra um grupo por vez) e junte
+   tudo numa planilha só.
+
+Formato aceito (a ordem das colunas não importa, o cabeçalho é que manda):
+
+    Time Mandante | Resultado | Time Visitante        <- "4 x 2" numa coluna
+    Time Mandante | GM | GS | Time Visitante          <- gols separados
+
+Colunas a mais (ID do jogo, nome da loja) são ignoradas.
+
+Regras
+------
+- Linha que não somar 6 gols é descartada, para um erro de cópia não virar
+  placar.
+- Jogo que não estiver na planilha continua sendo calculado pelo app, então
+  dá para subir só uma parte da rodada.
+- Quando a rodada fecha e a "Classificação Lojas" da rodada chega, ela passa a
+  valer sozinha - este arquivo pode ser apagado.

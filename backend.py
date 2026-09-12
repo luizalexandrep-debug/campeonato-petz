@@ -2286,8 +2286,100 @@ def precalculate_games(semana):
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+def placares_do_powerbi(semana):
+    """Placares copiados da tela 'Jogos' do Power BI, para a rodada em curso.
+
+    A classificação oficial só se move quando a rodada fecha, então ela não
+    ajuda no meio da semana. Já a tela 'Jogos' mostra o placar parcial ao vivo
+    — é a saída quando a base de vendas atrasa e o Power BI não.
+
+    Arquivo: pasta 'Placares', 'Rodada N.xlsx'. Aceita as duas formas em que os
+    dados saem de lá:
+        Mandante | Resultado | Visitante        ('4 x 2' numa coluna só)
+        Mandante | GM | GS | Visitante
+    A ordem das colunas é descoberta pelo cabeçalho; linhas que não fecham em
+    seis gols são ignoradas, para um erro de cópia não virar placar.
+
+    Retorna {sigla: {"gm": int, "gs": int}}.
+    """
+    import calculo_rapido as cr
+    out = {}
+    for base in _pastas_dados("Placares"):
+        arq = base / f"Rodada {semana}.xlsx"
+        if not arq.exists():
+            continue
+        try:
+            wb = openpyxl.load_workbook(arq, data_only=True, read_only=True)
+            linhas = list(wb.active.iter_rows(values_only=True))
+            wb.close()
+        except Exception as e:
+            print(f"⚠️ placares_do_powerbi({semana}): {arq.name} ilegível ({e})")
+            continue
+
+        def norm(v):
+            import unicodedata
+            v = unicodedata.normalize('NFKD', str(v or '')).encode('ascii', 'ignore').decode()
+            return re.sub(r"[^a-z]", "", v.lower())
+
+        # Cabeçalho: a primeira linha que tenha mandante e visitante.
+        col = {}
+        for linha in linhas[:10]:
+            achou = {}
+            for i, c in enumerate(linha or []):
+                n = norm(c)
+                if n.startswith('mandante') or n.startswith('timemandante'):
+                    achou['casa'] = i
+                elif n.startswith('visitante') or n.startswith('timevisitante'):
+                    achou['fora'] = i
+                elif n.startswith('resultado') or n.startswith('placar'):
+                    achou['placar'] = i
+                elif n in ('gm', 'golsmandante', 'golscasa'):
+                    achou['gm'] = i
+                elif n in ('gs', 'golsvisitante', 'golsfora'):
+                    achou['gs'] = i
+            if 'casa' in achou and 'fora' in achou:
+                col = achou
+                break
+        if not col:
+            print(f"⚠️ placares_do_powerbi({semana}): cabeçalho não reconhecido em {arq.name}")
+            continue
+
+        inicio = linhas.index(next(l for l in linhas if l and 'casa' in col
+                                   and norm(l[col['casa']]).startswith(('mandante', 'timemandante')))) + 1
+        for linha in linhas[inicio:]:
+            if not linha:
+                continue
+            casa = str(linha[col['casa']] or '').strip().upper()
+            fora = str(linha[col['fora']] or '').strip().upper()
+            if not casa or not fora:
+                continue
+            if 'placar' in col:
+                m = re.search(r"(\d+)\s*[x×]\s*(\d+)", str(linha[col['placar']] or ''))
+                if not m:
+                    continue
+                gm, gs = int(m.group(1)), int(m.group(2))
+            elif 'gm' in col and 'gs' in col:
+                try:
+                    gm, gs = int(linha[col['gm']]), int(linha[col['gs']])
+                except (TypeError, ValueError):
+                    continue
+            else:
+                continue
+            if gm < 0 or gs < 0 or gm + gs != cr.GOLS_POR_JOGO:
+                continue
+            out[casa] = {"gm": gm, "gs": gs}
+            out[fora] = {"gm": gs, "gs": gm}
+        if out:
+            print(f"📋 {len(out) // 2} placar(es) do Power BI para a rodada {semana}")
+            return out
+    return out
+
+
 def resultados_oficiais(semana):
-    """Placar oficial de cada jogo da rodada, tirado da Classificação Lojas.
+    """Placar oficial de cada jogo da rodada.
+
+    Duas fontes, nessa ordem: os placares copiados do Power BI (valem também no
+    meio da rodada) e, na falta deles, a Classificação Lojas.
 
     A classificação por loja é um acumulado. A diferença entre a rodada N e a
     N-1 dá exatamente o que aconteceu na rodada N: gols marcados, sofridos e
@@ -2303,6 +2395,9 @@ def resultados_oficiais(semana):
     classificações.
     """
     import calculo_rapido as cr
+    doPbi = placares_do_powerbi(semana)
+    if doPbi:
+        return doPbi
     try:
         disponiveis = set(rodadas_classificacao())
         if semana not in disponiveis or (semana - 1) not in disponiveis:
