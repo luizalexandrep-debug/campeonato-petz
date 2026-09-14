@@ -2578,10 +2578,19 @@ async function abrirDetalhesJogo(team1, team2) {
                 só os Clubz novos, recorte que a planilha exportada não tem. Vale o oficial.
             </div>` : '';
         const nEdit = Object.keys(sim.valores).length;
+        // Em rodada encerrada o placar da tela é o oficial do campeonato, e a
+        // simulação só sabe refazer o cálculo sobre as planilhas. Dizer isso
+        // evita a impressão de que o resultado mudou sozinho ao abrir.
+        const avisoCalculo = (sim.ativo && resumo.fonte === 'oficial') ? `
+                <div class="sim-nota">Atenção: o placar oficial desta rodada é
+                    <b>${invertido ? inverterPlacar(resumo.scoreProjected) : resumo.scoreProjected}</b>.
+                    A simulação trabalha sobre o cálculo das planilhas de venda, que pode dar
+                    outro resultado — serve para entender o efeito dos números, não para
+                    reescrever o placar oficial.</div>` : '';
         const barraSim = sim.ativo ? `
             <div class="sim-barra">
                 <b>🧪 Simulação de valores.</b> Edite a venda de qualquer dia, dos dois lados,
-                e o placar lá em cima se refaz sozinho.
+                e o placar lá em cima se refaz sozinho.${avisoCalculo}
                 ${nEdit ? `<button class="sim-limpar" onclick="simLimpar()">↺ Voltar aos valores reais (${nEdit})</button>` : ''}
                 <div class="sim-nota">Nada é gravado. Em indicadores percentuais, a linha final
                     passa a ser a média dos dias assim que você edita — a coluna “Total” da
@@ -2615,15 +2624,24 @@ async function abrirDetalhesJogo(team1, team2) {
     sim.redesenhar = () => desenhar(ladoAtual);
 
     // Placar do cabeçalho, refeito a cada edição.
+    const numsTopo = () => fundo.querySelectorAll('.placar-nums .pl-num');
+    const placarOriginal = [...numsTopo()].map(n => n.textContent);
+    const rotuloOriginal = fundo.querySelector('.placar small')?.textContent || 'Placar Projetado';
+
     const atualizarPlacarTopo = (p) => {
         // simPlacar() já conta na ordem do MODAL (team1 é o time da esquerda),
         // então não entra a inversão que vale para o placar vindo do resumo.
-        const [e, d] = [p.g1, p.g2];
-        const nums = fundo.querySelectorAll('.placar-nums .pl-num');
-        if (nums.length === 2) { nums[0].textContent = e; nums[1].textContent = d; }
+        const nums = numsTopo();
+        if (nums.length === 2) { nums[0].textContent = p.g1; nums[1].textContent = p.g2; }
         const rot = fundo.querySelector('.placar small');
-        if (rot) rot.textContent = Object.keys(sim.valores).length
-            ? 'Placar simulado' : 'Placar Projetado';
+        if (rot) rot.textContent = 'Placar simulado';
+    };
+
+    const restaurarPlacarTopo = () => {
+        const nums = numsTopo();
+        placarOriginal.forEach((v, i) => { if (nums[i]) nums[i].textContent = v; });
+        const rot = fundo.querySelector('.placar small');
+        if (rot) rot.textContent = rotuloOriginal;
     };
 
     const btSim = fundo.querySelector('#btSimular');
@@ -2633,7 +2651,7 @@ async function abrirDetalhesJogo(team1, team2) {
         btSim.classList.toggle('ativo', sim.ativo);
         if (!sim.ativo) sim.valores = {};
         desenhar(ladoAtual);
-        if (!sim.ativo) atualizarPlacarTopo(simPlacar());
+        if (!sim.ativo) restaurarPlacarTopo();
     };
 
     // Edição de um valor: guarda, refaz as contas e devolve o foco.
