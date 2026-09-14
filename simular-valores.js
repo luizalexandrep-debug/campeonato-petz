@@ -95,13 +95,31 @@ function simPlacar() {
 
 /* ---------- peças de tela, compartilhadas pelas duas páginas ---------- */
 
+/* Como o valor aparece dentro do campo enquanto se edita: sem separador de
+   milhar, para o texto digitado ser exatamente o que a conta usa. */
+function simFormatarEdicao(v) {
+    const n = Number(v) || 0;
+    return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)));
+}
+
+/* Lê o que foi digitado, aceitando vírgula como separador decimal. */
+function simLerNumero(txt) {
+    const limpo = String(txt).trim().replace(/\s/g, '').replace(',', '.');
+    if (limpo === '' || limpo === '-') return null;
+    const n = Number(limpo);
+    return isNaN(n) ? null : n;
+}
+
 /* Campo editável de um dia, com o ↺ ao lado quando o valor foi mexido. */
 function simCampo(loja, ind, dia, valor, fmt) {
     if (!sim.ativo) return fmt(valor);
     const editado = simChave(loja, ind, dia) in sim.valores;
+    // 'text' e não 'number': em campo numérico o navegador não deixa ler nem
+    // devolver a posição do cursor, e como a tabela é redesenhada a cada tecla
+    // o cursor voltava para o começo — o dígito seguinte entrava na esquerda.
     return `<span class="sim-cel">
-        <input class="sim-campo${editado ? ' editado' : ''}" type="number" step="0.01"
-               value="${valor}" data-loja="${loja}" data-ind="${ind}" data-dia="${dia}"
+        <input class="sim-campo${editado ? ' editado' : ''}" type="text" inputmode="decimal"
+               value="${simFormatarEdicao(valor)}" data-loja="${loja}" data-ind="${ind}" data-dia="${dia}"
                aria-label="${loja} · ${dia}">
         ${editado ? `<button class="sim-desfazer" data-desfazer="${loja}|${ind}|${dia}"
             title="Voltar ao valor original">↺</button>` : ''}
@@ -182,19 +200,26 @@ function simInstalar(ctx) {
     };
 
     const aplicar = (campo) => {
-        const v = parseFloat(campo.value);
-        if (isNaN(v)) return;              // campo vazio no meio da digitação
+        const v = simLerNumero(campo.value);
+        if (v === null) return;            // campo vazio no meio da digitação
         const { loja, ind, dia } = campo.dataset;
         const j = sim.jogo;
         const bloco = (loja === j.team1 ? j.dadosTeam1 : j.dadosTeam2)[ind];
         const original = (bloco?.atual?.dias || {})[dia] || 0;
         const k = simChave(loja, ind, dia);
         if (v === original) delete sim.valores[k]; else sim.valores[k] = v;
+        // Guarda o texto e o cursor como estão, para devolver depois do
+        // redesenho — quem digita não pode perder o lugar.
+        const texto = campo.value;
         const pos = campo.selectionStart;
         ctx.desenhar();
         const novo = ctx.corpo.querySelector(
             `.sim-campo[data-loja="${loja}"][data-ind="${ind}"][data-dia="${dia}"]`);
-        if (novo) { novo.focus(); try { novo.setSelectionRange(pos, pos); } catch (_) {} }
+        if (novo) {
+            novo.value = texto;            // preserva '1200,' e afins no meio da digitação
+            novo.focus();
+            try { novo.setSelectionRange(pos, pos); } catch (_) {}
+        }
     };
 
     ctx.corpo.addEventListener('input', (e) => {
