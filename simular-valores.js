@@ -159,7 +159,12 @@ function simInstalar(ctx) {
         const t = ctx.fundo.querySelector('.modal-jogo .times');
         const a = ctx.fundo.querySelector('.modal-acoes');
         if (t && a && a.offsetWidth) {
-            t.style.setProperty('--modal-reserva', (a.offsetWidth + 30) + 'px');
+            // Direto no elemento: as duas páginas têm folhas de estilo com
+            // reservas diferentes para esta mesma regra, e o inline não depende
+            // de qual delas vence.
+            const px = (a.offsetWidth + 30) + 'px';
+            t.style.paddingLeft = px;
+            t.style.paddingRight = px;
         }
     };
     ajustarReserva();
