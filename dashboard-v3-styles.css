@@ -2330,3 +2330,31 @@ body {
 .cs-msg.erro { color: var(--danger); font-weight: 600; }
 .cs-msg.ok { color: var(--success); font-weight: 600; }
 .cs-acoes { display: flex; justify-content: flex-end; }
+
+/* ====== Simular valores, dentro do detalhe do jogo ====== */
+.modal-btn.ativo { background: var(--cream, #f4e6bf); color: var(--navy, #1e2a5a); border-color: transparent; }
+
+.sim-barra {
+    background: var(--cream-tint, #fbf3dc); border: 1px solid #e6c86a;
+    border-radius: var(--r-md); padding: 10px 14px; margin-bottom: 14px;
+    font-size: .88em; color: var(--warning, #b45309);
+}
+.sim-barra .sim-nota { color: var(--text-3); font-weight: 400; margin-top: 4px; font-size: .92em; }
+.sim-limpar {
+    margin-left: 8px; background: none; border: 1px solid #e6c86a; color: var(--warning, #b45309);
+    border-radius: var(--r-sm); padding: 3px 10px; font: inherit; font-size: .92em;
+    font-weight: 700; cursor: pointer;
+}
+.sim-limpar:hover { background: #fff3b0; }
+
+.sim-campo {
+    width: 100%; max-width: 140px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); border-radius: var(--r-sm);
+    padding: 3px 6px; font: inherit; font-size: .95em; font-weight: 700;
+    text-align: right; font-variant-numeric: tabular-nums; -moz-appearance: textfield;
+}
+.sim-campo::-webkit-outer-spin-button, .sim-campo::-webkit-inner-spin-button {
+    -webkit-appearance: none; margin: 0;
+}
+.sim-campo:focus { outline: 2px solid var(--brand-2, #2b5aa8); outline-offset: 1px; }
+.sim-campo.editado { border-color: #e6c86a; background: var(--cream-tint, #fbf3dc); color: var(--warning, #b45309); }
