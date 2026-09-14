@@ -12,7 +12,10 @@
    o botão devolve os números reais.
    ========================================================================== */
 
-const CENARIO_PADRAO = ['BTIM-MG', 'SMBA-DF', 'ASTS-SP', 'SCBA-SP', 'ACLR-DF', 'JPES-PB'];
+// Cinco das seis lojas deste cenário foram eliminadas de verdade no
+// encerramento da rodada 11 e já entram como tal no cálculo. Sobra a que
+// ainda está em disputa — é ela que faz sentido simular.
+const CENARIO_PADRAO = ['BTIM-MG'];
 
 const cen = {
     ligado: false,
