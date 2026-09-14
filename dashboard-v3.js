@@ -2616,7 +2616,9 @@ async function abrirDetalhesJogo(team1, team2) {
 
     // Placar do cabeçalho, refeito a cada edição.
     const atualizarPlacarTopo = (p) => {
-        const [e, d] = invertido ? [p.g2, p.g1] : [p.g1, p.g2];
+        // simPlacar() já conta na ordem do MODAL (team1 é o time da esquerda),
+        // então não entra a inversão que vale para o placar vindo do resumo.
+        const [e, d] = [p.g1, p.g2];
         const nums = fundo.querySelectorAll('.placar-nums .pl-num');
         if (nums.length === 2) { nums[0].textContent = e; nums[1].textContent = d; }
         const rot = fundo.querySelector('.placar small');
