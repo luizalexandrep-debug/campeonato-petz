@@ -860,10 +860,13 @@ function abrirCalendarioDaLoja(loja) {
 }
 
 async function abrirDetalhesJogo(loja) {
+    // Sem projeção (rodada recém-começada, sem venda lançada) ainda vale abrir:
+    // é onde a loja vê a base da semana anterior e calcula quanto precisa vender.
     const p = (st.projAtual || {})[loja];
-    if (!p) return;
-    const adv = p.adv;
-    const placar = `${p.gm} × ${p.gs}`;
+    const doResumo = (st.summary?.games || []).find(g => g.team1 === loja || g.team2 === loja);
+    const adv = p ? p.adv : (doResumo && (doResumo.team1 === loja ? doResumo.team2 : doResumo.team1));
+    if (!adv) return;
+    const placar = p ? `${p.gm} × ${p.gs}` : '– × –';
 
     const fundo = document.createElement('div');
     fundo.className = 'modal-fundo';
@@ -886,6 +889,7 @@ async function abrirDetalhesJogo(loja) {
                         <small class="t-dist">${distritoDaLoja(adv) || ''}</small></span>
                 </div>
                 <div class="modal-acoes">
+                    <button class="modal-btn" id="btSimular">🧪 Simular valores</button>
                     <button class="modal-btn" id="btExpModal">📋 Copiar imagem</button>
                     <button class="modal-btn" data-fechar>✕ Fechar</button>
                 </div>
@@ -925,13 +929,29 @@ async function abrirDetalhesJogo(loja) {
     const todos = ordenarIndicadores(Object.keys(d1.dados));
 
     // Clicar num número do placar mostra só os gols daquele lado.
+    // O simulador precisa saber de quem é cada bloco de dados.
+    todos.forEach(i => {
+        if (d1.dados[i]) d1.dados[i].__loja = loja;
+        if (d2.dados[i]) d2.dados[i].__loja = adv;
+    });
+
+    let ladoAtual = null;
     const desenhar = (lado) => {
+        ladoAtual = lado;
+        // Com o simulador ligado, quem faz cada gol vem dos valores em tela.
+        const ps = sim.ativo ? simPlacar() : null;
+        const gols = ps ? ps.gols : (jogoResumo.golsProjetados || {});
+        const golEsq = ps ? 1 : (ehTeam1 ? 1 : 2);
+        const golDir = ps ? 2 : (ehTeam1 ? 2 : 1);
+        if (ps && sim.pintarPlacar) sim.pintarPlacar(ps);
         const inds = lado === 'esq' ? todos.filter(i => gols[i] === golEsq)
             : lado === 'dir' ? todos.filter(i => gols[i] === golDir)
                 : todos;
         const dono = lado === 'esq' ? loja : adv;
         const elim = [loja, adv].find(t => lojaEliminada(t));
-        const aviso = (elim ? `
+        const aviso = simBarra(jogoResumo.fonte === 'oficial'
+            ? (ehTeam1 ? jogoResumo.scoreProjected : inverterPlacarTexto(jogoResumo.scoreProjected))
+            : null) + (elim ? `
             <div class="alerta-eliminada">
                 <b>⛔ ${elim} está eliminada do campeonato.</b>
                 O placar deste jogo é <b>administrativo</b> — ela perde por 0 x 6 em todas as
@@ -954,8 +974,14 @@ async function abrirDetalhesJogo(loja) {
             n.classList.toggle('ativo', n.dataset.lado === lado));
         const limpar = corpo.querySelector('.filtro-limpar');
         if (limpar) limpar.onclick = () => desenhar(null);
-        corpo.scrollTop = 0;
+        if (!sim.ativo) corpo.scrollTop = 0;   // editando, manter o lugar
     };
+
+    simInstalar({
+        fundo, corpo,
+        jogo: { team1: loja, team2: adv, dadosTeam1: d1.dados, dadosTeam2: d2.dados },
+        desenhar: () => desenhar(ladoAtual)
+    });
 
     fundo.querySelectorAll('.pl-num').forEach(n => {
         n.onclick = () => desenhar(n.classList.contains('ativo') ? null : n.dataset.lado);
@@ -963,6 +989,11 @@ async function abrirDetalhesJogo(loja) {
 
     desenhar(null);
 }
+
+const inverterPlacarTexto = (t) => {
+    const [a, b] = String(t || '').split('x').map(v => v.trim());
+    return (a && b) ? `${b} x ${a}` : t;
+};
 
 function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) {
     if (!dados) return '<div class="table-container"><div class="table-title">Sem dados</div></div>';
@@ -973,10 +1004,14 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) 
     const ant = dados.anterior?.dias || {};
     const atu = dados.atual?.dias || {};
     const agregar = (o) => ehPct ? agregarPct(o) : DIAS_JOGO.reduce((t, d) => t + ((o || {})[d] || 0), 0);
+    // Totais com os valores simulados (a semana anterior nunca muda).
+    const totalAtu = simTotal(loja, indicador, dados.atual, ehPct, 'atual');
+    const totalAnt = simTotal(loja, indicador, dados.anterior, ehPct, 'anterior');
     const usaTotal = ehPct && !!(atu[CHAVE_TOTAL] || ant[CHAVE_TOTAL]);
 
     const linhas = DIAS_JOGO.map(dia => {
-        const a = ant[dia] || 0, b = atu[dia] || 0;
+        const a = ant[dia] || 0;
+        const b = simValor(loja, indicador, dia, atu, 'atual');
         const ev = evolucaoPct(a, b);
         // Dia sem valor na semana atual pode ser dia que ainda não chegou:
         // -100% ali assusta sem informar. O que vale é a linha TOTAL.
@@ -984,16 +1019,18 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) 
         const cls = ev > 0 ? 'positive' : ev < 0 ? 'negative' : 'neutral';
         return `<tr><td class="day-label">${dia}</td>
             <td class="value-anterior">${f(a)}</td>
-            <td class="value-atual">${f(b)}</td>
+            <td class="value-atual">${simCampo(loja, indicador, dia, b, f)}</td>
             <td class="evolution ${semLanc ? 'neutral' : cls}">${semLanc ? '—' : ev.toFixed(2) + '%'}</td></tr>`;
     }).join('');
 
-    const tA = agregar(ant), tB = agregar(atu);
+    const tA = totalAnt, tB = totalAtu;
     const evo = evolucaoPct(tA, tB);
     let classe = evo > 0 ? 'positive' : evo < 0 ? 'negative' : 'neutral';
     let falta = null;
     if (adversario) {
-        const evoAdv = evolucaoPct(agregar(adversario.anterior?.dias), agregar(adversario.atual?.dias));
+        const advNome = adversario.__loja;
+        const evoAdv = evolucaoPct(simTotal(advNome, indicador, adversario.anterior, ehPct, 'anterior'),
+                                   simTotal(advNome, indicador, adversario.atual, ehPct, 'atual'));
         if (evo > evoAdv) classe = 'evolution-melhor';
         else if (evo < evoAdv) {
             classe = 'evolution-pior';

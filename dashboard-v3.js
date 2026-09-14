@@ -2541,9 +2541,6 @@ async function abrirDetalhesJogo(team1, team2) {
         if (jogo.dadosTeam1[i]) jogo.dadosTeam1[i].__loja = team1;
         if (jogo.dadosTeam2[i]) jogo.dadosTeam2[i].__loja = team2;
     });
-    // Janela nova começa sempre sem simulação pendente.
-    sim.ativo = false; sim.valores = {}; sim.jogo = jogo;
-
     // Quem marcou cada gol vem do resumo — é ele que aplica os critérios de
     // desempate quando a evolução das duas lojas empata.
     const gols = resumo.golsProjetados || {};
@@ -2561,7 +2558,7 @@ async function abrirDetalhesJogo(team1, team2) {
         // em tela — senão o ⚽ apontaria para o dono do gol antes da edição.
         const p = sim.ativo ? simPlacar() : null;
         const gols = p ? p.gols : (resumo.golsProjetados || {});
-        if (p) atualizarPlacarTopo(p);
+        if (p && sim.pintarPlacar) sim.pintarPlacar(p);
         const inds = lado === 'esq' ? todos.filter(i => gols[i] === golEsq)
             : lado === 'dir' ? todos.filter(i => gols[i] === golDir)
                 : todos;
@@ -2577,25 +2574,8 @@ async function abrirDetalhesJogo(team1, team2) {
                 vem do <b>SHARE CLUBZ</b>, que na apuração oficial considera só o canal físico e
                 só os Clubz novos, recorte que a planilha exportada não tem. Vale o oficial.
             </div>` : '';
-        const nEdit = Object.keys(sim.valores).length;
-        // Em rodada encerrada o placar da tela é o oficial do campeonato, e a
-        // simulação só sabe refazer o cálculo sobre as planilhas. Dizer isso
-        // evita a impressão de que o resultado mudou sozinho ao abrir.
-        const avisoCalculo = (sim.ativo && resumo.fonte === 'oficial') ? `
-                <div class="sim-nota">Atenção: o placar oficial desta rodada é
-                    <b>${invertido ? inverterPlacar(resumo.scoreProjected) : resumo.scoreProjected}</b>.
-                    A simulação trabalha sobre o cálculo das planilhas de venda, que pode dar
-                    outro resultado — serve para entender o efeito dos números, não para
-                    reescrever o placar oficial.</div>` : '';
-        const barraSim = sim.ativo ? `
-            <div class="sim-barra">
-                <b>🧪 Simulação de valores.</b> Edite a venda de qualquer dia, dos dois lados,
-                e o placar lá em cima se refaz sozinho.${avisoCalculo}
-                ${nEdit ? `<button class="sim-limpar" onclick="simLimpar()">↺ Voltar aos valores reais (${nEdit})</button>` : ''}
-                <div class="sim-nota">Nada é gravado. Em indicadores percentuais, a linha final
-                    passa a ser a média dos dias assim que você edita — a coluna “Total” da
-                    planilha é receita sobre receita e não sai dos dias.</div>
-            </div>` : '';
+        const barraSim = simBarra(resumo.fonte === 'oficial'
+            ? (invertido ? inverterPlacar(resumo.scoreProjected) : resumo.scoreProjected) : null);
         const aviso = barraSim + avisoOficial + (eliminada ? `
             <div class="alerta-eliminada">
                 <b>⛔ ${eliminada} está eliminada do campeonato.</b>
@@ -2621,57 +2601,7 @@ async function abrirDetalhesJogo(team1, team2) {
         if (limpar) limpar.onclick = () => desenhar(null);
         if (!sim.ativo) corpo.scrollTop = 0;   // editando, manter o lugar
     };
-    sim.redesenhar = () => desenhar(ladoAtual);
-
-    // Placar do cabeçalho, refeito a cada edição.
-    const numsTopo = () => fundo.querySelectorAll('.placar-nums .pl-num');
-    const placarOriginal = [...numsTopo()].map(n => n.textContent);
-    const rotuloOriginal = fundo.querySelector('.placar small')?.textContent || 'Placar Projetado';
-
-    const atualizarPlacarTopo = (p) => {
-        // simPlacar() já conta na ordem do MODAL (team1 é o time da esquerda),
-        // então não entra a inversão que vale para o placar vindo do resumo.
-        const nums = numsTopo();
-        if (nums.length === 2) { nums[0].textContent = p.g1; nums[1].textContent = p.g2; }
-        const rot = fundo.querySelector('.placar small');
-        if (rot) rot.textContent = 'Placar simulado';
-    };
-
-    const restaurarPlacarTopo = () => {
-        const nums = numsTopo();
-        placarOriginal.forEach((v, i) => { if (nums[i]) nums[i].textContent = v; });
-        const rot = fundo.querySelector('.placar small');
-        if (rot) rot.textContent = rotuloOriginal;
-    };
-
-    const btSim = fundo.querySelector('#btSimular');
-    if (btSim) btSim.onclick = () => {
-        sim.ativo = !sim.ativo;
-        btSim.textContent = sim.ativo ? '✕ Fechar simulação' : '🧪 Simular valores';
-        btSim.classList.toggle('ativo', sim.ativo);
-        if (!sim.ativo) sim.valores = {};
-        desenhar(ladoAtual);
-        if (!sim.ativo) restaurarPlacarTopo();
-    };
-
-    // Edição de um valor: guarda, refaz as contas e devolve o foco.
-    corpo.addEventListener('input', (e) => {
-        const c = e.target.closest('.sim-campo');
-        if (!c) return;
-        const v = parseFloat(c.value);
-        const k = simChave(c.dataset.loja, c.dataset.ind, c.dataset.dia);
-        const j = sim.jogo;
-        const bloco = (c.dataset.loja === j.team1 ? j.dadosTeam1 : j.dadosTeam2)[c.dataset.ind];
-        const original = (bloco?.atual?.dias || {})[c.dataset.dia] || 0;
-        if (isNaN(v)) return;                  // campo vazio no meio da digitação
-        if (v === original) delete sim.valores[k];
-        else sim.valores[k] = v;
-        const pos = c.selectionStart;
-        desenhar(ladoAtual);
-        const novo = corpo.querySelector(
-            `.sim-campo[data-loja="${c.dataset.loja}"][data-ind="${c.dataset.ind}"][data-dia="${c.dataset.dia}"]`);
-        if (novo) { novo.focus(); try { novo.setSelectionRange(pos, pos); } catch (_) {} }
-    });
+    simInstalar({ fundo, corpo, jogo, desenhar: () => desenhar(ladoAtual) });
 
     fundo.querySelectorAll('.pl-num').forEach(n => {
         n.onclick = () => desenhar(n.classList.contains('ativo') ? null : n.dataset.lado);
@@ -2719,91 +2649,6 @@ async function carregarDadosJogo(jogo) {
             erro: true
         };
     }
-}
-
-// ============================================================
-// SIMULAR VALORES — "e se a loja vendesse outra coisa?"
-//
-// Deixa editar a venda de qualquer dia, dos dois lados, e recalcula na hora a
-// evolução do dia, o total da semana, a evolução da semana e o placar do jogo.
-// Nada é gravado: é tudo em cima do que já está carregado na janela.
-// ============================================================
-
-const sim = {
-    ativo: false,
-    valores: {},          // "LOJA|indicador|dia" -> valor digitado
-    jogo: null            // dados do confronto aberto, para recalcular o placar
-};
-
-const simChave = (loja, ind, dia) => `${loja}|${ind}|${dia}`;
-
-/* Valor de um dia. Só a SEMANA ATUAL é editável — a anterior é a base de
-   comparação e não muda. Com `original`, ignora o que foi simulado. */
-function simValor(loja, ind, dia, dias, slot, original) {
-    if (slot === 'atual' && !original) {
-        const k = simChave(loja, ind, dia);
-        if (k in sim.valores) return sim.valores[k];
-    }
-    return (dias || {})[dia] || 0;
-}
-
-function simTemEdicao(loja, ind) {
-    const pref = `${loja}|${ind}|`;
-    return Object.keys(sim.valores).some(k => k.startsWith(pref));
-}
-
-function simLimpar() {
-    sim.valores = {};
-    if (sim.redesenhar) sim.redesenhar();
-}
-
-/* Total da semana de um lado. Em R$ é soma; em % é a média dos dias com dado.
-   Enquanto não há edição, o % usa a coluna 'Total' da planilha, que é o número
-   oficial (receita/receita). Editado um dia, essa coluna deixa de valer — o
-   total passa a ser a média dos dias, e a tela avisa. */
-function simTotal(loja, ind, bloco, ehPct, slot, original) {
-    const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-    const dias = bloco?.dias;
-    if (!ehPct) {
-        return DIAS.reduce((t, d) => t + simValor(loja, ind, d, dias, slot, original), 0);
-    }
-    const mexido = slot === 'atual' && !original && simTemEdicao(loja, ind);
-    if (!mexido) return agregarPct(dias, DIAS);
-    const vals = DIAS.map(d => simValor(loja, ind, d, dias, slot, original)).filter(v => v);
-    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-}
-
-/* Quem faz o gol de um indicador, com os valores em vigor.
-   Mesma cascata do backend: evolução, depois valor da semana, depois o da
-   anterior. No critério 'nível' vence o maior valor da semana. */
-function simVencedor(ind, d1, d2, t1, t2) {
-    if (!d1 || !d2) return 0;
-    const ehPct = (d1.atual?.type || d1.anterior?.type || 'R$') === '%';
-    const nivel = (d1.atual?.criterio || d1.anterior?.criterio
-                   || criterioDoNome(ind)) === 'nivel';
-    const at1 = simTotal(t1, ind, d1.atual, ehPct, 'atual');
-    const at2 = simTotal(t2, ind, d2.atual, ehPct, 'atual');
-    if (nivel) return at1 > at2 ? 1 : at2 > at1 ? 2 : 0;
-    const an1 = simTotal(t1, ind, d1.anterior, ehPct, 'anterior');
-    const an2 = simTotal(t2, ind, d2.anterior, ehPct, 'anterior');
-    const e1 = evolucaoPct(an1, at1), e2 = evolucaoPct(an2, at2);
-    if (e1 !== e2) return e1 > e2 ? 1 : 2;
-    if (at1 !== at2) return at1 > at2 ? 1 : 2;
-    if (an1 !== an2) return an1 > an2 ? 1 : 2;
-    return 0;
-}
-
-/* Placar do jogo com os valores em vigor: {gols, g1, g2}. */
-function simPlacar() {
-    const j = sim.jogo;
-    const gols = {}; let g1 = 0, g2 = 0;
-    if (!j) return { gols, g1, g2 };
-    Object.keys(j.dadosTeam1 || {}).forEach(ind => {
-        const v = simVencedor(ind, j.dadosTeam1[ind], j.dadosTeam2[ind], j.team1, j.team2);
-        gols[ind] = v;
-        if (v === 1) g1++; else if (v === 2) g2++;
-    });
-    return { gols, g1, g2 };
 }
 
 // ============================================================
@@ -2893,12 +2738,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
             ? `${evolucao > 0 ? '+' : ''}${fmt(evolucao)}`
             : `${evolucao.toFixed(2)}%`);
 
-        const editado = simChave(teamName, indicador, dia) in sim.valores;
-        const celulaAtual = sim.ativo
-            ? `<input class="sim-campo${editado ? ' editado' : ''}" type="number" step="0.01"
-                   value="${valorAtual}" data-loja="${teamName}" data-ind="${indicador}"
-                   data-dia="${dia}" aria-label="${teamName} · ${dia}">`
-            : fmt(valorAtual);
+        const celulaAtual = simCampo(teamName, indicador, dia, valorAtual, fmt);
         html += `
             <tr>
                 <td class="day-label">${dia}</td>
