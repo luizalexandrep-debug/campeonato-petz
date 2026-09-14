@@ -152,12 +152,26 @@ function simInstalar(ctx) {
         if (rotulo) rotulo.textContent = rotuloOriginal;
     };
 
+    // O cabeçalho centraliza o placar e põe os botões por cima, à direita. A
+    // reserva de espaço precisa ser a largura real deles — fixa no CSS, ela
+    // ficava curta a cada botão novo e o nome do time passava por baixo.
+    const ajustarReserva = () => {
+        const t = ctx.fundo.querySelector('.modal-jogo .times');
+        const a = ctx.fundo.querySelector('.modal-acoes');
+        if (t && a && a.offsetWidth) {
+            t.style.setProperty('--modal-reserva', (a.offsetWidth + 30) + 'px');
+        }
+    };
+    ajustarReserva();
+    window.addEventListener('resize', ajustarReserva);
+
     const bt = ctx.fundo.querySelector('#btSimular');
     if (bt) bt.onclick = () => {
         sim.ativo = !sim.ativo;
         bt.textContent = sim.ativo ? '✕ Fechar simulação' : '🧪 Simular valores';
         bt.classList.toggle('ativo', sim.ativo);
         if (!sim.ativo) sim.valores = {};
+        ajustarReserva();          // o texto do botão muda de tamanho
         ctx.desenhar();
         if (!sim.ativo) restaurar();
     };
