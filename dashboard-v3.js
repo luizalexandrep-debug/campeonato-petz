@@ -2717,10 +2717,13 @@ const sim = {
 
 const simChave = (loja, ind, dia) => `${loja}|${ind}|${dia}`;
 
-/* Valor de um dia. Com `original`, ignora o que foi simulado. */
-function simValor(loja, ind, dia, dias, original) {
-    const k = simChave(loja, ind, dia);
-    if (!original && k in sim.valores) return sim.valores[k];
+/* Valor de um dia. Só a SEMANA ATUAL é editável — a anterior é a base de
+   comparação e não muda. Com `original`, ignora o que foi simulado. */
+function simValor(loja, ind, dia, dias, slot, original) {
+    if (slot === 'atual' && !original) {
+        const k = simChave(loja, ind, dia);
+        if (k in sim.valores) return sim.valores[k];
+    }
     return (dias || {})[dia] || 0;
 }
 
@@ -2738,14 +2741,15 @@ function simLimpar() {
    Enquanto não há edição, o % usa a coluna 'Total' da planilha, que é o número
    oficial (receita/receita). Editado um dia, essa coluna deixa de valer — o
    total passa a ser a média dos dias, e a tela avisa. */
-function simTotal(loja, ind, bloco, ehPct, original) {
+function simTotal(loja, ind, bloco, ehPct, slot, original) {
     const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
     const dias = bloco?.dias;
     if (!ehPct) {
-        return DIAS.reduce((t, d) => t + simValor(loja, ind, d, dias, original), 0);
+        return DIAS.reduce((t, d) => t + simValor(loja, ind, d, dias, slot, original), 0);
     }
-    if (original || !simTemEdicao(loja, ind)) return agregarPct(dias, DIAS);
-    const vals = DIAS.map(d => simValor(loja, ind, d, dias, original)).filter(v => v);
+    const mexido = slot === 'atual' && !original && simTemEdicao(loja, ind);
+    if (!mexido) return agregarPct(dias, DIAS);
+    const vals = DIAS.map(d => simValor(loja, ind, d, dias, slot, original)).filter(v => v);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
 }
 
@@ -2757,11 +2761,11 @@ function simVencedor(ind, d1, d2, t1, t2) {
     const ehPct = (d1.atual?.type || d1.anterior?.type || 'R$') === '%';
     const nivel = (d1.atual?.criterio || d1.anterior?.criterio
                    || criterioDoNome(ind)) === 'nivel';
-    const at1 = simTotal(t1, ind, d1.atual, ehPct);
-    const at2 = simTotal(t2, ind, d2.atual, ehPct);
+    const at1 = simTotal(t1, ind, d1.atual, ehPct, 'atual');
+    const at2 = simTotal(t2, ind, d2.atual, ehPct, 'atual');
     if (nivel) return at1 > at2 ? 1 : at2 > at1 ? 2 : 0;
-    const an1 = simTotal(t1, ind, d1.anterior, ehPct);
-    const an2 = simTotal(t2, ind, d2.anterior, ehPct);
+    const an1 = simTotal(t1, ind, d1.anterior, ehPct, 'anterior');
+    const an2 = simTotal(t2, ind, d2.anterior, ehPct, 'anterior');
     const e1 = evolucaoPct(an1, at1), e2 = evolucaoPct(an2, at2);
     if (e1 !== e2) return e1 > e2 ? 1 : 2;
     if (at1 !== at2) return at1 > at2 ? 1 : 2;
@@ -2802,8 +2806,8 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     const fmt = (v) => formatarValor(v, tipo);
     // Percentual agrega por MÉDIA dos dias com dado; monetário por SOMA
     // Os totais respeitam o que foi digitado no simulador (ver simTotal).
-    const agregar = (diasObj, bloco) => {
-        if (bloco) return simTotal(teamName, indicador, bloco, ehPct);
+    const agregar = (diasObj, bloco, slot) => {
+        if (bloco) return simTotal(teamName, indicador, bloco, ehPct, slot);
         if (ehPct) return agregarPct(diasObj, diasOrdenados);
         return diasOrdenados.map(d => (diasObj || {})[d] || 0).reduce((a, b) => a + b, 0);
     };
@@ -2824,8 +2828,8 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     let totalAdversarioAtual = 0;
     const nomeAdv = dadosAdversario?.__loja;
     if (dadosAdversario) {
-        totalAdversarioAnterior = simTotal(nomeAdv, indicador, dadosAdversario.anterior, ehPct);
-        totalAdversarioAtual = simTotal(nomeAdv, indicador, dadosAdversario.atual, ehPct);
+        totalAdversarioAnterior = simTotal(nomeAdv, indicador, dadosAdversario.anterior, ehPct, 'anterior');
+        totalAdversarioAtual = simTotal(nomeAdv, indicador, dadosAdversario.atual, ehPct, 'atual');
     }
 
     // Preferimos o vencedor vindo do resumo; sem ele, cai na comparação direta
@@ -2851,11 +2855,11 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     `;
 
     diasOrdenados.forEach(dia => {
-        const valorAtual = simValor(teamName, indicador, dia, dados.atual?.dias);
+        const valorAtual = simValor(teamName, indicador, dia, dados.atual?.dias, 'atual');
         // No gol por nível a coluna de comparação é o adversário no mesmo dia.
         const valorAnterior = ehNivel
-            ? simValor(nomeAdv, indicador, dia, dadosAdversario?.atual?.dias)
-            : simValor(teamName, indicador, dia, dados.anterior?.dias);
+            ? simValor(nomeAdv, indicador, dia, dadosAdversario?.atual?.dias, 'atual')
+            : simValor(teamName, indicador, dia, dados.anterior?.dias, 'anterior');
 
         // Mesma regra do placar e da linha de TOTAL: sem lançamento na semana
         // atual a evolução é 0%, não -100%.
@@ -2886,12 +2890,12 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     });
 
     // Totais (soma para R$, média dos dias com dado para %)
-    totalAnterior = ehNivel ? totalAdversarioAtual : agregar(null, dados.anterior);
-    totalAtual = agregar(null, dados.atual);
+    totalAnterior = ehNivel ? totalAdversarioAtual : agregar(null, dados.anterior, 'anterior');
+    totalAtual = agregar(null, dados.atual, 'atual');
 
     // Mesma regra do placar (zerou nesta semana = 0%, não -100%)
     const evolucaoTotal = ehNivel ? (totalAtual - totalAdversarioAtual)
-                                  : evolucaoPct(agregar(null, dados.anterior), totalAtual);
+                                  : evolucaoPct(agregar(null, dados.anterior, 'anterior'), totalAtual);
     const evoluClassTotal = evolucaoTotal > 0 ? 'positive' : evolucaoTotal < 0 ? 'negative' : 'neutral';
 
     // Comparativo com adversário: aplicar cores apenas na célula de evolução
@@ -2915,7 +2919,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
             // Está perdendo: quanto precisa vender a mais na S. Atual para virar o gol.
             // Precisa que a evolução dele iguale/supere a do adversário:
             //   S.Atual necessária = S.Anterior_dele × (1 + evoluçãoAdv/100)
-            const baseAnterior = agregar(null, dados.anterior);
+            const baseAnterior = agregar(null, dados.anterior, 'anterior');
             if (baseAnterior > 0) {
                 const necessario = baseAnterior * (1 + evolucaoAdversario / 100);
                 const falta = necessario - totalAtual;
