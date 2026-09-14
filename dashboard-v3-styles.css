@@ -2374,3 +2374,15 @@ body {
 @media (max-width: 1100px) {
     .modal-jogo .modal-head { flex-wrap: wrap; row-gap: 10px; }
 }
+
+
+/* Cabeçalho do detalhe: nomes e placar em uma linha só. Com os botões de volta
+   ao fluxo, o espaço do título encolheu e as siglas quebravam no meio. */
+.modal-jogo .modal-head .t-nome,
+.modal-jogo .modal-head .placar b { white-space: nowrap; }
+.modal-jogo .modal-head .t { font-size: 1.2em; }
+.modal-jogo .modal-head .placar b { font-size: 1.7em; }
+@media (max-width: 1250px) {
+    .modal-jogo .modal-head .t { font-size: 1.05em; }
+    .modal-jogo .modal-head .modal-btn { padding: 7px 10px; font-size: .82em; }
+}

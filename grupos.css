@@ -1028,3 +1028,15 @@
 .sp-orig.sobe { color: #15803d; }
 .sp-orig.desce { color: #b91c1c; }
 .tab-grupo tr.sp-mexeu td:first-child { box-shadow: inset 3px 0 0 #e0a800; }
+
+
+/* Cabeçalho do detalhe: nomes e placar em uma linha só. Com os botões de volta
+   ao fluxo, o espaço do título encolheu e as siglas quebravam no meio. */
+.modal-jogo .modal-head .t-nome,
+.modal-jogo .modal-head .placar b { white-space: nowrap; }
+.modal-jogo .modal-head .t { font-size: 1.2em; }
+.modal-jogo .modal-head .placar b { font-size: 1.7em; }
+@media (max-width: 1250px) {
+    .modal-jogo .modal-head .t { font-size: 1.05em; }
+    .modal-jogo .modal-head .modal-btn { padding: 7px 10px; font-size: .82em; }
+}
