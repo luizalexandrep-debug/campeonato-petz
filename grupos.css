@@ -523,7 +523,8 @@
     align-items: center;
     gap: 28px;
     /* espaço reservado dos dois lados para o título não passar por baixo dos botões */
-    padding: 0 210px;
+    padding: 0;
+    min-width: 0;
 }
 
 .modal-jogo .times > .t:first-child { text-align: right; }
@@ -531,10 +532,11 @@
 .modal-jogo .placar { justify-self: center; }
 
 .modal-jogo .modal-acoes {
-    position: absolute;
-    right: 22px;
-    top: 50%;
-    transform: translateY(-50%);
+    /* Item normal do cabeçalho, à direita — posicionado por cima ele cobria o
+       nome do time da direita a cada botão novo. */
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 /* Sem largura para os botões ao lado: eles empilham e voltam ao fluxo. */
