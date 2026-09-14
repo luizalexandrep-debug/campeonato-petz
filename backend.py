@@ -2430,8 +2430,18 @@ def _aplicar_oficiais(jogos, oficiais):
     trocados = divergentes = 0
     for g in jogos:
         o1, o2 = oficiais.get(g["team1"]), oficiais.get(g["team2"])
-        if not o1 or not o2 or (o1["gm"], o1["gs"]) != (o2["gs"], o2["gm"]):
-            continue              # sem dado oficial, ou os dois lados não casam
+        if o1 and o2 and (o1["gm"], o1["gs"]) != (o2["gs"], o2["gm"]):
+            continue              # os dois lados não casam: melhor não usar
+        # Basta um lado. Uma loja punida ou que enfrentou uma eliminada em
+        # rodada passada tem o acumulado corrigido para trás, e aí o delta dela
+        # mistura a rodada com o acerto retroativo — mas o delta do adversário
+        # continua limpo, e o placar de um lado dá o do outro.
+        if o1 and not o2:
+            o2 = {"gm": o1["gs"], "gs": o1["gm"]}
+        elif o2 and not o1:
+            o1 = {"gm": o2["gs"], "gs": o2["gm"]}
+        if not o1:
+            continue              # nenhum dos dois: fica o cálculo
         placar = f"{o1['gm']} x {o1['gs']}"
         if placar != g["scoreProjected"]:
             divergentes += 1
