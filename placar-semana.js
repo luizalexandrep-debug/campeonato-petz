@@ -61,7 +61,11 @@ function asteriscoMudanca(loja, estrutura) {
     if (psRegionalDe(loja, estrutura) !== PS_REGIONAL) return '';
     const m = psMudou(loja);
     if (!m) return '';
-    const piorou = (m.hoje.res === 'D') || (m.ontem.res === 'V' && m.hoje.res === 'E');
+    // Vermelho: ontem ganhava, hoje empata ou perde. Verde: ontem perdia, hoje
+    // empata ou ganha. Mudança a partir de um empate não marca.
+    const piorou = m.ontem.res === 'V';
+    const melhorou = m.ontem.res === 'D';
+    if (!piorou && !melhorou) return '';
     return `<span class="ps-ast ${piorou ? 'piorou' : 'melhorou'}"
         title="Mudou de ontem (${m.ontem.dia}) para hoje (${m.hoje.dia}): projetava ${m.ontem.gm} x ${m.ontem.gs} (${PS_NOME_RES[m.ontem.res]}), agora ${m.hoje.gm} x ${m.hoje.gs} (${PS_NOME_RES[m.hoje.res]})">*</span>`;
 }
