@@ -872,11 +872,39 @@ def estrutura_do_sharepoint():
             reg, dist, loja = str(reg).strip(), str(dist).strip(), str(loja).strip()
             if _fora_do_campeonato(reg, dist, loja):
                 continue
-            est.setdefault(reg, {}).setdefault(dist, []).append(loja)
+            import calculo_rapido as cr
+            est.setdefault(reg, {}).setdefault(dist, []).append(cr.sigla_atual(loja))
+        _completar_renomeadas(est)
         return est or None
     except Exception as e:
         print(f"⚠️ Falha ao ler estrutura do SharePoint: {e}")
         return None
+
+
+def _completar_renomeadas(est):
+    """Loja que trocou de sigla continua no mesmo distrito. Se a planilha de
+    estrutura perdeu a linha dela, recupera o distrito pela sigla antiga na
+    estrutura.json empacotada — em vez de a loja ficar sem regional e fora das
+    médias dos distritais."""
+    import json as _json
+    import calculo_rapido as cr
+    presentes = {l for ds in est.values() for ls in ds.values() for l in ls}
+    faltando = {nova: velha for velha, nova in cr.SIGLAS_RENOMEADAS.items()
+                if nova not in presentes}
+    if not faltando:
+        return
+    try:
+        with open(Path(__file__).parent / 'estrutura.json') as f:
+            antiga = _json.load(f)
+        antiga = antiga.get('estrutura', antiga)
+    except Exception:
+        return
+    for reg, dists in antiga.items():
+        for dist, lojas in dists.items():
+            for nova, velha in faltando.items():
+                if velha in lojas or nova in lojas:
+                    est.setdefault(reg, {}).setdefault(dist, []).append(nova)
+                    print(f"ℹ️ estrutura: {nova} (antiga {velha}) recolocada em {dist}")
 
 
 def estrutura_ativa():
