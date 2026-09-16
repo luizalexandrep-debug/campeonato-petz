@@ -2390,3 +2390,27 @@ body {
 /* Unidade ao lado do campo percentual e destaque do campo de total */
 .sim-un { color: var(--text-3, #94a3b8); font-size: .9em; margin-left: 2px; }
 .sim-campo.sim-total { font-weight: 800; border-color: #2b5aa8; }
+
+/* ====== Placar ao longo da semana (📈) e asterisco de mudança ====== */
+.ps-ast { font-weight: 900; margin-left: 2px; cursor: help; }
+.ps-ast.piorou { color: #dc2626; }
+.ps-ast.melhorou { color: #16a34a; }
+.ps-pop {
+    position: absolute; z-index: 600; min-width: 250px;
+    background: var(--surface, #fff); color: var(--text, #1e293b);
+    border: 1px solid var(--border-strong, #d9dce6); border-radius: 12px;
+    box-shadow: 0 14px 34px rgba(16,24,40,.22); padding: 12px 14px; font-size: .88em;
+}
+.ps-tit { font-weight: 800; }
+.ps-sub { color: var(--text-3, #94a3b8); font-size: .9em; margin: 2px 0 8px; }
+.ps-tab { width: 100%; border-collapse: collapse; }
+.ps-tab td { padding: 4px 6px; border-bottom: 1px solid var(--border, #e8eaf1); text-align: left; }
+.ps-tab td.c { text-align: center; }
+.ps-tab tr.vazio td { color: var(--text-3, #94a3b8); }
+.ps-tab tr.mudou td { background: #fff7e0; }
+.ps-placar { font-weight: 800; font-variant-numeric: tabular-nums; }
+.ps-res { font-weight: 700; font-size: .85em; }
+.ps-res.V { color: #16a34a; } .ps-res.E { color: #b45309; } .ps-res.D { color: #dc2626; }
+.ps-tab small { color: #b45309; }
+.ps-nota { margin-top: 8px; color: var(--text-3, #94a3b8); font-size: .85em; }
+.placar .ps-bt { margin-top: 2px; }

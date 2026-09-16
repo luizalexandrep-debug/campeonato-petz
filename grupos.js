@@ -182,6 +182,11 @@ async function trocarBase(rodada) {
 async function carregarSummary() {
     st.summary = st.semana ? await pegar(`/games-summary/${st.semana}`) : null;
     if (st.semana && typeof missoesCarregar === 'function') await missoesCarregar(st.semana);
+    // O asterisco de mudança depende do placar dia a dia; carrega em paralelo e
+    // redesenha quando chegar, sem segurar a abertura da tela.
+    if (st.semana && typeof psCarregar === 'function' && !window.GRUPOS_EMBUTIDO) {
+        psCarregar(st.semana).then(() => { if (st.grupo) render(); });
+    }
     st.resumo = null;
 }
 
@@ -885,7 +890,7 @@ async function abrirDetalhesJogo(loja) {
             <div class="modal-head">
                 <div class="times">
                     <span class="t"><span class="t-nome"><button class="bt-cal" title="Próximos jogos de ${loja}"
-                        onclick="abrirCalendarioDaLoja('${loja}')">📅</button>${loja}</span>
+                        onclick="abrirCalendarioDaLoja('${loja}')">📅</button>${loja}<span class="ps-ast-slot" data-loja="${loja}"></span></span>
                         <small class="t-dist">${distritoDaLoja(loja) || ''}</small></span>
                     <span class="placar"><small>Placar Projetado</small>
                         <b class="placar-nums">${(() => {
@@ -893,8 +898,9 @@ async function abrirDetalhesJogo(loja) {
                             return `<span class="pl-num" data-lado="esq" title="Ver só os gols de ${loja}">${pa}</span>`
                                 + ` × <span class="pl-num" data-lado="dir" title="Ver só os gols de ${adv}">${pb}</span>`;
                         })()}</b>
-                        <small>rodada ${st.semana}</small></span>
-                    <span class="t"><span class="t-nome">${adv}<button class="bt-cal" title="Próximos jogos de ${adv}"
+                        <small>rodada ${st.semana}</small>
+                        ${psBotao(loja, adv, st.semana)}</span>
+                    <span class="t"><span class="t-nome">${adv}<span class="ps-ast-slot" data-loja="${adv}"></span><button class="bt-cal" title="Próximos jogos de ${adv}"
                         onclick="abrirCalendarioDaLoja('${adv}')">📅</button></span>
                         <small class="t-dist">${distritoDaLoja(adv) || ''}</small></span>
                 </div>
@@ -914,6 +920,7 @@ async function abrirDetalhesJogo(loja) {
     });
     document.addEventListener('keydown', esc);
     document.body.appendChild(fundo);
+    psPreencherAsteriscos(fundo, st.estrutura, st.semana);
 
     // Mesmo exportador do dashboard: desenha o card num canvas e copia.
     const btExp = fundo.querySelector('#btExpModal');
@@ -1675,6 +1682,7 @@ function tabela(linhas, posBase, ehSim, posOriginal) {
             ${posBase ? `<td>${mov}</td>` : ''}
             <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}"
                 onclick="event.stopPropagation(); abrirDetalhesJogo('${r.time}')">${r.time}</span>${
+                ehSim && typeof asteriscoMudanca === 'function' ? asteriscoMudanca(r.time, st.estrutura) : ''}${
                 ehSim && st.semana && typeof sinoHTML === 'function' ? sinoHTML(r.time) : ''}</td>
             <td class="pts">${r.pts}</td>
             ${ganho}

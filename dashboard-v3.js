@@ -2494,7 +2494,7 @@ async function abrirDetalhesJogo(team1, team2) {
                 <div class="times">
                     <span class="t"><span class="t-nome"><button class="bt-cal" title="Próximos jogos de ${team1}"
                         onclick="abrirCalendarioLoja('${team1}')">📅</button><button class="bt-cal" title="Tabela do grupo de ${team1}"
-                        onclick="abrirGrupoLoja('${team1}')">📊</button>${team1}</span>
+                        onclick="abrirGrupoLoja('${team1}')">📊</button>${team1}<span class="ps-ast-slot" data-loja="${team1}"></span></span>
                         <small class="t-dist">${distritoDaLoja(team1) || ''}</small></span>
                     <span class="placar">
                         <small>Placar Projetado</small>
@@ -2504,8 +2504,9 @@ async function abrirDetalhesJogo(team1, team2) {
                                 + ` × <span class="pl-num" data-lado="dir" title="Ver só os gols de ${team2}">${pb}</span>`;
                         })()}</b>
                         <small>Acumulado ${placarAcum}</small>
+                        ${psBotao(team1, team2, state.semana)}
                     </span>
-                    <span class="t"><span class="t-nome">${team2}<button class="bt-cal" title="Tabela do grupo de ${team2}"
+                    <span class="t"><span class="t-nome">${team2}<span class="ps-ast-slot" data-loja="${team2}"></span><button class="bt-cal" title="Tabela do grupo de ${team2}"
                         onclick="abrirGrupoLoja('${team2}')">📊</button><button class="bt-cal" title="Próximos jogos de ${team2}"
                         onclick="abrirCalendarioLoja('${team2}')">📅</button></span>
                         <small class="t-dist">${distritoDaLoja(team2) || ''}</small></span>
@@ -2527,6 +2528,7 @@ async function abrirDetalhesJogo(team1, team2) {
     });
     document.addEventListener('keydown', esc);
     document.body.appendChild(fundo);
+    psPreencherAsteriscos(fundo, state.estrutura, state.semana);
 
     const chave = `${team1}_${team2}`;
     let jogo = state.jogosCalculados[chave];

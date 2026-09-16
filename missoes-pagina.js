@@ -33,7 +33,8 @@ async function misCarregar() {
         '<div class="info-bar"><span>Carregando as missões...</span></div>';
     const [resumo] = await Promise.all([
         misApi(`/games-summary/${pg.semana}`).catch(() => ({ games: [] })),
-        missoesCarregar(pg.semana)
+        missoesCarregar(pg.semana),
+        psCarregar(pg.semana)
     ]);
     pg.resumo = resumo;
     pg.jogos = resumo.games || [];
@@ -98,7 +99,7 @@ function misDesenhar() {
                      onclick="misVerGols('${m.loja}','${m.adversario || ''}')"
                      onkeydown="if(event.key==='Enter')misVerGols('${m.loja}','${m.adversario || ''}')">
                     <div class="mis-jogo">
-                        <span class="mis-loja">${m.loja}</span>
+                        <span class="mis-loja">${m.loja}${asteriscoMudanca(m.loja, pg.estrutura)}</span>
                         <span class="mis-placar">${s.placar}</span>
                         <span class="mis-adv">${m.adversario || ''}</span>
                     </div>
