@@ -1,0 +1,43 @@
+/* Missões da Semana — só o que esta página acrescenta ao dashboard. */
+.mis-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+.mis-card {
+    background: var(--surface, #fff); border-radius: 12px; padding: 14px; text-align: center;
+    box-shadow: 0 4px 14px rgba(16,24,40,.07); color: var(--text-2, #475569); font-weight: 600;
+}
+.mis-card span { display: block; font-size: 1.9em; font-weight: 800; color: var(--text, #1e293b); }
+.mis-card.ok span { color: #16a34a; }
+.mis-card.nao span { color: #dc2626; }
+.mis-card.sem span { color: #b45309; }
+
+.mis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+.mis-dist { background: var(--surface, #fff); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 14px rgba(16,24,40,.07); }
+.mis-dist-head {
+    background: linear-gradient(135deg, #1e2a5a 0%, #2b4f95 100%); color: #fff;
+    padding: 12px 16px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+}
+.mis-dist-cont { font-size: .82em; opacity: .85; }
+
+.mis-item {
+    position: relative; padding: 12px 40px 12px 16px; border-bottom: 1px solid var(--border, #e8eaf1);
+    border-left: 4px solid transparent;
+}
+.mis-item:last-child { border-bottom: none; }
+.mis-item.ok { border-left-color: #16a34a; background: #f0fbf4; }
+.mis-item.nao { border-left-color: #dc2626; background: #fdf2f2; }
+.mis-item.sem { border-left-color: #b45309; }
+.mis-jogo { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; font-weight: 800; }
+.mis-loja { text-align: right; }
+.mis-adv { text-align: left; color: var(--text-2, #475569); font-weight: 600; }
+.mis-placar { font-size: 1.3em; font-variant-numeric: tabular-nums; }
+.mis-meta { margin-top: 6px; font-size: .85em; color: var(--text-2, #475569); text-align: center; }
+.mis-meta small { color: var(--text-3, #94a3b8); }
+.mis-status { margin-top: 4px; font-size: .88em; font-weight: 700; text-align: center; }
+.mis-item.ok .mis-status { color: #16a34a; }
+.mis-item.nao .mis-status { color: #dc2626; }
+.mis-status small { font-weight: 400; color: var(--text-3, #94a3b8); }
+.mis-remover {
+    position: absolute; top: 10px; right: 10px; background: none; border: none; cursor: pointer;
+    color: var(--text-3, #94a3b8); font-size: 1em;
+}
+.mis-remover:hover { color: #dc2626; }
+@media (max-width: 500px) { .mis-grid { grid-template-columns: 1fr; } }

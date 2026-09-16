@@ -14,7 +14,7 @@ import requests
 from datetime import date, datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
-from auth import (db, login_manager, Usuario, Acesso, init_db,
+from auth import (db, login_manager, Usuario, Acesso, Missao, init_db,
                   autenticar_emergencia, invalidar_cache_usuarios)
 
 app = Flask(__name__)
@@ -1774,6 +1774,67 @@ def get_margens(semana):
         import traceback
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+
+# ------------------------------------------------------------------
+# Missões da semana
+# ------------------------------------------------------------------
+
+@app.route('/api/missoes/<int:semana>', methods=['GET'])
+@login_required
+def listar_missoes(semana):
+    """Missões da rodada — todos os usuários veem todas."""
+    try:
+        ms = Missao.query.filter_by(semana=semana).order_by(Missao.distrito, Missao.loja).all()
+        return jsonify({"semana": semana, "missoes": [m.to_dict() for m in ms]})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Banco indisponível: {e}"}), 503
+
+
+@app.route('/api/missoes', methods=['POST'])
+@login_required
+def criar_missao():
+    """Cria (ou atualiza o critério de) uma missão. Master e distritais."""
+    d = request.get_json(silent=True) or {}
+    try:
+        semana = int(d.get('semana'))
+    except (TypeError, ValueError):
+        return jsonify({"error": "semana inválida"}), 400
+    loja = str(d.get('loja') or '').strip()
+    criterio = d.get('criterio') if d.get('criterio') in ('vencer', 'nao_perder') else 'vencer'
+    if not loja:
+        return jsonify({"error": "loja obrigatória"}), 400
+    try:
+        m = Missao.query.filter_by(semana=semana, loja=loja).first()
+        if not m:
+            m = Missao(semana=semana, loja=loja)
+            db.session.add(m)
+        m.adversario = str(d.get('adversario') or '').strip() or None
+        m.distrito = str(d.get('distrito') or '').strip() or None
+        m.regional = str(d.get('regional') or '').strip() or None
+        m.criterio = criterio
+        m.criado_por = getattr(current_user, 'username', None)
+        db.session.commit()
+        return jsonify({"missao": m.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Não foi possível salvar: {e}"}), 503
+
+
+@app.route('/api/missoes/<int:missao_id>', methods=['DELETE'])
+@login_required
+def remover_missao(missao_id):
+    try:
+        m = db.session.get(Missao, missao_id)
+        if not m:
+            return jsonify({"error": "missão não encontrada"}), 404
+        db.session.delete(m)
+        db.session.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Não foi possível remover: {e}"}), 503
 
 
 @app.route('/api/historico-lojas', methods=['GET'])

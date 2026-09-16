@@ -1040,3 +1040,34 @@
     .modal-jogo .modal-head .t { font-size: 1.05em; }
     .modal-jogo .modal-head .modal-btn { padding: 7px 10px; font-size: .82em; }
 }
+
+/* ====== Missões da semana: sino ao lado da sigla ====== */
+.mis-sino {
+    background: none; border: none; cursor: pointer; padding: 0 4px; margin-left: 4px;
+    font-size: .9em; line-height: 1; opacity: .28; filter: grayscale(1);
+    transition: opacity .15s, filter .15s;
+}
+.mis-sino:hover { opacity: .75; filter: none; }
+.mis-sino.ativo { opacity: 1; filter: none; }
+
+.mis-pop {
+    position: absolute; z-index: 400; width: 300px;
+    background: var(--surface, #fff); color: var(--text, #1e293b);
+    border: 1px solid var(--border-strong, #d9dce6); border-radius: 12px;
+    box-shadow: 0 14px 34px rgba(16,24,40,.18); padding: 14px; font-size: .88em;
+}
+.mis-pop-tit { font-weight: 800; margin-bottom: 2px; }
+.mis-pop-jogo { color: var(--text-3, #94a3b8); margin-bottom: 10px; }
+.mis-pop-dono { margin-bottom: 8px; }
+.mis-pop-rot { display: block; font-weight: 700; margin: 8px 0 4px; }
+.mis-pop-opts { display: flex; flex-direction: column; gap: 4px; }
+.mis-pop-opts label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.mis-pop-opts small { color: var(--text-3, #94a3b8); }
+.mis-pop-acoes { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+.mis-bt {
+    border: 1px solid var(--border-strong, #d9dce6); background: var(--surface, #fff);
+    border-radius: 8px; padding: 6px 10px; font: inherit; font-weight: 600; cursor: pointer;
+}
+.mis-bt.salvar { background: #1e2a5a; border-color: #1e2a5a; color: #fff; }
+.mis-bt.remover { color: #dc2626; margin-right: auto; }
+.mis-pop-erro { color: #dc2626; margin-top: 8px; }

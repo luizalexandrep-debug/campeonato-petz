@@ -43,6 +43,14 @@ const CORTE_TOPO = 8;
 
 const REGIONAL_DESTAQUE = 'R2 - Luiz';
 
+// O que missoes.js precisa saber desta página.
+const missoesCtx = {
+    semana: () => st.semana,
+    jogos: () => st.summary?.games || [],
+    estrutura: () => st.estrutura || {},
+    redesenhar: () => render()
+};
+
 const pegar = (p) => fetch(`/api${p}`, { cache: 'no-store' }).then(r => {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
@@ -172,6 +180,7 @@ async function trocarBase(rodada) {
 
 async function carregarSummary() {
     st.summary = st.semana ? await pegar(`/games-summary/${st.semana}`) : null;
+    if (st.semana && typeof missoesCarregar === 'function') await missoesCarregar(st.semana);
     st.resumo = null;
 }
 
@@ -1664,7 +1673,8 @@ function tabela(linhas, posBase, ehSim, posOriginal) {
             <td>${pos}${difOrig}</td>
             ${posBase ? `<td>${mov}</td>` : ''}
             <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}"
-                onclick="event.stopPropagation(); abrirDetalhesJogo('${r.time}')">${r.time}</span></td>
+                onclick="event.stopPropagation(); abrirDetalhesJogo('${r.time}')">${r.time}</span>${
+                ehSim && st.semana && typeof sinoHTML === 'function' ? sinoHTML(r.time) : ''}</td>
             <td class="pts">${r.pts}</td>
             ${ganho}
             <td>${r.jogos}</td><td>${r.vit}</td><td>${r.emp}</td><td>${r.der}</td>

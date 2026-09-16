@@ -10,6 +10,36 @@ from pathlib import Path
 db = SQLAlchemy()
 login_manager = LoginManager()
 
+class Missao(db.Model):
+    """Jogo marcado como importante para a regional, atribuído a um distrital.
+
+    A missão é sempre da loja da regional em destaque que está no confronto
+    (`loja`); `criterio` diz o que conta como cumprida: 'vencer' ou
+    'nao_perder' (vitória ou empate).
+    """
+    __tablename__ = 'missoes'
+    __table_args__ = (db.UniqueConstraint('semana', 'loja', name='uq_missao_semana_loja'),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    semana = db.Column(db.Integer, index=True, nullable=False)
+    loja = db.Column(db.String(20), nullable=False)
+    adversario = db.Column(db.String(20))
+    distrito = db.Column(db.String(80))
+    regional = db.Column(db.String(80))
+    criterio = db.Column(db.String(12), default='vencer')
+    criado_por = db.Column(db.String(80))
+    criado_em = db.Column(db.DateTime, default=db.func.now())
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'semana': self.semana, 'loja': self.loja,
+            'adversario': self.adversario, 'distrito': self.distrito,
+            'regional': self.regional, 'criterio': self.criterio,
+            'criadoPor': self.criado_por,
+            'criadoEm': self.criado_em.isoformat() if self.criado_em else None,
+        }
+
+
 class Acesso(db.Model):
     """Uma sessão de acesso: quem entrou, de onde e quando foi visto por último.
 

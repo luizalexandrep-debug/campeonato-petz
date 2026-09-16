@@ -1,0 +1,125 @@
+// ============================================================
+// Página Missões da Semana
+//
+// Os jogos marcados com o sino, separados por distrital, com o placar projetado
+// e se a missão está sendo cumprida. Todos os usuários veem todas as missões.
+// ============================================================
+
+const pg = { semana: null, estrutura: {}, jogos: [], semDados: false };
+
+// missoes.js usa isto para remover e recarregar a partir desta página.
+const missoesCtx = {
+    semana: () => pg.semana,
+    jogos: () => pg.jogos,
+    estrutura: () => pg.estrutura,
+    redesenhar: () => desenhar()
+};
+
+async function iniciar() {
+    const sem = await misApi('/semana');
+    pg.semana = sem.semana;
+    const sel = document.getElementById('fRodada');
+    sel.innerHTML = (sem.disponiveis || [sem.semana]).slice().reverse()
+        .map(n => `<option value="${n}" ${n === sem.semana ? 'selected' : ''}>Rodada ${n}${
+            n === sem.semana ? ' (atual)' : ''}</option>`).join('');
+    sel.onchange = () => { pg.semana = parseInt(sel.value, 10); carregar(); };
+    const est = await misApi('/estrutura');
+    pg.estrutura = est.estrutura || est;
+    await carregar();
+}
+
+async function carregar() {
+    document.getElementById('lista').innerHTML =
+        '<div class="info-bar"><span>Carregando as missões...</span></div>';
+    const [resumo] = await Promise.all([
+        misApi(`/games-summary/${pg.semana}`).catch(() => ({ games: [] })),
+        missoesCarregar(pg.semana)
+    ]);
+    pg.jogos = resumo.games || [];
+    pg.semDados = !!resumo.semDadosAtual;
+    desenhar();
+}
+
+/* Situação de uma missão pelo placar projetado da loja dona dela. */
+function situacao(m) {
+    const g = pg.jogos.find(j => j.team1 === m.loja || j.team2 === m.loja);
+    if (!g) return { estado: 'sem', placar: '—', rotulo: 'Sem jogo nesta rodada' };
+    const [a, b] = String(g.scoreProjected || '0 x 0').split('x').map(v => parseInt(v.trim(), 10) || 0);
+    const [gm, gs] = g.team1 === m.loja ? [a, b] : [b, a];
+    if (pg.semDados) return { estado: 'sem', placar: '– × –', rotulo: 'Aguardando vendas da semana', gm, gs };
+    const ok = m.criterio === 'nao_perder' ? gm >= gs : gm > gs;
+    const res = gm > gs ? 'vencendo' : gm === gs ? 'empatando' : 'perdendo';
+    return { estado: ok ? 'ok' : 'nao', placar: `${gm} × ${gs}`, res, gm, gs,
+             rotulo: ok ? 'Cumprindo a missão' : 'Não está cumprindo' };
+}
+
+function desenhar() {
+    const lista = Object.values(missoes.porLoja);
+    document.getElementById('subtitulo').textContent =
+        `Rodada ${pg.semana} · jogos marcados com 🔔 na classificação por grupos`;
+
+    if (!lista.length) {
+        document.getElementById('placarGeral').innerHTML = '';
+        document.getElementById('lista').innerHTML = `<div class="info-bar"><span>
+            Nenhuma missão na rodada ${pg.semana}. Marque jogos importantes clicando no 🔔
+            ao lado da sigla, na tabela simulada da <a href="/grupos.html">classificação por grupos</a>.
+            </span></div>`;
+        return;
+    }
+
+    const comSit = lista.map(m => ({ m, s: situacao(m) }));
+    const n = (e) => comSit.filter(x => x.s.estado === e).length;
+    document.getElementById('placarGeral').innerHTML = `
+        <div class="mis-resumo">
+            <div class="mis-card ok"><span>${n('ok')}</span>cumprindo</div>
+            <div class="mis-card nao"><span>${n('nao')}</span>não cumprindo</div>
+            ${n('sem') ? `<div class="mis-card sem"><span>${n('sem')}</span>aguardando</div>` : ''}
+            <div class="mis-card total"><span>${lista.length}</span>missões</div>
+        </div>`;
+
+    // Agrupa por distrital; dentro, as que não estão cumprindo primeiro.
+    const porDist = {};
+    comSit.forEach(x => (porDist[x.m.distrito || 'Sem distrito'] ||= []).push(x));
+    const ordem = { nao: 0, sem: 1, ok: 2 };
+    const blocos = Object.entries(porDist)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([dist, itens]) => {
+            itens.sort((x, y) => ordem[x.s.estado] - ordem[y.s.estado] || x.m.loja.localeCompare(y.m.loja));
+            const ok = itens.filter(x => x.s.estado === 'ok').length;
+            return `<section class="mis-dist">
+                <div class="mis-dist-head">
+                    <b>${dist}</b>
+                    <span class="mis-dist-cont">${ok} de ${itens.length} cumprindo</span>
+                </div>
+                ${itens.map(({ m, s }) => `
+                <div class="mis-item ${s.estado}">
+                    <div class="mis-jogo">
+                        <span class="mis-loja">${m.loja}</span>
+                        <span class="mis-placar">${s.placar}</span>
+                        <span class="mis-adv">${m.adversario || ''}</span>
+                    </div>
+                    <div class="mis-meta">Meta: <b>${m.criterio === 'nao_perder' ? 'não perder' : 'vencer'}</b>
+                        ${m.criadoPor ? `<small>· marcada por ${m.criadoPor}</small>` : ''}</div>
+                    <div class="mis-status">${s.estado === 'ok' ? '✅' : s.estado === 'nao' ? '❌' : '⏳'}
+                        ${s.rotulo}${s.res && s.estado !== 'sem' ? ` <small>(${s.res})</small>` : ''}</div>
+                    <button class="mis-remover" title="Remover missão"
+                        onclick="removerMissao(${m.id})">✕</button>
+                </div>`).join('')}
+            </section>`;
+        }).join('');
+    document.getElementById('lista').innerHTML = `<div class="mis-grid">${blocos}</div>`;
+}
+
+async function removerMissao(id) {
+    if (!confirm('Remover esta missão?')) return;
+    try {
+        await misApi(`/missoes/${id}`, { method: 'DELETE' });
+        await missoesCarregar(pg.semana);
+        desenhar();
+    } catch (e) { alert(e.message); }
+}
+
+iniciar().catch(e => {
+    document.getElementById('lista').innerHTML =
+        `<div class="info-bar"><span>❌ Não foi possível carregar (${e.message}).</span></div>`;
+});
