@@ -8,40 +8,41 @@
 const pg = { semana: null, estrutura: {}, jogos: [], semDados: false };
 
 // missoes.js usa isto para remover e recarregar a partir desta página.
-const missoesCtx = {
+window.missoesCtx = {
     semana: () => pg.semana,
     jogos: () => pg.jogos,
     estrutura: () => pg.estrutura,
-    redesenhar: () => desenhar()
+    redesenhar: () => misDesenhar()
 };
 
-async function iniciar() {
+async function misIniciar() {
     const sem = await misApi('/semana');
     pg.semana = sem.semana;
     const sel = document.getElementById('fRodada');
     sel.innerHTML = (sem.disponiveis || [sem.semana]).slice().reverse()
         .map(n => `<option value="${n}" ${n === sem.semana ? 'selected' : ''}>Rodada ${n}${
             n === sem.semana ? ' (atual)' : ''}</option>`).join('');
-    sel.onchange = () => { pg.semana = parseInt(sel.value, 10); carregar(); };
+    sel.onchange = () => { pg.semana = parseInt(sel.value, 10); misCarregar(); };
     const est = await misApi('/estrutura');
     pg.estrutura = est.estrutura || est;
-    await carregar();
+    await misCarregar();
 }
 
-async function carregar() {
+async function misCarregar() {
     document.getElementById('lista').innerHTML =
         '<div class="info-bar"><span>Carregando as missões...</span></div>';
     const [resumo] = await Promise.all([
         misApi(`/games-summary/${pg.semana}`).catch(() => ({ games: [] })),
         missoesCarregar(pg.semana)
     ]);
+    pg.resumo = resumo;
     pg.jogos = resumo.games || [];
     pg.semDados = !!resumo.semDadosAtual;
-    desenhar();
+    misDesenhar();
 }
 
 /* Situação de uma missão pelo placar projetado da loja dona dela. */
-function situacao(m) {
+function misSituacao(m) {
     const g = pg.jogos.find(j => j.team1 === m.loja || j.team2 === m.loja);
     if (!g) return { estado: 'sem', placar: '—', rotulo: 'Sem jogo nesta rodada' };
     const [a, b] = String(g.scoreProjected || '0 x 0').split('x').map(v => parseInt(v.trim(), 10) || 0);
@@ -53,7 +54,7 @@ function situacao(m) {
              rotulo: ok ? 'Cumprindo a missão' : 'Não está cumprindo' };
 }
 
-function desenhar() {
+function misDesenhar() {
     const lista = Object.values(missoes.porLoja);
     document.getElementById('subtitulo').textContent =
         `Rodada ${pg.semana} · jogos marcados com 🔔 na classificação por grupos`;
@@ -67,7 +68,7 @@ function desenhar() {
         return;
     }
 
-    const comSit = lista.map(m => ({ m, s: situacao(m) }));
+    const comSit = lista.map(m => ({ m, s: misSituacao(m) }));
     const n = (e) => comSit.filter(x => x.s.estado === e).length;
     document.getElementById('placarGeral').innerHTML = `
         <div class="mis-resumo">
@@ -94,8 +95,8 @@ function desenhar() {
                 ${itens.map(({ m, s }) => `
                 <div class="mis-item ${s.estado}" role="button" tabindex="0"
                      title="Ver os gols deste jogo"
-                     onclick="verGols('${m.loja}','${m.adversario || ''}')"
-                     onkeydown="if(event.key==='Enter')verGols('${m.loja}','${m.adversario || ''}')">
+                     onclick="misVerGols('${m.loja}','${m.adversario || ''}')"
+                     onkeydown="if(event.key==='Enter')misVerGols('${m.loja}','${m.adversario || ''}')">
                     <div class="mis-jogo">
                         <span class="mis-loja">${m.loja}</span>
                         <span class="mis-placar">${s.placar}</span>
@@ -106,30 +107,36 @@ function desenhar() {
                     <div class="mis-status">${s.estado === 'ok' ? '✅' : s.estado === 'nao' ? '❌' : '⏳'}
                         ${s.rotulo}${s.res && s.estado !== 'sem' ? ` <small>(${s.res})</small>` : ''}</div>
                     <button class="mis-remover" title="Remover missão"
-                        onclick="event.stopPropagation(); removerMissao(${m.id})">✕</button>
+                        onclick="event.stopPropagation(); misRemover(${m.id})">✕</button>
                 </div>`).join('')}
             </section>`;
         }).join('');
     document.getElementById('lista').innerHTML = `<div class="mis-grid">${blocos}</div>`;
 }
 
-/* Detalhe dos gols: abre a janela do dashboard numa aba nova, na rodada que
-   está em tela — assim a lista de missões continua onde estava. */
-function verGols(loja, adv) {
+/* Detalhe dos gols na própria página, com a mesma janela da classificação por
+   grupos (grupos.js carregado em modo embutido). Ela lê tudo de `st`, então
+   preenchemos com a rodada que está em tela. */
+function misVerGols(loja, adv) {
     if (!adv) return;
-    window.open(`/?jogo=${encodeURIComponent(loja)},${encodeURIComponent(adv)}&rodada=${pg.semana}`, '_blank');
+    st.semana = pg.semana;
+    st.summary = pg.resumo;
+    st.estrutura = pg.estrutura;
+    st._distDaLoja = null;
+    st.projAtual = projecaoDaRodada().proj;
+    abrirDetalhesJogo(loja);
 }
 
-async function removerMissao(id) {
+async function misRemover(id) {
     if (!confirm('Remover esta missão?')) return;
     try {
         await misApi(`/missoes/${id}`, { method: 'DELETE' });
         await missoesCarregar(pg.semana);
-        desenhar();
+        misDesenhar();
     } catch (e) { alert(e.message); }
 }
 
-iniciar().catch(e => {
+misIniciar().catch(e => {
     document.getElementById('lista').innerHTML =
-        `<div class="info-bar"><span>❌ Não foi possível carregar (${e.message}).</span></div>`;
+        `<div class="info-bar"><span>❌ Não foi possível misCarregar (${e.message}).</span></div>`;
 });

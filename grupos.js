@@ -44,7 +44,8 @@ const CORTE_TOPO = 8;
 const REGIONAL_DESTAQUE = 'R2 - Luiz';
 
 // O que missoes.js precisa saber desta página.
-const missoesCtx = {
+// Em outra página (Missões da Semana) quem define o contexto é ela.
+window.missoesCtx = window.missoesCtx || {
     semana: () => st.semana,
     jogos: () => st.summary?.games || [],
     estrutura: () => st.estrutura || {},
@@ -1722,8 +1723,12 @@ function setupTooltipSigla() {
 
 setupTooltipSigla();
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', iniciar);
-} else {
-    iniciar();
+// GRUPOS_EMBUTIDO: outra página carrega este arquivo só para reaproveitar a
+// janela de detalhe dos gols, sem montar a tela de grupos.
+if (!window.GRUPOS_EMBUTIDO) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', iniciar);
+    } else {
+        iniciar();
+    }
 }
