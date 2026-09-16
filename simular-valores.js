@@ -9,6 +9,7 @@
 const sim = {
     ativo: false,
     valores: {},          // "LOJA|indicador|dia" -> valor digitado
+    totais: {},           // "LOJA|indicador" -> total da semana digitado (vale sobre os dias)
     jogo: null            // dados do confronto aberto, para recalcular o placar
 };
 
@@ -39,8 +40,12 @@ function simTemEdicao(loja, ind) {
     return Object.keys(sim.valores).some(k => k.startsWith(pref));
 }
 
+const simChaveTotal = (loja, ind) => `${loja}|${ind}`;
+const simNumEdicoes = () => Object.keys(sim.valores).length + Object.keys(sim.totais).length;
+
 function simLimpar() {
     sim.valores = {};
+    sim.totais = {};
     if (sim.redesenhar) sim.redesenhar();
 }
 
@@ -51,6 +56,11 @@ function simLimpar() {
 function simTotal(loja, ind, bloco, ehPct, slot, original) {
     const DIAS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
     const dias = bloco?.dias;
+    // Total da semana digitado direto: vale no lugar da conta dos dias.
+    if (slot === 'atual' && !original) {
+        const kt = simChaveTotal(loja, ind);
+        if (kt in sim.totais) return sim.totais[kt];
+    }
     if (!ehPct) {
         return DIAS.reduce((t, d) => t + simValor(loja, ind, d, dias, slot, original), 0);
     }
@@ -97,8 +107,10 @@ function simPlacar() {
 
 /* Como o valor aparece dentro do campo enquanto se edita: sem separador de
    milhar, para o texto digitado ser exatamente o que a conta usa. */
-function simFormatarEdicao(v) {
-    const n = Number(v) || 0;
+function simFormatarEdicao(v, ehPct) {
+    // Percentual é guardado como fração (0,0055 = 0,55%); no campo aparece e é
+    // digitado em pontos percentuais, como na tabela.
+    const n = (Number(v) || 0) * (ehPct ? 100 : 1);
     return Number.isInteger(n) ? String(n) : String(Number(n.toFixed(2)));
 }
 
@@ -111,18 +123,36 @@ function simLerNumero(txt) {
 }
 
 /* Campo editável de um dia, com o ↺ ao lado quando o valor foi mexido. */
-function simCampo(loja, ind, dia, valor, fmt) {
+function simCampo(loja, ind, dia, valor, fmt, ehPct) {
     if (!sim.ativo) return fmt(valor);
     const editado = simChave(loja, ind, dia) in sim.valores;
+    const pct = ehPct ? ' data-pct="1"' : '';
     // 'text' e não 'number': em campo numérico o navegador não deixa ler nem
     // devolver a posição do cursor, e como a tabela é redesenhada a cada tecla
     // o cursor voltava para o começo — o dígito seguinte entrava na esquerda.
     return `<span class="sim-cel">
         <input class="sim-campo${editado ? ' editado' : ''}" type="text" inputmode="decimal"
-               value="${simFormatarEdicao(valor)}" data-loja="${loja}" data-ind="${ind}" data-dia="${dia}"
-               aria-label="${loja} · ${dia}">
+               value="${simFormatarEdicao(valor, ehPct)}" data-loja="${loja}" data-ind="${ind}" data-dia="${dia}"${pct}
+               aria-label="${loja} · ${dia}">${ehPct ? '<span class="sim-un">%</span>' : ''}
         ${editado ? `<button class="sim-desfazer" data-desfazer="${loja}|${ind}|${dia}"
             title="Voltar ao valor original">↺</button>` : ''}
+    </span>`;
+}
+
+/* Campo do TOTAL da semana. Digitar aqui define a semana inteira de uma vez —
+   útil para testar uma meta ("e se fechar em R$ 50 mil?") e ver na hora
+   quanto o adversário precisaria para passar. */
+function simCampoTotal(loja, ind, valor, fmt, ehPct) {
+    if (!sim.ativo) return fmt(valor);
+    const editado = simChaveTotal(loja, ind) in sim.totais;
+    return `<span class="sim-cel">
+        <input class="sim-campo sim-total${editado ? ' editado' : ''}" type="text" inputmode="decimal"
+               value="${simFormatarEdicao(valor, ehPct)}" data-loja="${loja}" data-ind="${ind}"
+               data-total="1"${ehPct ? ' data-pct="1"' : ''}
+               title="Total da semana: vale no lugar da soma dos dias"
+               aria-label="${loja} · total da semana">${ehPct ? '<span class="sim-un">%</span>' : ''}
+        ${editado ? `<button class="sim-desfazer" data-desfazer-total="${loja}|${ind}"
+            title="Voltar a calcular pelos dias">↺</button>` : ''}
     </span>`;
 }
 
@@ -130,11 +160,13 @@ function simCampo(loja, ind, dia, valor, fmt) {
    quando a rodada já está encerrada e o placar da tela é o oficial. */
 function simBarra(placarOficial) {
     if (!sim.ativo) return '';
-    const n = Object.keys(sim.valores).length;
+    const n = simNumEdicoes();
     return `<div class="sim-barra">
         <b>🧪 Simulação de valores.</b> Edite a venda de qualquer dia, dos dois lados,
         e o placar lá em cima se refaz sozinho.
         ${n ? `<button class="sim-limpar" onclick="simLimpar()">↺ Voltar aos valores reais (${n})</button>` : ''}
+        <div class="sim-nota">Dá para editar cada dia ou o <b>TOTAL</b> da semana direto. O total
+            digitado vale no lugar da soma dos dias; editar um dia volta a calcular pelos dias.</div>
         ${placarOficial ? `<div class="sim-nota">Atenção: o placar oficial desta rodada é
             <b>${placarOficial}</b>. A simulação trabalha sobre o cálculo das planilhas de
             venda, que pode dar outro resultado — serve para entender o efeito dos números,
@@ -150,6 +182,7 @@ function simBarra(placarOficial) {
 function simInstalar(ctx) {
     sim.ativo = false;
     sim.valores = {};
+    sim.totais = {};
     sim.jogo = ctx.jogo;
     sim.redesenhar = ctx.desenhar;
 
@@ -175,27 +208,41 @@ function simInstalar(ctx) {
         sim.ativo = !sim.ativo;
         bt.textContent = sim.ativo ? '✕ Fechar simulação' : '🧪 Simular valores';
         bt.classList.toggle('ativo', sim.ativo);
-        if (!sim.ativo) sim.valores = {};
+        if (!sim.ativo) { sim.valores = {}; sim.totais = {}; }
         ctx.desenhar();
         if (!sim.ativo) restaurar();
     };
 
     const aplicar = (campo) => {
-        const v = simLerNumero(campo.value);
-        if (v === null) return;            // campo vazio no meio da digitação
+        const lido = simLerNumero(campo.value);
+        if (lido === null) return;         // campo vazio no meio da digitação
         const { loja, ind, dia } = campo.dataset;
+        const v = campo.dataset.pct ? lido / 100 : lido;
         const j = sim.jogo;
         const bloco = (loja === j.team1 ? j.dadosTeam1 : j.dadosTeam2)[ind];
-        const original = (bloco?.atual?.dias || {})[dia] || 0;
-        const k = simChave(loja, ind, dia);
-        if (v === original) delete sim.valores[k]; else sim.valores[k] = v;
+        const ehPct = !!campo.dataset.pct;
+        const kt = simChaveTotal(loja, ind);
+        const perto = (x, y) => Math.abs(x - y) < (ehPct ? 5e-7 : 0.005);
+        if (campo.dataset.total) {
+            // Total original = conta dos dias como estão, sem o total digitado.
+            const semTotal = { ...sim.totais }; delete sim.totais[kt];
+            const original = simTotal(loja, ind, bloco?.atual, ehPct, 'atual');
+            sim.totais = semTotal;
+            if (perto(v, original)) delete sim.totais[kt]; else sim.totais[kt] = v;
+        } else {
+            const original = (bloco?.atual?.dias || {})[dia] || 0;
+            const k = simChave(loja, ind, dia);
+            if (perto(v, original)) delete sim.valores[k]; else sim.valores[k] = v;
+            delete sim.totais[kt];         // mexeu num dia: volta a valer a conta dos dias
+        }
         // Guarda o texto e o cursor como estão, para devolver depois do
         // redesenho — quem digita não pode perder o lugar.
         const texto = campo.value;
         const pos = campo.selectionStart;
         ctx.desenhar();
-        const novo = ctx.corpo.querySelector(
-            `.sim-campo[data-loja="${loja}"][data-ind="${ind}"][data-dia="${dia}"]`);
+        const novo = ctx.corpo.querySelector(campo.dataset.total
+            ? `.sim-campo[data-loja="${loja}"][data-ind="${ind}"][data-total]`
+            : `.sim-campo[data-loja="${loja}"][data-ind="${ind}"][data-dia="${dia}"]`);
         if (novo) {
             novo.value = texto;            // preserva '1200,' e afins no meio da digitação
             novo.focus();
@@ -210,7 +257,8 @@ function simInstalar(ctx) {
     ctx.corpo.addEventListener('click', (e) => {
         const d = e.target.closest('.sim-desfazer');
         if (!d) return;
-        delete sim.valores[d.dataset.desfazer];
+        if (d.dataset.desfazerTotal) delete sim.totais[d.dataset.desfazerTotal];
+        else delete sim.valores[d.dataset.desfazer];
         ctx.desenhar();
     });
 }

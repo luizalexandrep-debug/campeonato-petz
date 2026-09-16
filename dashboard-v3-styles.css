@@ -2386,3 +2386,7 @@ body {
     .modal-jogo .modal-head .t { font-size: 1.05em; }
     .modal-jogo .modal-head .modal-btn { padding: 7px 10px; font-size: .82em; }
 }
+
+/* Unidade ao lado do campo percentual e destaque do campo de total */
+.sim-un { color: var(--text-3, #94a3b8); font-size: .9em; margin-left: 2px; }
+.sim-campo.sim-total { font-weight: 800; border-color: #2b5aa8; }

@@ -2738,7 +2738,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
             ? `${evolucao > 0 ? '+' : ''}${fmt(evolucao)}`
             : `${evolucao.toFixed(2)}%`);
 
-        const celulaAtual = simCampo(teamName, indicador, dia, valorAtual, fmt);
+        const celulaAtual = simCampo(teamName, indicador, dia, valorAtual, fmt, ehPct);
         html += `
             <tr>
                 <td class="day-label">${dia}</td>
@@ -2792,7 +2792,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
                 <tr class="total-row">
                     <td class="day-label">${ehPct && !usaTotalPlanilha ? 'MÉDIA' : 'TOTAL'}</td>
                     <td style="text-align: center;">${dadosAdversario || !ehNivel ? fmt(totalAnterior) : '—'}</td>
-                    <td style="text-align: center;">${fmt(totalAtual)}</td>
+                    <td style="text-align: center;">${simCampoTotal(teamName, indicador, totalAtual, fmt, ehPct)}</td>
                     <td class="evolution ${classeEvolucao}" style="text-align: center;">${
                         ehNivel ? (dadosAdversario ? `${evolucaoTotal > 0 ? '+' : ''}${fmt(evolucaoTotal)}` : '—')
                                 : `${evolucaoTotal.toFixed(2)}%`}</td>

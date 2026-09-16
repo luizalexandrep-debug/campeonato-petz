@@ -1028,7 +1028,7 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) 
         const cls = ev > 0 ? 'positive' : ev < 0 ? 'negative' : 'neutral';
         return `<tr><td class="day-label">${dia}</td>
             <td class="value-anterior">${f(a)}</td>
-            <td class="value-atual">${simCampo(loja, indicador, dia, b, f)}</td>
+            <td class="value-atual">${simCampo(loja, indicador, dia, b, f, ehPct)}</td>
             <td class="evolution ${semLanc ? 'neutral' : cls}">${semLanc ? '—' : ev.toFixed(2) + '%'}</td></tr>`;
     }).join('');
 
@@ -1063,7 +1063,7 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) 
                 <tr class="total-row">
                     <td class="day-label">${ehPct && !usaTotal ? 'MÉDIA' : 'TOTAL'}</td>
                     <td style="text-align:center">${f(tA)}</td>
-                    <td style="text-align:center">${f(tB)}</td>
+                    <td style="text-align:center">${simCampoTotal(loja, indicador, tB, f, ehPct)}</td>
                     <td class="evolution ${classe}" style="text-align:center">${evo.toFixed(2)}%</td>
                 </tr>
                 ${falta !== null ? `<tr><td colspan="3" style="background:#fff3cd;color:#6b4d00;font-size:.85em">Falta p/ virar</td>
