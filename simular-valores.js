@@ -245,10 +245,29 @@ function simInstalar(ctx) {
             : `.sim-campo[data-loja="${loja}"][data-ind="${ind}"][data-dia="${dia}"]`);
         if (novo) {
             novo.value = texto;            // preserva '1200,' e afins no meio da digitação
+            sim.refocando = true;          // devolver o foco não é 'entrar' no campo
             novo.focus();
+            sim.refocando = false;
             try { novo.setSelectionRange(pos, pos); } catch (_) {}
         }
     };
+
+    // Entrar num campo (clique ou Tab) seleciona o número inteiro: o que for
+    // digitado substitui, em vez de somar ao que estava ('0' + '60000' virava
+    // '060000'). O foco devolvido depois de cada tecla não seleciona nada.
+    let acabouDeEntrar = null;
+    ctx.corpo.addEventListener('focusin', (e) => {
+        const c = e.target.closest('.sim-campo');
+        if (!c || sim.refocando) return;
+        c.select();
+        acabouDeEntrar = c;
+    });
+    // O clique do mouse soltaria o cursor no meio do texto e desfaria a seleção.
+    ctx.corpo.addEventListener('mouseup', (e) => {
+        const c = e.target.closest('.sim-campo');
+        if (c && c === acabouDeEntrar) { e.preventDefault(); c.select(); }
+        acabouDeEntrar = null;
+    });
 
     ctx.corpo.addEventListener('input', (e) => {
         const c = e.target.closest('.sim-campo');
