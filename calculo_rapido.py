@@ -52,6 +52,21 @@ def lojas_eliminadas():
 
 GOLS_POR_JOGO = 6
 
+# Lojas que trocaram de sigla no meio do campeonato. A classificação oficial e
+# o calendário antigos continuam com a sigla velha, enquanto confrontos e
+# planilhas de venda já vêm com a nova — sem traduzir, a mesma loja aparece
+# como duas: uma com histórico e sem jogo, outra com jogo e sem histórico.
+SIGLAS_RENOMEADAS = {
+    'ZBND-MG': 'PBND-MG',   # rodada 12
+    'ZVJD-SP': 'PVJD-SP',   # rodada 12
+}
+
+
+def sigla_atual(sigla):
+    """Sigla vigente de uma loja, traduzindo as que foram renomeadas."""
+    s = str(sigla or '').strip()
+    return SIGLAS_RENOMEADAS.get(s.upper(), s)
+
 
 def criterio_do_nome(nome):
     """'nivel' se o nome do arquivo traz um dos marcadores; senão 'evolucao'."""
@@ -347,6 +362,14 @@ def _ler_longo(linhas, head):
 
 
 def _carregar_arquivo(file_path):
+    """Planilha de um indicador, com as siglas já na forma vigente."""
+    dados = _carregar_arquivo_bruto(file_path)
+    if not any(str(k).upper() in SIGLAS_RENOMEADAS for k in dados):
+        return dados
+    return {sigla_atual(k): v for k, v in dados.items()}
+
+
+def _carregar_arquivo_bruto(file_path):
     """Carrega TODAS as lojas de um arquivo de uma vez: {loja: {dia: valor}}.
     Tolera layouts diferentes (cabeçalho fora da 1ª linha, datas reais,
     dias em ordem invertida, coluna Total).
@@ -801,8 +824,8 @@ def ler_confrontos(confrontos_path):
     for row_idx, row in enumerate(ws.iter_rows(values_only=True)):
         if row_idx <= 1:
             continue
-        team1 = row[2]
-        team2 = row[4]
+        team1 = sigla_atual(row[2]) if row[2] else row[2]
+        team2 = sigla_atual(row[4]) if row[4] else row[4]
         if team1 and team2:
             confrontos.append({"team1": team1, "team2": team2})
     wb.close()

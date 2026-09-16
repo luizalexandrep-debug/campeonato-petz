@@ -142,6 +142,9 @@ function classificar(nome, simulado) {
     const rod = daRodada(simulado);
     return ordenar(GRUPOS[nome].tabela.map(r => {
         const p = rod[r.time];
+        // Loja sem jogo nesta rodada (ou com a sigla fora do confronto): entra
+        // como está. Uma linha sem par não pode derrubar a tela inteira.
+        if (!p) return { ...r, sg: r.gm - r.gs, semJogo: true, placar: '—', adv: '' };
         const gm = r.gm + p.gm, gs = r.gs + p.gs;
         return {
             ...r, gm, gs, sg: gm - gs, j: r.j + 1,

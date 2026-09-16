@@ -1285,8 +1285,10 @@ def classificacao_lojas(rodada=None):
                 return int(v)
             except (TypeError, ValueError):
                 return 0
+        import calculo_rapido as cr
         grupos.setdefault(str(row[0]).strip(), []).append({
-            "rank": _i(row[1]), "time": str(row[2]).strip(),
+            # Sigla vigente: a classificação antiga ainda traz as renomeadas.
+            "rank": _i(row[1]), "time": cr.sigla_atual(row[2]),
             "pts": _i(row[3]), "jogos": _i(row[4]),
             "vit": _i(row[5]), "emp": _i(row[6]), "der": _i(row[7]),
             "gm": _i(row[8]), "gs": _i(row[9]), "sg": _i(row[10]),
@@ -1633,6 +1635,7 @@ def historico_lojas():
 
     Retorna {sigla: [{rodada, adv, gm, gs, res}]}, ordenado por rodada.
     """
+    import calculo_rapido as cr
     hist = {}
 
     # --- fonte 2: calendário completo (rodadas já realizadas) ---
@@ -1646,6 +1649,7 @@ def historico_lojas():
                 rod, _id, man, _pl, vis, gm, gs, status = row[:8]
                 if str(status or '').strip().lower() != 'realizado':
                     continue
+                man, vis = cr.sigla_atual(man), cr.sigla_atual(vis)
                 for time, adv, a, b in ((man, vis, gm, gs), (vis, man, gs, gm)):
                     if not time:
                         continue
