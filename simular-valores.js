@@ -134,7 +134,7 @@ function simCampo(loja, ind, dia, valor, fmt, ehPct) {
         <input class="sim-campo${editado ? ' editado' : ''}" type="text" inputmode="decimal"
                value="${simFormatarEdicao(valor, ehPct)}" data-loja="${loja}" data-ind="${ind}" data-dia="${dia}"${pct}
                aria-label="${loja} · ${dia}">${ehPct ? '<span class="sim-un">%</span>' : ''}
-        ${editado ? `<button class="sim-desfazer" data-desfazer="${loja}|${ind}|${dia}"
+        ${editado ? `<button class="sim-desfazer" tabindex="-1" data-desfazer="${loja}|${ind}|${dia}"
             title="Voltar ao valor original">↺</button>` : ''}
     </span>`;
 }
@@ -151,7 +151,7 @@ function simCampoTotal(loja, ind, valor, fmt, ehPct) {
                data-total="1"${ehPct ? ' data-pct="1"' : ''}
                title="Total da semana: vale no lugar da soma dos dias"
                aria-label="${loja} · total da semana">${ehPct ? '<span class="sim-un">%</span>' : ''}
-        ${editado ? `<button class="sim-desfazer" data-desfazer-total="${loja}|${ind}"
+        ${editado ? `<button class="sim-desfazer" tabindex="-1" data-desfazer-total="${loja}|${ind}"
             title="Voltar a calcular pelos dias">↺</button>` : ''}
     </span>`;
 }
