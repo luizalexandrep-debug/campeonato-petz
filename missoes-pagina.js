@@ -92,7 +92,10 @@ function desenhar() {
                     <span class="mis-dist-cont">${ok} de ${itens.length} cumprindo</span>
                 </div>
                 ${itens.map(({ m, s }) => `
-                <div class="mis-item ${s.estado}">
+                <div class="mis-item ${s.estado}" role="button" tabindex="0"
+                     title="Ver os gols deste jogo"
+                     onclick="verGols('${m.loja}','${m.adversario || ''}')"
+                     onkeydown="if(event.key==='Enter')verGols('${m.loja}','${m.adversario || ''}')">
                     <div class="mis-jogo">
                         <span class="mis-loja">${m.loja}</span>
                         <span class="mis-placar">${s.placar}</span>
@@ -103,11 +106,18 @@ function desenhar() {
                     <div class="mis-status">${s.estado === 'ok' ? '✅' : s.estado === 'nao' ? '❌' : '⏳'}
                         ${s.rotulo}${s.res && s.estado !== 'sem' ? ` <small>(${s.res})</small>` : ''}</div>
                     <button class="mis-remover" title="Remover missão"
-                        onclick="removerMissao(${m.id})">✕</button>
+                        onclick="event.stopPropagation(); removerMissao(${m.id})">✕</button>
                 </div>`).join('')}
             </section>`;
         }).join('');
     document.getElementById('lista').innerHTML = `<div class="mis-grid">${blocos}</div>`;
+}
+
+/* Detalhe dos gols: abre a janela do dashboard numa aba nova, na rodada que
+   está em tela — assim a lista de missões continua onde estava. */
+function verGols(loja, adv) {
+    if (!adv) return;
+    window.open(`/?jogo=${encodeURIComponent(loja)},${encodeURIComponent(adv)}&rodada=${pg.semana}`, '_blank');
 }
 
 async function removerMissao(id) {

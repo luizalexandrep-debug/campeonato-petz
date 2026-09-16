@@ -845,6 +845,13 @@ async function loadSemana() {
             // Só define a semana na primeira carga; se o usuário já escolheu
             // uma rodada, respeitamos a escolha dele.
             if (!state.semanaEscolhida) state.semana = d.semana;
+            // Link vindo de outra tela com a rodada certa (ex.: Missões da
+            // Semana revendo uma rodada passada): ?jogo=A,B&rodada=N.
+            const pedida = parseInt(new URLSearchParams(location.search).get('rodada'), 10);
+            if (!state.semanaEscolhida && state.semanasDisponiveis.includes(pedida)) {
+                state.semana = pedida;
+                state.semanaEscolhida = true;
+            }
             preencherSeletorSemana();
             atualizarTituloSemana();
             console.log(`📅 Semana vigente: ${d.semana} (disponíveis: ${d.disponiveis})`);
