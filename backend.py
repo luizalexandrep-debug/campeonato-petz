@@ -2789,9 +2789,17 @@ def login():
         # emergência, que não depende do Postgres.
         db.session.rollback()
         print(f"⚠️ login: banco indisponível ({e})")
+        # Só oferece a emergência quando ela existe de fato: sem
+        # USUARIOS_EMERGENCIA/MASTER_SENHA_HASH configurados, mandar usá-la
+        # manda a pessoa para uma porta que não abre.
+        from auth import _contas_emergencia
+        tem_emergencia = bool(_contas_emergencia())
         return jsonify({
             "error": "O banco de dados está indisponível no momento. "
-                     "Use o acesso de emergência ou tente mais tarde."
+                     + ("Use o acesso de emergência ou tente mais tarde."
+                        if tem_emergencia else
+                        "Não há acesso de emergência configurado — "
+                        "avise o administrador (verificar o Postgres na Vercel).")
         }), 503
 
     if user is None or not user.check_password(password):
