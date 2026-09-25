@@ -2414,3 +2414,20 @@ body {
 .ps-tab small { color: #b45309; }
 .ps-nota { margin-top: 8px; color: var(--text-3, #94a3b8); font-size: .85em; }
 .placar .ps-bt { margin-top: 2px; }
+
+/* ====== Histórico por rodada ====== */
+.hr-janela { width: min(1000px, 100%); }
+.hr-nav { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.hr-seta {
+    background: var(--navy, #1e2a5a); color: #fff; border: none; border-radius: 8px;
+    width: 40px; height: 36px; font-size: 1.1em; cursor: pointer;
+}
+.hr-seta:disabled { opacity: .3; cursor: default; }
+.hr-rodada { display: flex; flex-direction: column; min-width: 150px; }
+.hr-rodada small { color: var(--text-3, #94a3b8); font-size: .8em; }
+.hr-select { margin-left: auto; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border-strong, #d9dce6); }
+.hr-tab tr.hr-minha td { background: var(--brand-tint, #eaf1fa); font-weight: 700; }
+.hr-tab tr.hr-reg td { background: var(--surface-2, #f7f9fd); border-top: 2px solid var(--border-strong, #d9dce6); font-weight: 700; }
+.hr-tab td.reg, .hr-tab .reg { color: var(--text-3, #94a3b8); font-weight: 400; }
+.hr-tab tr.hr-minha td.reg { color: var(--text-2, #475569); }
+.hr-nota { margin-top: 10px; color: var(--text-3, #94a3b8); font-size: .85em; }
