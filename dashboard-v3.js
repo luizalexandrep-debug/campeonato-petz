@@ -1738,6 +1738,18 @@ function abrirJogosDistrito(regional, distrito) {
     document.body.appendChild(fundo);
 }
 
+/* Avisos dispensados: guardados por rodada e tipo, só neste navegador. */
+function avisoChave(tipo) { return `aviso-oculto:${state.semana}:${tipo}`; }
+
+function avisoOculto(tipo) {
+    try { return localStorage.getItem(avisoChave(tipo)) === '1'; } catch (e) { return false; }
+}
+
+function ocultarAviso(tipo) {
+    try { localStorage.setItem(avisoChave(tipo), '1'); } catch (e) { /* sem storage: some só agora */ }
+    document.querySelectorAll(`[data-aviso="${tipo}"]`).forEach(el => el.remove());
+}
+
 function loadRankingDashboard() {
     const container = document.getElementById('gamesContainer');
     const infoBar = document.getElementById('infoBar');
@@ -2140,36 +2152,32 @@ function loadRankingDashboard() {
     const avisosOficial = avisos.filter(a => a.tipo === 'oficial');
     const avisosOutros = avisos.filter(a =>
         !['rodada', 'criterio', 'eliminada', 'zerado', 'oficial'].includes(a.tipo));
-    const blocoRodada = avisosRodada.length ? `
-        <div class="alerta-info">
-            <div class="alerta-titulo">⏳ Rodada em preparação</div>
-            <ul>${avisosRodada.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
+    // Cada aviso pode ser dispensado no ✕. Fica guardado por rodada e por tipo,
+    // então o mesmo aviso não volta a cada carregamento, mas um aviso novo (ou
+    // a rodada seguinte) aparece de novo.
+    const bloco = (tipo, classe, titulo, itens, extra = '') =>
+        (itens.length && !avisoOculto(tipo)) ? `
+        <div class="${classe}" data-aviso="${tipo}">
+            <button class="alerta-x" title="Dispensar este aviso"
+                onclick="ocultarAviso('${tipo}')">✕</button>
+            ${titulo ? `<div class="alerta-titulo">${titulo}</div>` : ''}
+            <ul>${itens}</ul>
+            ${extra}
         </div>` : '';
-    const blocoZerado = avisosZerado.length ? `
-        <div class="alerta-dados">
-            <div class="alerta-titulo">⚠️ Atenção: indicador sem dados</div>
-            <ul>${avisosZerado.map(a => `<li><b>${a.indicador}</b> (${a.semana}) subiu zerado — esse gol não está sendo disputado, então os placares somam menos de 6.</li>`).join('')}</ul>
-            <div class="alerta-dica">Dica: na planilha, use <b>Colar Especial → Somente Valores</b> antes de subir, para as fórmulas não zerarem ao fechar a origem.</div>
-        </div>` : '';
-    const blocoCriterio = avisosCriterio.length ? `
-        <div class="alerta-criterio">
-            <div class="alerta-titulo">🎯 Regra especial nesta rodada</div>
-            <ul>${avisosCriterio.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
-        </div>` : '';
-    const blocoElim = avisosElim.length ? `
-        <div class="alerta-eliminada">
-            <div class="alerta-titulo">⛔ Loja eliminada do campeonato</div>
-            <ul>${avisosElim.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
-        </div>` : '';
-    const blocoOficial = avisosOficial.length ? `
-        <div class="alerta-info">
-            <div class="alerta-titulo">📋 Resultado oficial</div>
-            <ul>${avisosOficial.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
-        </div>` : '';
-    const blocoOutros = avisosOutros.length ? `
-        <div class="alerta-info">
-            <ul>${avisosOutros.map(a => `<li>${a.mensagem}</li>`).join('')}</ul>
-        </div>` : '';
+
+    const blocoRodada = bloco('rodada', 'alerta-info', '⏳ Rodada em preparação',
+        avisosRodada.map(a => `<li>${a.mensagem}</li>`).join(''));
+    const blocoZerado = bloco('zerado', 'alerta-dados', '⚠️ Atenção: indicador sem dados',
+        avisosZerado.map(a => `<li><b>${a.indicador}</b> (${a.semana}) subiu zerado — esse gol não está sendo disputado, então os placares somam menos de 6.</li>`).join(''),
+        '<div class="alerta-dica">Dica: na planilha, use <b>Colar Especial → Somente Valores</b> antes de subir, para as fórmulas não zerarem ao fechar a origem.</div>');
+    const blocoCriterio = bloco('criterio', 'alerta-criterio', '🎯 Regra especial nesta rodada',
+        avisosCriterio.map(a => `<li>${a.mensagem}</li>`).join(''));
+    const blocoElim = bloco('eliminada', 'alerta-eliminada', '⛔ Loja eliminada do campeonato',
+        avisosElim.map(a => `<li>${a.mensagem}</li>`).join(''));
+    const blocoOficial = bloco('oficial', 'alerta-info', '📋 Resultado oficial',
+        avisosOficial.map(a => `<li>${a.mensagem}</li>`).join(''));
+    const blocoOutros = bloco('outros', 'alerta-info', '',
+        avisosOutros.map(a => `<li>${a.mensagem}</li>`).join(''));
     const blocoAvisos = blocoRodada + blocoOficial + blocoCriterio + blocoElim
         + blocoZerado + blocoOutros;
 

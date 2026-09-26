@@ -2449,3 +2449,12 @@ body {
 .hr-ponto circle { fill: #fff; stroke: #2b5aa8; stroke-width: 3; }
 .hr-ponto:hover circle { fill: #2b5aa8; }
 .hr-rotulo { fill: var(--navy, #1e2a5a); font-size: 12px; font-weight: 700; }
+
+/* ✕ para dispensar um aviso da home */
+.alerta-info, .alerta-dados, .alerta-criterio, .alerta-eliminada { position: relative; }
+.alerta-x {
+    position: absolute; top: 8px; right: 10px; background: none; border: none;
+    color: var(--text-3, #94a3b8); font-size: .95em; line-height: 1; cursor: pointer; padding: 2px 4px;
+}
+.alerta-x:hover { color: var(--text, #1e293b); }
+.alerta-info ul, .alerta-dados ul, .alerta-criterio ul, .alerta-eliminada ul { padding-right: 26px; }
