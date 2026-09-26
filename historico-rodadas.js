@@ -129,7 +129,9 @@ function hrDesenhar() {
             </tr></thead>
             <tbody>
                 ${linhas.map((x, k) => `
-                <tr class="${x.reg === HR_REGIONAL ? 'hr-minha' : ''}">
+                <tr class="${x.reg === HR_REGIONAL ? 'hr-minha' : ''} hr-clicavel"
+                    title="Ver a posição de ${x.dist} rodada a rodada"
+                    onclick="hrAbrirDistrito('${x.dist.replace(/'/g, "\\'")}')">
                     <td class="c">${medalha(k)}</td>
                     <td class="l"><b>${x.dist}</b></td>
                     <td class="l reg">${x.reg}</td>
@@ -143,4 +145,100 @@ function hrDesenhar() {
         <div class="hr-nota">Resultado oficial de cada loja na rodada, agrupado por distrito —
             sem somar as rodadas anteriores. Use ← e → do teclado para navegar.</div>`;
     corpo.scrollTop = 0;
+}
+
+
+// ------------------------------------------------------------
+// Onda da colocação de um distrito, rodada a rodada
+// ------------------------------------------------------------
+
+/* [{rodada, pos, total, media, v, e, der}] do distrito em cada rodada. */
+function hrSerieDoDistrito(dist) {
+    return hrEstado.rodadas.map(rod => {
+        const linhas = hrDistritosDaRodada(rod);
+        const i = linhas.findIndex(x => x.dist === dist);
+        if (i < 0) return null;
+        const x = linhas[i];
+        return { rodada: rod, pos: i + 1, total: linhas.length, media: x.media,
+                 v: x.v, e: x.e, der: x.der };
+    }).filter(Boolean);
+}
+
+function hrAbrirDistrito(dist) {
+    const serie = hrSerieDoDistrito(dist);
+    const fundo = document.createElement('div');
+    fundo.className = 'modal-fundo hr-fundo-grafico';
+    const reg = (hrDistritosDaRodada(hrEstado.atual).find(x => x.dist === dist) || {}).reg || '';
+    const melhor = serie.reduce((a, b) => (b.pos < a.pos ? b : a), serie[0]);
+    const pior = serie.reduce((a, b) => (b.pos > a.pos ? b : a), serie[0]);
+    const medias = serie.map(s => s.media);
+    const mediaGeral = medias.reduce((a, b) => a + b, 0) / (medias.length || 1);
+
+    fundo.innerHTML = `
+        <div class="modal-dist hr-janela">
+            <div class="modal-head">
+                <div class="md-titulo">
+                    <b>📈 ${dist}</b>
+                    <small>${reg} · colocação em cada rodada (posição 1 no topo)</small>
+                </div>
+                <button class="modal-btn" data-fechar>✕ Fechar</button>
+            </div>
+            <div class="modal-corpo">
+                ${serie.length ? `
+                <div class="hr-cards">
+                    <div class="hr-card"><span>${melhor.pos}º</span>melhor (rodada ${melhor.rodada})</div>
+                    <div class="hr-card"><span>${pior.pos}º</span>pior (rodada ${pior.rodada})</div>
+                    <div class="hr-card"><span>${mediaGeral.toLocaleString('pt-BR',
+                        { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>pontuação média no período</div>
+                </div>
+                ${hrGrafico(serie)}
+                <div class="hr-nota">Cada ponto é a colocação do distrito naquela rodada, só com a
+                    pontuação da própria rodada. Passe o mouse para ver V/E/D e a média.</div>`
+                : '<div class="carregando">Sem rodadas para este distrito.</div>'}
+            </div>
+        </div>`;
+    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') { e.stopPropagation(); fechar(); } };
+    fundo.addEventListener('click', (e) => {
+        if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();
+    });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
+}
+
+/* Onda em SVG: eixo Y invertido (1º no alto), um ponto por rodada. */
+function hrGrafico(serie) {
+    const L = 46, R = 16, T = 18, B = 34;      // margens
+    const W = 900, H = 320;
+    const totalPos = Math.max(...serie.map(s => s.total), 20);
+    const x = (i) => L + (serie.length === 1 ? (W - L - R) / 2
+        : i * (W - L - R) / (serie.length - 1));
+    const y = (pos) => T + (pos - 1) * (H - T - B) / Math.max(totalPos - 1, 1);
+
+    const linha = serie.map((s, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(s.pos).toFixed(1)}`).join(' ');
+    const area = `${linha} L${x(serie.length - 1).toFixed(1)},${H - B} L${x(0).toFixed(1)},${H - B} Z`;
+
+    const guias = [1, 5, 10, 15, totalPos].filter((v, i, a) => a.indexOf(v) === i && v <= totalPos)
+        .map(p => `<line class="hr-guia" x1="${L}" y1="${y(p)}" x2="${W - R}" y2="${y(p)}"></line>
+                   <text class="hr-eixo" x="${L - 8}" y="${y(p) + 4}" text-anchor="end">${p}º</text>`).join('');
+
+    const pontos = serie.map((s, i) => `
+        <g class="hr-ponto">
+            <circle cx="${x(i).toFixed(1)}" cy="${y(s.pos).toFixed(1)}" r="5"></circle>
+            <text class="hr-rotulo" x="${x(i).toFixed(1)}" y="${(y(s.pos) - 11).toFixed(1)}"
+                  text-anchor="middle">${s.pos}º</text>
+            <text class="hr-eixo" x="${x(i).toFixed(1)}" y="${H - B + 18}" text-anchor="middle">R${s.rodada}</text>
+            <title>Rodada ${s.rodada}: ${s.pos}º de ${s.total} · ${s.v}V ${s.e}E ${s.der}D · média ${
+                s.media.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</title>
+        </g>`).join('');
+
+    return `<div class="hr-grafico-wrap">
+        <svg class="hr-grafico" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img"
+             aria-label="Colocação do distrito por rodada">
+            ${guias}
+            <path class="hr-area" d="${area}"></path>
+            <path class="hr-linha" d="${linha}"></path>
+            ${pontos}
+        </svg>
+    </div>`;
 }

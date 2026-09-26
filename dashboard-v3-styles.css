@@ -2431,3 +2431,21 @@ body {
 .hr-tab td.reg, .hr-tab .reg { color: var(--text-3, #94a3b8); font-weight: 400; }
 .hr-tab tr.hr-minha td.reg { color: var(--text-2, #475569); }
 .hr-nota { margin-top: 10px; color: var(--text-3, #94a3b8); font-size: .85em; }
+
+/* Onda da colocação do distrito */
+.hr-clicavel { cursor: pointer; }
+.hr-clicavel:hover td { filter: brightness(.96); }
+.hr-fundo-grafico { z-index: 320; }
+.hr-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.hr-card { background: var(--surface-2, #f7f9fd); border-radius: 10px; padding: 10px; text-align: center;
+           font-size: .82em; color: var(--text-2, #475569); }
+.hr-card span { display: block; font-size: 1.7em; font-weight: 800; color: var(--navy, #1e2a5a); }
+.hr-grafico-wrap { overflow-x: auto; }
+.hr-grafico { width: 100%; min-width: 520px; height: auto; }
+.hr-guia { stroke: var(--border, #e8eaf1); stroke-width: 1; }
+.hr-eixo { fill: var(--text-3, #94a3b8); font-size: 12px; }
+.hr-linha { fill: none; stroke: #2b5aa8; stroke-width: 3; stroke-linejoin: round; stroke-linecap: round; }
+.hr-area { fill: rgba(43,90,168,.10); stroke: none; }
+.hr-ponto circle { fill: #fff; stroke: #2b5aa8; stroke-width: 3; }
+.hr-ponto:hover circle { fill: #2b5aa8; }
+.hr-rotulo { fill: var(--navy, #1e2a5a); font-size: 12px; font-weight: 700; }
