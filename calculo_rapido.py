@@ -153,15 +153,18 @@ def detectar_tipo(file_path):
                     return "%"
                 vals = [r[col] for r in linhas_v[longo[0] + 1:longo[0] + 30]
                         if r and col < len(r) and isinstance(r[col], (int, float)) and r[col]]
-                return "%" if vals and all(abs(v) < 1 for v in vals) else "R$"
+                return "%" if vals and all(abs(v) <= 1 for v in vals) else "R$"
     except Exception as e:
         print(f"⚠️ detectar_tipo (layout longo) falhou ({file_path}): {e}")
     try:
+        # Só as células com número contam: no meio da semana as colunas dos
+        # dias que ainda não vieram ficam vazias, em formato 'Geral', e
+        # derrubavam o "tudo em %" do SHARE MP.
         wb = openpyxl.load_workbook(file_path)  # precisa do formato
         ws = wb.active
         formatos = [str(c.number_format) for row in
                     ws.iter_rows(min_row=2, max_row=30, min_col=3, max_col=9)
-                    for c in row if c.number_format]
+                    for c in row if c.number_format and isinstance(c.value, (int, float))]
         wb.close()
         com_pct = sum(1 for f in formatos if '%' in f)
         so_pct = bool(formatos) and com_pct == len(formatos)
@@ -175,8 +178,9 @@ def detectar_tipo(file_path):
 
         if so_pct:
             return "%"
+        # Share de 100% vem como 1,0 — ainda é fração.
         if vals:
-            return "%" if all(v < 1 for v in vals) else "R$"
+            return "%" if all(v <= 1 for v in vals) else "R$"
         return "%" if com_pct else "R$"
     except Exception as e:
         print(f"⚠️ detectar_tipo falhou ({file_path}): {e}")
