@@ -130,7 +130,8 @@ function cenAjustePorDistrito() {
         Object.entries(dists).forEach(([dist, lojas]) => {
             const soma = lojas.reduce((t, l) => t + (aj[l]?.pts || 0), 0);
             const somaVit = lojas.reduce((t, l) => t + (aj[l]?.vit || 0), 0);
-            if (soma || somaVit) out[dist] = { pts: soma / lojas.length, vit: somaVit / lojas.length };
+            const n = (typeof lojasQueJogam === 'function' ? lojasQueJogam(lojas) : lojas).length || 1;
+            if (soma || somaVit) out[dist] = { pts: soma / n, vit: somaVit / n };
         }));
     return out;
 }

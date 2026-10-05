@@ -938,6 +938,31 @@ async function loadHistorico() {
 }
 
 // ============================================================
+// QUEM DISPUTA O CAMPEONATO
+//
+// A estrutura.xlsx traz unidades que não jogam (ARIC-SP, CTNO-SP, CVVA-RJ,
+// CVVS-RJ, GJVN-SP, IMIG-SP, JCNA-SP): não estão em nenhum confronto nem na
+// classificação oficial. O ranking oficial divide os pontos do distrito pelas
+// lojas que JOGAM — SP4: 19,42 = pontos ÷ 12, e ÷ 14 daria 16,64. Dividir a
+// rodada simulada pelo tamanho da estrutura subestimava os distritos que
+// têm essas unidades.
+// ============================================================
+
+function participantesDaRodada() {
+    const set = new Set();
+    (state.gamesSummary?.games || []).forEach(g => { set.add(g.team1); set.add(g.team2); });
+    if (!set.size) (state.confrontos || []).forEach(c => { set.add(c.team1); set.add(c.team2); });
+    return set.size ? set : null;
+}
+
+/* As lojas da lista que realmente jogam. Sem confrontos carregados, devolve a
+   lista inteira — melhor o número da estrutura do que zerar o distrito. */
+function lojasQueJogam(lojas) {
+    const jogam = participantesDaRodada();
+    return jogam ? (lojas || []).filter(l => jogam.has(l)) : (lojas || []);
+}
+
+// ============================================================
 // RANKING SIMULADO (histórico rodadas anteriores + rodada atual)
 // ============================================================
 
@@ -952,7 +977,7 @@ function calcularRankingSimulado() {
     Object.keys(state.estrutura).forEach(reg => {
         Object.keys(state.estrutura[reg]).forEach(dist => {
             const lojas = state.estrutura[reg][dist];
-            N[dist] = lojas.length;
+            N[dist] = lojasQueJogam(lojas).length;
             lojas.forEach(l => { loja2dist[l] = { regional: reg, distrito: dist }; });
         });
     });
@@ -1010,8 +1035,12 @@ function calcularRankingSimulado() {
         histRankMap[l.distrito] = i + 1;
     });
 
-    // Posição no ranking SIMULADO
-    linhas.sort((a, b) => b.simAvg - a.simAvg);
+    // Posição no ranking SIMULADO. A ordem tem que ser a da coluna que aparece na
+    // tabela (simAcum = pontos ÷ lojas, a escala do ranking oficial). Ordenar por
+    // outra métrica (pontos ÷ jogos) deixava um distrito com número menor na
+    // frente de outro com número maior.
+    linhas.sort((a, b) => b.simAcum - a.simAcum || b.simAvg - a.simAvg
+        || a.distrito.localeCompare(b.distrito));
     linhas.forEach((l, i) => {
         l.posicao = i + 1;
         l.posicaoHist = histRankMap[l.distrito];
@@ -1690,7 +1719,7 @@ function abrirJogosDistrito(regional, distrito) {
             <div class="modal-head">
                 <div class="md-titulo">
                     <b>${distrito}</b>
-                    <small>${regional} · ${lojas.length} lojas · rodada ${state.semana}</small>
+                    <small>${regional} · ${lojasQueJogam(lojas).length} lojas · rodada ${state.semana}</small>
                 </div>
                 <button class="modal-btn" data-fechar>✕ Fechar</button>
             </div>
@@ -2022,7 +2051,7 @@ function loadRankingDashboard() {
 
         const totAcum = {};
         porSim.forEach(r => {
-            const nLojas = state.estrutura[r.reg][r.dist].length;
+            const nLojas = lojasQueJogam(state.estrutura[r.reg][r.dist]).length;
             const hConq = Math.round(r.sim.histAcum * nLojas);   // pontos históricos
             const hDisp = rodadas * nLojas * 3;
             const t = totAcum[r.reg] || (totAcum[r.reg] = { conq: 0, disp: 0, lojas: 0 });

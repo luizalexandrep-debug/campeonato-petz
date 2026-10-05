@@ -51,7 +51,9 @@ function evoMontarSerie() {
     Object.keys(state.estrutura).forEach(reg => {
         Object.keys(state.estrutura[reg]).forEach(dist => {
             const lojas = state.estrutura[reg][dist];
-            const n = lojas.length;
+            // Só as lojas que jogam: o ranking oficial divide por elas (ver
+            // lojasQueJogam em dashboard-v3.js).
+            const n = (typeof lojasQueJogam === 'function' ? lojasQueJogam(lojas) : lojas).length;
             const h = hist?.distritos?.[dist];
             const histPts = h ? h.pontuacaoMedia * n : 0;
 
