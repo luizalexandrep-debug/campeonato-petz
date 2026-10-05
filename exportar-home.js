@@ -205,13 +205,15 @@ function ehDesenharHome() {
     });
 
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-    ehTexto(ctx, `Gerado em ${agora}`, EXPH.padding, altura - EXPH.padding + 4,
+    const dadosAte = typeof estadoDadosRotulo === 'function' ? estadoDadosRotulo() : '';
+    ehTexto(ctx, `Gerado em ${agora}${dadosAte ? ' · ' + dadosAte : ''}`, EXPH.padding, altura - EXPH.padding + 4,
         ehFonte(10, 400), EXPH.cor.texto3);
 
     return cv;
 }
 
 async function copiarHomeImagem(btn) {
+    if (typeof estadoDadosPodeCompartilhar === 'function' && !estadoDadosPodeCompartilhar()) return;
     const txt = btn ? btn.innerHTML : null;
     if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Copiando...'; }
     try {

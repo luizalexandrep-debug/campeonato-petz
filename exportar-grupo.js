@@ -155,13 +155,16 @@ function egDesenhar(grupo, rodadaBase, rodadaProj, atual, simulado) {
         '🔮 Simulada', `rodada ${rodadaBase} + projeção da ${rodadaProj}`, simulado, true);
 
     const yr = Math.max(fim1, fim2) + 18;
-    egTexto(ctx, 'Desempate: Pts › VIT › SG › GM. Projeção calculada a partir das vendas parciais da rodada.',
+    const dadosAte = typeof estadoDadosRotulo === 'function' ? estadoDadosRotulo() : '';
+    egTexto(ctx, 'Desempate: Pts › VIT › SG › GM. Projeção calculada a partir das vendas parciais da rodada.'
+        + (dadosAte ? ' · ' + dadosAte : ''),
         EXPG.padding, yr, egFonte(10.5, 400), EXPG.cor.texto3);
 
     return cv;
 }
 
 async function exportarGrupoImagem(btn) {
+    if (typeof estadoDadosPodeCompartilhar === 'function' && !estadoDadosPodeCompartilhar()) return;
     const txt = btn ? btn.innerHTML : null;
     let avisou = false;
     if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Copiando...'; }

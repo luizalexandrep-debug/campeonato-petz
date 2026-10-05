@@ -19,6 +19,8 @@ function rodadaGuardar(semana, vigente) {
     try {
         sessionStorage.setItem(RODADA_CHAVE, JSON.stringify({ semana, vigente }));
     } catch (e) { /* sem storage: a escolha só vale nesta página */ }
+    // Quem mostra algo da rodada (o selo do estado dos dados) refaz a leitura.
+    window.dispatchEvent(new CustomEvent('petz:rodada', { detail: { semana } }));
 }
 
 /* A rodada que o usuário já escolheu, se ainda valer para esta página:

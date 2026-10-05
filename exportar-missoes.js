@@ -142,12 +142,14 @@ function expmDesenhar() {
     });
 
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-    ehTexto(ctx, `Gerado em ${agora}`, EXPM.padding, altura - EXPM.padding + 4,
+    const dadosAte = typeof estadoDadosRotulo === 'function' ? estadoDadosRotulo() : '';
+    ehTexto(ctx, `Gerado em ${agora}${dadosAte ? ' · ' + dadosAte : ''}`, EXPM.padding, altura - EXPM.padding + 4,
         ehFonte(10, 400), C.texto3);
     return cv;
 }
 
 async function copiarMissoesImagem(btn) {
+    if (typeof estadoDadosPodeCompartilhar === 'function' && !estadoDadosPodeCompartilhar()) return;
     const txt = btn ? btn.innerHTML : null;
     if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Copiando...'; }
     try {

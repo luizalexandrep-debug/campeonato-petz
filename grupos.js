@@ -103,6 +103,7 @@ async function iniciar() {
         await trocarBase(st.semana - 1);
         await carregarSummary();
         render();
+        if (typeof estadoDadosIniciar === 'function') estadoDadosIniciar(() => st.semana);
     } catch (e) {
         console.error(e);
         info(`❌ Erro ao iniciar: ${e.message}`);

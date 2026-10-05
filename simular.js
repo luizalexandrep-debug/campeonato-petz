@@ -42,6 +42,7 @@ async function carregar() {
     seletor.onchange = () => trocarRodada(parseInt(seletor.value, 10));
 
     await montar();
+    if (typeof estadoDadosIniciar === 'function') estadoDadosIniciar(() => SEMANA);
 }
 
 async function trocarRodada(n) {

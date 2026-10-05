@@ -684,6 +684,8 @@ async function initializeApp() {
 
         // Carregar resumo de jogos pré-calculado (em background)
         carregarResumJogos();
+        // Selo "estado dos dados": já posso compartilhar?
+        if (typeof estadoDadosIniciar === 'function') estadoDadosIniciar(() => state.semana);
 
         // Attach listeners
         document.getElementById('filterSemana').addEventListener('change', onSemanaChange);
@@ -739,7 +741,7 @@ async function reprocessarDoSharePoint() {
     const textoOriginal = btn.innerHTML;
 
     // Confirmar
-    if (!confirm('Isso vai baixar os dados mais recentes do SharePoint e recalcular todos os jogos. Pode levar até 30 segundos. Continuar?')) {
+    if (!confirm('Isso vai baixar os dados mais recentes do SharePoint e recalcular todos os jogos. Pode levar até 30 segundos; depois eu confirmo se todos os servidores já têm os dados novos. Continuar?')) {
         return;
     }
 
@@ -756,6 +758,18 @@ async function reprocessarDoSharePoint() {
             throw new Error(data.error || `HTTP ${response.status}`);
         }
 
+        // O servidor que respondeu já tem os dados novos, mas os outros ainda
+        // podem estar com a cópia antiga. Antes de recarregar a tela (que pode
+        // cair num deles), confirma que todos convergiram — e mostra o andamento.
+        let conf = null;
+        if (typeof estadoDadosConfirmar === 'function') {
+            conf = await estadoDadosConfirmar(state.semana, data.versao, ({ seguidas, necessarias }) => {
+                infoBar.innerHTML = `<span>⏳ Dados baixados. Conferindo se todos os servidores têm os dados novos…
+                    <span class="ed-barra"><i style="width:${Math.round(seguidas / necessarias * 100)}%"></i></span>
+                    ${seguidas} de ${necessarias} confirmações</span>`;
+            });
+        }
+
         // Recarregar o resumo recalculado
         state.resumoCarregado = false;
         state.gamesSummary = null;
@@ -764,7 +778,17 @@ async function reprocessarDoSharePoint() {
         await carregarResumJogos();
 
         const dias = (data.dias_semana_atual || []).join(', ');
-        infoBar.innerHTML = `<span>✅ Dados atualizados! ${data.total} jogos recalculados. Dias na semana atual: ${dias || '—'}</span>`;
+        if (conf && conf.convergiu) {
+            const e = conf.estado;
+            infoBar.innerHTML = e.estado === 'ok'
+                ? `<span>✅ Pronto para compartilhar: dados até ${e.dadosAteDia || ''} ${edData(e.dadosAte)} · ${e.atualizados} de ${e.indicadores} indicadores · ${data.total} jogos recalculados</span>`
+                : `<span>🟡 Todos os servidores têm os mesmos dados, mas atenção: ${edTexto(e).txt}${e.pendentes && e.pendentes.length ? ' (' + e.pendentes.join(', ') + ')' : ''}</span>`;
+        } else if (conf) {
+            infoBar.innerHTML = '<span>🟡 Os dados ainda não estão iguais em todos os servidores. Aguarde uns 2 minutos e confira o selo no topo antes de compartilhar.</span>';
+        } else {
+            infoBar.innerHTML = `<span>✅ Dados atualizados! ${data.total} jogos recalculados. Dias na semana atual: ${dias || '—'}</span>`;
+        }
+        if (typeof estadoDadosAtualizar === 'function') estadoDadosAtualizar();
 
         // Reexibir a visão atual (regional/distrito) com os dados novos
         loadGames();

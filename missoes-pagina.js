@@ -31,6 +31,7 @@ async function misIniciar() {
     const est = await misApi('/estrutura');
     pg.estrutura = est.estrutura || est;
     await misCarregar();
+    if (typeof estadoDadosIniciar === 'function') estadoDadosIniciar(() => pg.semana);
 }
 
 async function misCarregar() {

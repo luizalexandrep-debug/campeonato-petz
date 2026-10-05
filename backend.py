@@ -14,7 +14,7 @@ import requests
 from datetime import date, datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
-from auth import (db, login_manager, Usuario, Acesso, Missao, init_db,
+from auth import (db, login_manager, Usuario, Acesso, Missao, DadosVersao, init_db,
                   autenticar_emergencia, invalidar_cache_usuarios)
 
 app = Flask(__name__)
@@ -410,6 +410,60 @@ _fetch_lock = threading.Lock()
 _MARKER = TMP_BASE / ".fetched_at"
 
 
+# --- versão dos dados, compartilhada entre as instâncias (via Postgres) ---
+VERSAO_CACHE_SEG = 30            # releitura no máximo a cada 30 s por instância
+RETENTAR_POR_VERSAO = 60         # após uma tentativa, não repetir antes de 60 s
+_VERSAO_CACHE = [0.0, None]      # [válido até, valor]
+_ULTIMA_TENTATIVA = [0.0]
+
+
+def versao_dos_dados():
+    """Epoch (s) da última vez que alguém mandou reprocessar; None se nunca
+    houve ou se o banco não responde (aí vale só o TTL de sempre)."""
+    agora = time.time()
+    if agora < _VERSAO_CACHE[0]:
+        return _VERSAO_CACHE[1]
+    try:
+        v = db.session.get(DadosVersao, 1)
+        valor = v.iniciado_em if v else None
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ versão dos dados indisponível ({e})")
+        valor = _VERSAO_CACHE[1]          # mantém o último valor conhecido
+    _VERSAO_CACHE[0] = agora + VERSAO_CACHE_SEG
+    _VERSAO_CACHE[1] = valor
+    return valor
+
+
+def registrar_versao(por=None):
+    """Marca 'agora' como o instante do reprocessamento. Chamado ANTES do
+    download: quem terminar de baixar depois disso já está em dia."""
+    t0 = time.time()
+    try:
+        v = db.session.get(DadosVersao, 1) or DadosVersao(id=1)
+        v.iniciado_em = t0
+        v.por = por
+        db.session.add(v)
+        db.session.commit()
+        _VERSAO_CACHE[0], _VERSAO_CACHE[1] = time.time() + VERSAO_CACHE_SEG, t0
+    except Exception as e:
+        db.session.rollback()
+        print(f"⚠️ não foi possível registrar a versão dos dados ({e})")
+    return t0
+
+
+def _local_atualizada():
+    """A cópia desta instância é pelo menos tão nova quanto o último pedido de
+    reprocessamento? (Sem versão conhecida, sim.)"""
+    versao = versao_dos_dados()
+    idade = _idade_tmp()
+    if versao is None:
+        return True
+    if idade is None:
+        return False
+    return (time.time() - idade) >= versao
+
+
 def garantir_rodada(semana):
     """Garante que os dados da rodada pedida estejam em /tmp.
     Permite reabrir rodadas passadas: se a subpasta 'rodada N' ainda não foi
@@ -496,15 +550,23 @@ def garantir_arquivos_frescos(force=False):
     lock para evitar downloads simultâneos na mesma instância."""
     idade = _idade_tmp()
     ttl = _ttl_efetivo()
-    if not force and idade is not None and idade < ttl:
+    # Outra instância (ou o botão Reprocessar) pode ter pedido dados novos depois
+    # do último download desta: o TTL sozinho não enxerga isso.
+    atras_da_versao = (not force) and idade is not None and not _local_atualizada()
+    if atras_da_versao and (time.time() - _ULTIMA_TENTATIVA[0]) < RETENTAR_POR_VERSAO:
+        atras_da_versao = False     # já tentei há pouco; não martelar o SharePoint
+    if not force and not atras_da_versao and idade is not None and idade < ttl:
         return  # já está fresco o suficiente
     if _em_espera_throttle() and active_base() == TMP_BASE:
         return  # throttle recente e já temos dados baixados: não insistir
     with _fetch_lock:
         # Re-checar após o lock: outra thread pode ter acabado de baixar
         idade = _idade_tmp()
-        if not force and idade is not None and idade < ttl:
+        if not force and not atras_da_versao and idade is not None and idade < ttl:
             return
+        if not force and atras_da_versao and _local_atualizada():
+            return                  # outra thread desta instância acabou de atualizar
+        _ULTIMA_TENTATIVA[0] = time.time()
         try:
             import sharepoint
             print("⏳ Atualizando dados do SharePoint (frescor)...")
@@ -1566,83 +1628,167 @@ def _dispositivo(ua):
 # FAROL DOS INDICADORES: até que dia cada gol foi lançado
 # ============================================================
 
+def _farol_dados(semana):
+    """Último dia lançado em cada indicador da rodada, mais a referência.
+
+    Verde (atualizado) = está no mesmo dia do indicador mais adiantado E esse
+    dia não ficou para trás do calendário. Base do farol e do estado dos dados.
+    """
+    garantir_arquivos_frescos()
+    garantir_rodada(semana)
+    import calculo_rapido as cr
+
+    dias = cr.DIAS_ORDENADOS
+    itens = []
+    for arquivo, slots in mapear_indicadores(semana).items():
+        fp = slots.get("atual")
+        ultimo = -1
+        data = None
+        if fp:
+            try:
+                dados = cr._carregar_arquivo(fp)
+                for i, dia in enumerate(dias):
+                    if any((v or {}).get(dia) for v in dados.values()):
+                        ultimo = i
+                data = _ultima_data_do_arquivo(fp)
+            except Exception as e:
+                print(f"⚠️ farol falhou em {arquivo}: {e}")
+        itens.append({
+            "indicador": cr.nome_limpo(arquivo),
+            "ultimoDiaIdx": ultimo,
+            "ultimoDia": dias[ultimo] if ultimo >= 0 else None,
+            "ultimaData": data.isoformat() if data else None,
+        })
+
+    # A comparação é pela DATA quando todos os arquivos trazem uma. Pelo dia da
+    # semana, um arquivo que ficou com o domingo passado apareceria como o mais
+    # adiantado e jogaria os corretos para "pendente".
+    datas = [i["ultimaData"] for i in itens if i["ultimaData"]]
+    por_data = len(datas) == len([i for i in itens if i["ultimoDiaIdx"] >= 0]) and datas
+    if por_data:
+        ref_data = max(datas)
+        for i in itens:
+            i["atualizado"] = i["ultimaData"] == ref_data
+        ref_idx = max((i["ultimoDiaIdx"] for i in itens if i["ultimaData"] == ref_data),
+                      default=-1)
+    else:
+        ref_idx = max((i["ultimoDiaIdx"] for i in itens), default=-1)
+        ref_data = None
+        for i in itens:
+            i["atualizado"] = i["ultimoDiaIdx"] == ref_idx and ref_idx >= 0
+
+    # Até aqui a comparação é só entre os indicadores. Falta olhar o calendário:
+    # a base costuma vir com um dia de atraso, então o esperado é ter dado até
+    # ontem, sem passar do domingo que fecha a rodada.
+    esperada = dias_atraso = None
+    if ref_data:
+        ref = date.fromisoformat(ref_data)
+        fim_da_rodada = ref + timedelta(days=6 - ref.weekday())
+        # Horário de Brasília: no Vercel o relógio é UTC e depois das 21h ele já
+        # virou o dia seguinte — o esperado avançaria cedo demais.
+        hoje = datetime.now(timezone(timedelta(hours=-3))).date()
+        esperada = min(hoje - timedelta(days=1), fim_da_rodada)
+        dias_atraso = max((esperada - ref).days, 0)
+        if dias_atraso:
+            # A rodada inteira está atrasada: ninguém está em dia.
+            for i in itens:
+                i["atualizado"] = False
+
+    itens.sort(key=lambda i: (i["atualizado"], i["indicador"]))
+    return {
+        "semana": semana,
+        "referencia": dias[ref_idx] if ref_idx >= 0 else None,
+        "referenciaData": ref_data,
+        "esperadaData": esperada.isoformat() if esperada else None,
+        "diasAtraso": dias_atraso,
+        "indicadores": itens,
+    }
+
+
 @app.route('/api/farol/<int:semana>', methods=['GET'])
 def get_farol(semana):
-    """Último dia lançado em cada indicador da rodada.
+    """Último dia lançado em cada indicador da rodada (ver _farol_dados)."""
+    try:
+        return jsonify(_farol_dados(semana))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
-    Verde = está no mesmo dia do indicador mais adiantado; vermelho = ficou
-    para trás. Serve para ver de relance o que ainda falta subir.
+
+def _assinatura_conteudo(semana):
+    """Hash do CONTEÚDO dos arquivos que o cálculo da rodada usa (indicadores
+    das duas semanas e os confrontos). Duas instâncias com a mesma assinatura
+    calculam exatamente os mesmos placares; comparar só as datas não pegaria um
+    valor corrigido dentro do mesmo dia."""
+    import hashlib
+    h = hashlib.md5()
+    caminhos = []
+    for slots in mapear_indicadores(semana).values():
+        for slot in ("anterior", "atual"):
+            if slots.get(slot):
+                caminhos.append(Path(slots[slot]))
+    conf = arquivo_confrontos(f"Semana {semana}.xlsx")
+    if conf and Path(conf).exists():
+        caminhos.append(Path(conf))
+    for c in sorted(caminhos, key=lambda x: (x.parent.parent.name, x.parent.name, x.name)):
+        try:
+            h.update(c.name.encode())
+            h.update(c.read_bytes())
+        except Exception:
+            pass
+    return h.hexdigest()[:12]
+
+
+@app.route('/api/estado-dados/<int:semana>', methods=['GET'])
+@login_required
+def get_estado_dados(semana):
+    """Os dados desta rodada estão prontos para compartilhar?
+
+    Responde por esta instância: até que dia vão os dados, se os indicadores
+    concordam entre si, se estão em dia com o calendário e se ESTA cópia já
+    inclui o último reprocessamento pedido por qualquer pessoa. A `assinatura`
+    muda quando o dado muda — o front a compara entre respostas para saber se
+    os servidores convergiram.
     """
     try:
-        garantir_arquivos_frescos()
-        garantir_rodada(semana)
-        import calculo_rapido as cr
+        f = _farol_dados(semana)
+        itens = f["indicadores"]
+        total = len(itens)
+        ok = sum(1 for i in itens if i["atualizado"])
+        pendentes = [i["indicador"] for i in itens if not i["atualizado"]]
 
-        dias = cr.DIAS_ORDENADOS
-        itens = []
-        for arquivo, slots in mapear_indicadores(semana).items():
-            fp = slots.get("atual")
-            ultimo = -1
-            data = None
-            if fp:
-                try:
-                    dados = cr._carregar_arquivo(fp)
-                    for i, dia in enumerate(dias):
-                        if any((v or {}).get(dia) for v in dados.values()):
-                            ultimo = i
-                    data = _ultima_data_do_arquivo(fp)
-                except Exception as e:
-                    print(f"⚠️ farol falhou em {arquivo}: {e}")
-            itens.append({
-                "indicador": cr.nome_limpo(arquivo),
-                "ultimoDiaIdx": ultimo,
-                "ultimoDia": dias[ultimo] if ultimo >= 0 else None,
-                "ultimaData": data.isoformat() if data else None,
-            })
+        versao = versao_dos_dados()
+        idade = _idade_tmp()
+        local_em = (time.time() - idade) if idade is not None else None
+        local_ok = _local_atualizada()
 
-        # A comparação é pela DATA quando todos os arquivos trazem uma. Pelo
-        # dia da semana, um arquivo que ficou com o domingo passado apareceria
-        # como o mais adiantado e jogaria os corretos para "pendente".
-        datas = [i["ultimaData"] for i in itens if i["ultimaData"]]
-        por_data = len(datas) == len([i for i in itens if i["ultimoDiaIdx"] >= 0]) and datas
-        if por_data:
-            ref_data = max(datas)
-            for i in itens:
-                i["atualizado"] = i["ultimaData"] == ref_data
-            ref_idx = max((i["ultimoDiaIdx"] for i in itens if i["ultimaData"] == ref_data),
-                          default=-1)
+        if not itens or not f["referenciaData"]:
+            estado = "sem_dados"
+        elif not local_ok:
+            estado = "atualizando"
+        elif f["diasAtraso"]:
+            estado = "atrasado"
+        elif ok < total:
+            estado = "divergente"
         else:
-            ref_idx = max((i["ultimoDiaIdx"] for i in itens), default=-1)
-            ref_data = None
-            for i in itens:
-                i["atualizado"] = i["ultimoDiaIdx"] == ref_idx and ref_idx >= 0
+            estado = "ok"
 
-        # Até aqui a comparação é só entre os indicadores: se TODOS pararam na
-        # terça, todos ficam verdes. Falta olhar o calendário — a base costuma
-        # vir com um dia de atraso, então o esperado é ter dado até ontem, sem
-        # passar do domingo que fecha a rodada.
-        esperada = dias_atraso = None
-        if ref_data:
-            ref = date.fromisoformat(ref_data)
-            fim_da_rodada = ref + timedelta(days=6 - ref.weekday())
-            # Horário de Brasília: no Vercel o relógio é UTC, e depois das 21h
-            # ele já virou o dia seguinte — o esperado avançaria cedo demais.
-            hoje = datetime.now(timezone(timedelta(hours=-3))).date()
-            esperada = min(hoje - timedelta(days=1), fim_da_rodada)
-            dias_atraso = max((esperada - ref).days, 0)
-            if dias_atraso:
-                # A rodada inteira está atrasada: ninguém está em dia.
-                for i in itens:
-                    i["atualizado"] = False
-
-        itens.sort(key=lambda i: (i["atualizado"], i["indicador"]))
+        assinatura = _assinatura_conteudo(semana)
         return jsonify({
             "semana": semana,
-            "referencia": dias[ref_idx] if ref_idx >= 0 else None,
-            "referenciaData": ref_data,
-            "esperadaData": esperada.isoformat() if esperada else None,
-            "diasAtraso": dias_atraso,
-            "indicadores": itens,
+            "estado": estado,
+            "dadosAte": f["referenciaData"],
+            "dadosAteDia": f["referencia"],
+            "esperadaData": f["esperadaData"],
+            "diasAtraso": f["diasAtraso"],
+            "indicadores": total,
+            "atualizados": ok,
+            "pendentes": pendentes,
+            "versao": versao,
+            "localEm": local_em,
+            "localAtualizada": local_ok,
+            "assinatura": assinatura,
         })
     except Exception as e:
         import traceback
@@ -2746,9 +2892,12 @@ def reprocessar(semana):
     """Baixa as pastas SEMANA ANTERIOR/ATUAL do SharePoint, recalcula todos os
     jogos e atualiza o cache. Retorna o resumo recalculado."""
     try:
+        # Antes de baixar: as outras instâncias passam a saber que estão atrás.
+        versao = registrar_versao(getattr(current_user, 'username', None))
         r = _baixar_e_recalcular(semana)
         return jsonify({
             "message": "Reprocessamento concluído com sucesso",
+            "versao": versao,
             "week": semana,
             "total": r["data"]["total"],
             "dias_semana_atual": r["dias_atual"],

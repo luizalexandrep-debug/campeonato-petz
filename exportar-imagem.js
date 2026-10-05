@@ -348,13 +348,15 @@ function expDesenharJogo(jogoData) {
     });
 
     const agora = new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-    expTexto(ctx, `Gerado em ${agora}`, EXP.largura / 2, y + 4,
+    const dadosAte = typeof estadoDadosRotulo === 'function' ? estadoDadosRotulo() : '';
+    expTexto(ctx, `Gerado em ${agora}${dadosAte ? ' · ' + dadosAte : ''}`, EXP.largura / 2, y + 4,
         { fonte: expFonte(11, 400), cor: c.texto3, align: 'center' });
 
     return cv;
 }
 
 async function exportarJogoImagem(team1, team2, btn) {
+    if (typeof estadoDadosPodeCompartilhar === 'function' && !estadoDadosPodeCompartilhar()) return;
     const ctx = expCtx();
     const chave = `${team1}_${team2}`;
     const txt = btn ? btn.innerHTML : null;

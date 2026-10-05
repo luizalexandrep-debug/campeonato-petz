@@ -10,6 +10,22 @@ from pathlib import Path
 db = SQLAlchemy()
 login_manager = LoginManager()
 
+class DadosVersao(db.Model):
+    """Marca de 'quando alguém mandou reprocessar', visível a TODAS as instâncias.
+
+    Cada instância do servidor guarda a sua própria cópia dos arquivos do
+    SharePoint (em /tmp), e o botão Reprocessar só atualizava a instância que
+    atendeu o clique — as outras ficavam com dado velho até o cache delas vencer.
+    Esta linha única (id = 1) dá a todas uma referência comum: instância cuja
+    cópia é mais antiga que `iniciado_em` sabe que está atrás e se atualiza.
+    """
+    __tablename__ = 'dados_versao'
+
+    id = db.Column(db.Integer, primary_key=True)          # sempre 1
+    iniciado_em = db.Column(db.Float, nullable=False)     # epoch (s) do início do reprocessamento
+    por = db.Column(db.String(80))
+
+
 class Missao(db.Model):
     """Jogo marcado como importante para a regional, atribuído a um distrital.
 

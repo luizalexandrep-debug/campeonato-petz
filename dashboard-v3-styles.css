@@ -2458,3 +2458,20 @@ body {
 }
 .alerta-x:hover { color: var(--text, #1e293b); }
 .alerta-info ul, .alerta-dados ul, .alerta-criterio ul, .alerta-eliminada ul { padding-right: 26px; }
+
+/* ====== Estado dos dados (selo no cabeçalho de todas as páginas) ====== */
+.ed-chip {
+    display: inline-block; margin-top: 8px; padding: 4px 12px; border-radius: 999px;
+    font-size: .8em; font-weight: 700; cursor: help; max-width: 100%;
+    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28); color: #fff;
+}
+.ed-chip.ed-ok { background: rgba(34,197,94,.22); border-color: rgba(134,239,172,.55); }
+.ed-chip.ed-amarelo { background: rgba(245,158,11,.25); border-color: rgba(252,211,77,.6); }
+.ed-chip.ed-vermelho { background: rgba(239,68,68,.28); border-color: rgba(252,165,165,.6); }
+.ed-chip.ed-neutro { opacity: .85; }
+
+/* Barra de progresso da confirmação depois do Reprocessar */
+.ed-barra { display: inline-block; vertical-align: middle; width: 140px; height: 8px; margin: 0 8px;
+    background: rgba(0,0,0,.12); border-radius: 99px; overflow: hidden; }
+.ed-barra > i { display: block; height: 100%; width: 0; background: #2b5aa8; border-radius: 99px;
+    transition: width .35s ease; }
