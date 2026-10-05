@@ -9,7 +9,10 @@
 .mis-card.nao span { color: #dc2626; }
 .mis-card.sem span { color: #b45309; }
 
-.mis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
+/* Sempre 3 quadros por linha — igual à imagem copiada (6 quadros = 3 em cima e
+   3 embaixo). Só cai para 2 e 1 coluna quando a tela não comporta. */
+.mis-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1100px) { .mis-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .mis-dist { background: var(--surface, #fff); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 14px rgba(16,24,40,.07); }
 .mis-dist-head {
     background: linear-gradient(135deg, #1e2a5a 0%, #2b4f95 100%); color: #fff;
