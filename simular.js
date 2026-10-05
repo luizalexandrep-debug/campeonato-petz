@@ -26,14 +26,15 @@ let DISTRITOS = {};       // loja -> distrito
 let GRUPOS = {};          // grupo -> { tabela, jogos }
 let BASE_DIST = {};       // distrito -> pontuação média acumulada
 let NOMES_GRUPOS = [];
-let SEMANA = null, RODADA_BASE = null;
+let SEMANA = null, RODADA_BASE = null, VIGENTE = null;
 
 // Os grupos entram na ordem do número, não na ordem em que vieram da base.
 const numDoGrupo = (n) => parseInt((String(n).match(/(\d+)\s*$/) || [0, 0])[1], 10);
 
 async function carregar() {
     const sem = await pegar('/semana');
-    SEMANA = sem.semana;
+    VIGENTE = sem.semana;
+    SEMANA = rodadaEscolhida(sem.semana, sem.disponiveis || [sem.semana]) ?? sem.semana;
     const seletor = document.getElementById('fRodada');
     seletor.innerHTML = (sem.disponiveis || [SEMANA]).slice().reverse()
         .map(n => `<option value="${n}" ${n === SEMANA ? 'selected' : ''}>Rodada ${n}${
@@ -45,6 +46,7 @@ async function carregar() {
 
 async function trocarRodada(n) {
     SEMANA = n;
+    rodadaGuardar(n, VIGENTE);
     Object.keys(editados).forEach(k => delete editados[k]);
     document.getElementById('grupos').innerHTML =
         '<div class="info-bar"><span>Carregando os jogos...</span></div>';

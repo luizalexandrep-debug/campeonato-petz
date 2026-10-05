@@ -17,12 +17,17 @@ window.missoesCtx = {
 
 async function misIniciar() {
     const sem = await misApi('/semana');
-    pg.semana = sem.semana;
+    pg.vigente = sem.semana;
+    pg.semana = rodadaEscolhida(sem.semana, sem.disponiveis || [sem.semana]) ?? sem.semana;
     const sel = document.getElementById('fRodada');
     sel.innerHTML = (sem.disponiveis || [sem.semana]).slice().reverse()
-        .map(n => `<option value="${n}" ${n === sem.semana ? 'selected' : ''}>Rodada ${n}${
+        .map(n => `<option value="${n}" ${n === pg.semana ? 'selected' : ''}>Rodada ${n}${
             n === sem.semana ? ' (atual)' : ''}</option>`).join('');
-    sel.onchange = () => { pg.semana = parseInt(sel.value, 10); misCarregar(); };
+    sel.onchange = () => {
+        pg.semana = parseInt(sel.value, 10);
+        rodadaGuardar(pg.semana, pg.vigente);
+        misCarregar();
+    };
     const est = await misApi('/estrutura');
     pg.estrutura = est.estrutura || est;
     await misCarregar();

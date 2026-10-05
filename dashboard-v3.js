@@ -845,6 +845,12 @@ async function loadSemana() {
             // Só define a semana na primeira carga; se o usuário já escolheu
             // uma rodada, respeitamos a escolha dele.
             if (!state.semanaEscolhida) state.semana = d.semana;
+            // Rodada escolhida em outra página (ou antes de recarregar esta).
+            const guardada = rodadaEscolhida(d.semana, state.semanasDisponiveis);
+            if (!state.semanaEscolhida && guardada) {
+                state.semana = guardada;
+                state.semanaEscolhida = true;
+            }
             // Link vindo de outra tela com a rodada certa (ex.: Missões da
             // Semana revendo uma rodada passada): ?jogo=A,B&rodada=N.
             const pedida = parseInt(new URLSearchParams(location.search).get('rodada'), 10);
@@ -889,6 +895,7 @@ async function onSemanaChange(e) {
 
     state.semana = nova;
     state.semanaEscolhida = true;
+    rodadaGuardar(nova, state.semanaVigente);
     // Tudo que é derivado da rodada precisa ser descartado
     state.gamesSummary = null;
     state.resumoCarregado = false;

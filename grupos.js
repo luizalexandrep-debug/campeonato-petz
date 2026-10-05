@@ -125,7 +125,9 @@ function montarSelects() {
     // reabrir a rodada 8 (base 7) e a 9 (base 8).
     const bases = new Set(st.basesDisponiveis || []);
     const projetaveis = st.semanas.filter(n => bases.has(n - 1)).sort((a, b) => b - a);
-    st.semana = projetaveis.includes(st.semanaVigente) ? st.semanaVigente : (projetaveis[0] ?? null);
+    const guardada = (typeof rodadaEscolhida === 'function')
+        ? rodadaEscolhida(st.semanaVigente, projetaveis) : null;
+    st.semana = guardada ?? (projetaveis.includes(st.semanaVigente) ? st.semanaVigente : (projetaveis[0] ?? null));
 
     const sR = document.getElementById('fRodada');
     sR.innerHTML = projetaveis.length
@@ -134,6 +136,7 @@ function montarSelects() {
     sR.disabled = !projetaveis.length;
     sR.onchange = async (e) => {
         st.semana = parseInt(e.target.value, 10);
+        if (typeof rodadaGuardar === 'function') rodadaGuardar(st.semana, st.semanaVigente);
         st.editados = {};          // os jogos mudam com a rodada: placares mexidos não valem mais
         _cacheDias.clear();
         info('⏳ Carregando rodada...');
