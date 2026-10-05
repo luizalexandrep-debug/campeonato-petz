@@ -778,20 +778,28 @@ async function reprocessarDoSharePoint() {
         await carregarResumJogos();
 
         const dias = (data.dias_semana_atual || []).join(', ');
+        let msgFinal, tipoFinal = 'ok';
         if (conf && conf.convergiu) {
             const e = conf.estado;
-            infoBar.innerHTML = e.estado === 'ok'
-                ? `<span>✅ Pronto para compartilhar: dados até ${e.dadosAteDia || ''} ${edData(e.dadosAte)} · ${e.atualizados} de ${e.indicadores} indicadores · ${data.total} jogos recalculados</span>`
-                : `<span>🟡 Todos os servidores têm os mesmos dados, mas atenção: ${edTexto(e).txt}${e.pendentes && e.pendentes.length ? ' (' + e.pendentes.join(', ') + ')' : ''}</span>`;
+            if (e.estado === 'ok') {
+                msgFinal = `✅ <b>Pronto para compartilhar.</b> Dados até ${e.dadosAteDia || ''} ${edData(e.dadosAte)} · ${e.atualizados} de ${e.indicadores} indicadores · ${data.total} jogos recalculados.`;
+            } else {
+                tipoFinal = 'aviso';
+                msgFinal = `🟡 Todos os servidores têm os mesmos dados, mas atenção: ${edTexto(e).txt}${e.pendentes && e.pendentes.length ? ' (' + e.pendentes.join(', ') + ')' : ''}.`;
+            }
         } else if (conf) {
-            infoBar.innerHTML = '<span>🟡 Os dados ainda não estão iguais em todos os servidores. Aguarde uns 2 minutos e confira o selo no topo antes de compartilhar.</span>';
+            tipoFinal = 'aviso';
+            msgFinal = '🟡 Os dados ainda não estão iguais em todos os servidores. Aguarde uns 2 minutos e confira o selo no topo antes de compartilhar.';
         } else {
-            infoBar.innerHTML = `<span>✅ Dados atualizados! ${data.total} jogos recalculados. Dias na semana atual: ${dias || '—'}</span>`;
+            msgFinal = `✅ Dados atualizados! ${data.total} jogos recalculados. Dias na semana atual: ${dias || '—'}`;
         }
+        infoBar.innerHTML = `<span>${msgFinal}</span>`;
         if (typeof estadoDadosAtualizar === 'function') estadoDadosAtualizar();
 
         // Reexibir a visão atual (regional/distrito) com os dados novos
         loadGames();
+        // A tela acabou de ser redesenhada: o resultado vai num aviso que fica.
+        if (typeof edAviso === 'function') edAviso(msgFinal, tipoFinal);
     } catch (error) {
         console.error('Erro ao reprocessar:', error);
         infoBar.innerHTML = `<span style="color:#c0392b;">❌ Erro ao reprocessar: ${error.message}</span>`;

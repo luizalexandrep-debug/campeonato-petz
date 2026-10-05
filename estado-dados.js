@@ -172,3 +172,22 @@ async function estadoDadosConfirmar(semana, versaoEsperada, onProgresso) {
     if (ultimo) { estadoDados.atual = ultimo; edRender(); }
     return { convergiu: false, estado: ultimo };
 }
+
+
+/* ---------- aviso flutuante ---------- */
+
+/* O resultado do Reprocessar não pode ficar só na barra de informação: o
+   dashboard a redesenha logo depois e apagava a mensagem. O aviso flutuante
+   sobrevive ao redesenho e some sozinho (ou no ✕). */
+function edAviso(html, tipo = 'ok', ms = 14000) {
+    let el = document.getElementById('edAviso');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'edAviso';
+        document.body.appendChild(el);
+    }
+    el.className = `ed-aviso ed-aviso-${tipo}`;
+    el.innerHTML = `<span>${html}</span><button aria-label="Fechar" onclick="this.parentElement.remove()">✕</button>`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => el.remove(), ms);
+}
