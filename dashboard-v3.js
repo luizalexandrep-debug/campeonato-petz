@@ -81,23 +81,7 @@ function formatarMoedaBR(valor) {
 // atual. Sem evolução para medir, não se atribui vitória, empate nem derrota.
 // VENDAS é o gol fixo do campeonato, então encabeça qualquer lista de
 // indicadores; os demais seguem em ordem alfabética.
-// Gols marcados no nome do arquivo como disputados por NÍVEL — vale o valor da
-// própria semana, não a evolução sobre a anterior. Precisa casar com
-// MARCADORES_NIVEL em calculo_rapido.py.
-const MARCADORES_NIVEL = ['(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EVOLUÇÃO)'];
-
-function criterioDoNome(nome) {
-    const alvo = String(nome || '').toUpperCase();
-    return MARCADORES_NIVEL.some(m => alvo.includes(m)) ? 'nivel' : 'evolucao';
-}
-
-function nomeIndicador(arquivo) {
-    let n = String(arquivo || '').replace(/\.xlsx$/i, '');
-    MARCADORES_NIVEL.forEach(m => {
-        n = n.replace(new RegExp(m.replace(/[()]/g, '\\$&'), 'ig'), '');
-    });
-    return n.replace(/\s+/g, ' ').trim();
-}
+// criterioDoNome / nomeIndicador: ver indicador-nome.js (carregado antes deste arquivo).
 
 function ordenarIndicadores(nomes) {
     const ehVendas = (n) => /^vendas\b/i.test(String(n).replace(/\.xlsx$/i, '').trim());

@@ -636,9 +636,11 @@ def _listar_xlsx(semana_path):
 
 
 def _chave(nome_arquivo):
-    """Normaliza um nome de arquivo para comparação (maiúsculas, só alfanumérico)."""
-    base = nome_arquivo.rsplit(".", 1)[0].upper()
-    return re.sub(r"[^A-Z0-9]", "", base)
+    """Chave de pareamento entre semanas: maiúsculas, só alfanumérico e SEM os
+    marcadores de critério ('evolução semanal', 'share da semana'). Uma só regra,
+    a de calculo_rapido, para o pareamento daqui e o do cálculo não divergirem."""
+    import calculo_rapido as cr
+    return cr._chave(nome_arquivo)
 
 
 def _similaridade(nome_a, nome_b):
@@ -720,14 +722,13 @@ def indicador_meta(arquivo, file_path=None, outro_path=None, slots=None):
     nome = INDICADORES_MAP.get(arquivo, {}).get("name") or cr.nome_limpo(arquivo)
     tipo = detectar_tipo(file_path) if file_path is not None else \
         INDICADORES_MAP.get(arquivo, {}).get("type", "R$")
-    # 'nivel' = o gol vale pelo valor da própria semana (marcado no nome do
-    # arquivo); 'evolucao' = regra padrão, evolução sobre a semana anterior.
-    nomes = [arquivo] + [p.name for p in (file_path, outro_path) if p is not None]
-    criterio = 'nivel' if any(cr.criterio_do_nome(n) == 'nivel' for n in nomes) else 'evolucao'
-    # Mesma regra de calculo_rapido.carregar_tudo: indicador publicado só na
-    # semana atual não tem evolução para calcular, então vale pelo nível.
-    if criterio == 'evolucao' and slots and slots.get("atual") and not slots.get("anterior"):
-        criterio = 'nivel'
+    # 'nivel' = o gol vale pelo valor da própria semana ('share da semana' no
+    # nome do arquivo, ou ausência da semana anterior); 'evolucao' = a regra
+    # padrão ('evolução semanal'). Mesma função do cálculo dos placares.
+    if slots:
+        criterio, _motivo = cr.criterio_do_indicador(arquivo, slots.get("atual"), slots.get("anterior"))
+    else:
+        criterio = cr.criterio_do_nome(arquivo)
     return {"name": nome, "type": tipo, "criterio": criterio}
 
 
@@ -2724,13 +2725,25 @@ def _calcular_summary(semana):
         nome = cr.nome_limpo(arquivo)
         nivel = sem.get("criterio") == "nivel"
         if nivel:
+            motivo = sem.get("criterioMotivo")
+            if motivo == "evolucao_sem_base":
+                # O nome pede evolução, mas não há semana anterior para comparar:
+                # é provável um arquivo esquecido na pasta — vale a pena avisar.
+                msg = (f"{nome} está marcado como evolução semanal, mas não há arquivo "
+                       f"desse indicador na SEMANA ANTERIOR — sem base de comparação, o gol "
+                       f"está valendo pelo maior número na semana atual.")
+            elif motivo == "sem_base":
+                msg = (f"{nome} não tem arquivo na SEMANA ANTERIOR, então o gol é disputado "
+                       f"pelo valor da SEMANA ATUAL: vence quem tiver o maior número na semana.")
+            else:
+                msg = (f"{nome} é um share da semana: o gol é disputado pelo valor da SEMANA "
+                       f"ATUAL, não pela evolução — vence quem tiver o maior número na semana. "
+                       f"A base da semana anterior não é usada.")
             avisos.append({
                 "tipo": "criterio",
                 "indicador": nome,
                 "semana": f"rodada {semana}",
-                "mensagem": f"{nome} está sendo disputado pelo valor da SEMANA ATUAL, "
-                            f"não pela evolução: vence o gol quem tiver o maior número "
-                            f"na semana. A base da semana anterior não é usada."
+                "mensagem": msg
             })
         for rotulo, chave in (("semana anterior", "anterior"), ("semana atual", "atual")):
             lojas = sem.get(chave) or {}

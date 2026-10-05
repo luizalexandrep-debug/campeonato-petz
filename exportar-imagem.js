@@ -87,12 +87,9 @@ function expValor(v, tipo) {
 }
 
 function expNome(arquivo) {
-    if (typeof nomeIndicador === 'function') return nomeIndicador(arquivo);
-    let n = String(arquivo || '').replace(/\.xlsx$/i, '');
-    ['(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EVOLUÇÃO)'].forEach(m => {
-        n = n.replace(new RegExp(m.replace(/[()]/g, '\\$&'), 'ig'), '');
-    });
-    return n.replace(/\s+/g, ' ').trim();
+    // A regra dos marcadores no nome do arquivo mora em indicador-nome.js.
+    return typeof nomeIndicador === 'function'
+        ? nomeIndicador(arquivo) : String(arquivo || '').replace(/\.xlsx$/i, '');
 }
 
 function expFonte(tam, peso) {

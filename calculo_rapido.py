@@ -9,6 +9,7 @@ reprocessamento no servidor.
 import math
 import os
 import re
+import unicodedata
 from pathlib import Path
 from difflib import SequenceMatcher
 import openpyxl
@@ -20,14 +21,25 @@ DIAS_ORDENADOS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom']
 # Chave onde guardamos o valor da coluna 'Total' da planilha (não é um dia).
 CHAVE_TOTAL = '__total__'
 
-# Gols disputados por NÍVEL em vez de evolução.
+# COMO O GOL É DISPUTADO, DITO NO NOME DO ARQUIVO
 #
-# A regra padrão do campeonato é evolução percentual sobre a semana anterior.
-# Em algumas rodadas um indicador vale pelo valor da própria semana — o share
-# de PIX da rodada 9, por exemplo. Marcamos isso no nome do arquivo da SEMANA
-# ATUAL ('SHARE PIX (ATUAL).xlsx'), porque assim a regra fica visível no
-# próprio SharePoint e não se confunde com uma base que subiu zerada por erro.
-MARCADORES_NIVEL = ('(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EVOLUÇÃO)')
+# A regra padrão do campeonato é a evolução percentual sobre a semana anterior.
+# Em algumas rodadas um indicador vale pelo valor da própria semana (o share de
+# Clubz, o share de PIX). Quem sobe a planilha diz qual é o caso no próprio nome
+# do arquivo da SEMANA ATUAL, que fica visível no SharePoint e não se confunde
+# com uma base que subiu zerada por erro:
+#
+#   "<indicador> evolução semanal"   semana atual contra a anterior (o padrão)
+#   "<indicador> share da semana"    vence quem tiver o maior valor na semana atual
+#
+# Maiúsculas, acentos e parênteses não importam. Os marcadores antigos seguem
+# valendo: (ATUAL), (NIVEL)/(NÍVEL), (SEM EVOLUCAO) e a palavra NÍVEL solta.
+_RE_NIVEL = (
+    re.compile(r'\(?\bSHARE\s+DA\s+SEMANA\b\)?', re.I),
+    re.compile(r'\((?:ATUAL|N[IÍ]VEL|SEM\s+EVOLU[CÇ][AÃ]O)\)', re.I),
+    re.compile(r'\bN[IÍ]VEL\b', re.I),
+)
+_RE_EVOLUCAO = re.compile(r'\(?\bEVOLU[CÇ][AÃ]O\s+SEMANAL\b\)?', re.I)
 
 # Lojas eliminadas do campeonato. Elas continuam no calendário, mas o resultado
 # é administrativo: perdem todos os 6 gols em toda rodada, independentemente do
@@ -69,18 +81,57 @@ def sigla_atual(sigla):
     return SIGLAS_RENOMEADAS.get(s.upper(), s)
 
 
+def _nfc(t):
+    """Nome na forma composta: o macOS/OneDrive às vezes devolve 'ç' como 'c' +
+    cedilha solta, e o 'evolução' digitado deixaria de casar."""
+    return unicodedata.normalize('NFC', str(t or ''))
+
+
+def marcador_explicito(nome):
+    """'nivel', 'evolucao' ou None (sem marcador) a partir do nome do arquivo."""
+    alvo = _nfc(nome)
+    if any(r.search(alvo) for r in _RE_NIVEL):
+        return 'nivel'
+    if _RE_EVOLUCAO.search(alvo):
+        return 'evolucao'
+    return None
+
+
 def criterio_do_nome(nome):
-    """'nivel' se o nome do arquivo traz um dos marcadores; senão 'evolucao'."""
-    alvo = str(nome).upper()
-    return 'nivel' if any(m in alvo for m in MARCADORES_NIVEL) else 'evolucao'
+    """'nivel' se o nome do arquivo pede disputa pelo valor da semana; senão
+    'evolucao'. Só olha o nome — para o critério de um indicador de verdade use
+    criterio_do_indicador, que também considera a existência da semana anterior."""
+    return 'nivel' if marcador_explicito(nome) == 'nivel' else 'evolucao'
+
+
+def criterio_do_indicador(arquivo, atual=None, anterior=None):
+    """Critério do gol de um indicador: ('nivel' | 'evolucao', motivo).
+
+    Quem decide é o arquivo da SEMANA ATUAL: ele fala da rodada em curso, e o
+    nome do arquivo da semana passada pode carregar o critério da rodada passada
+    (ex.: 'share da semana' de ontem, 'evolução semanal' hoje). Sem arquivo
+    atual (rodada sendo preparada) vale o nome do arquivo anterior.
+
+    Sem base de comparação não há evolução para calcular — nem quando o nome pede
+    'evolução semanal' —, então o gol vale pelo valor da semana atual.
+    motivo: 'marcador' | 'sem_base' | 'evolucao_sem_base' | 'padrao'
+    """
+    fonte = atual.name if atual is not None else (anterior.name if anterior is not None else arquivo)
+    marcado = marcador_explicito(fonte)
+    sem_base = atual is not None and anterior is None
+    if marcado == 'nivel':
+        return 'nivel', 'marcador'
+    if marcado == 'evolucao':
+        return ('nivel', 'evolucao_sem_base') if sem_base else ('evolucao', 'marcador')
+    return ('nivel', 'sem_base') if sem_base else ('evolucao', 'padrao')
 
 
 def nome_limpo(arquivo):
-    """Nome do indicador para exibição, sem a extensão e sem o marcador."""
-    nome = str(arquivo).rsplit('.', 1)[0]
-    for m in MARCADORES_NIVEL:
-        nome = re.sub(re.escape(m), '', nome, flags=re.IGNORECASE)
-    return ' '.join(nome.split()).strip()
+    """Nome do indicador para exibição: sem a extensão e sem os marcadores."""
+    nome = re.sub(r'\.xlsx$', '', _nfc(arquivo), flags=re.I)
+    for r in _RE_NIVEL + (_RE_EVOLUCAO,):
+        nome = r.sub(' ', nome)
+    return re.sub(r'\s+', ' ', nome).strip(' -–_:')
 
 
 def _listar_xlsx(semana_path):
@@ -90,8 +141,10 @@ def _listar_xlsx(semana_path):
 
 
 def _chave(nome_arquivo):
-    base = nome_arquivo.rsplit(".", 1)[0].upper()
-    return re.sub(r"[^A-Z0-9]", "", base)
+    """Chave de pareamento entre semanas. Ignora os marcadores de critério: o
+    'SHARE CLUBZ share da semana' desta semana tem que casar com o
+    'SHARE CLUBZ evolução semanal' (ou sem marcador) da semana passada."""
+    return re.sub(r"[^A-Z0-9]", "", nome_limpo(nome_arquivo).upper())
 
 
 def _similaridade(nome_a, nome_b):
@@ -440,19 +493,11 @@ def carregar_tudo(semana_anterior, semana_atual):
     for arquivo, slots in mapa.items():
         # Tipo detectado do arquivo (prefere a semana atual)
         tipo = detectar_tipo(slots.get("atual") or slots.get("anterior"))
-        # O marcador vale em qualquer um dos dois arquivos: assim dá para
-        # deixar a rodada configurada antes de a semana atual começar a subir.
-        nomes = [arquivo] + [f.name for f in (slots.get("atual"), slots.get("anterior")) if f]
-        criterio = 'nivel' if any(criterio_do_nome(n) == 'nivel' for n in nomes) else 'evolucao'
-        # Sem arquivo na semana anterior não existe evolução para calcular: o
-        # gol vale pelo maior valor da semana atual. Vale como regra, não só
-        # como conserto — é o que a rodada quer dizer quando publica um
-        # indicador só na semana corrente, sem base de comparação.
-        if criterio == 'evolucao' and slots.get("atual") and not slots.get("anterior"):
-            criterio = 'nivel'
+        criterio, motivo = criterio_do_indicador(arquivo, slots.get("atual"), slots.get("anterior"))
+        if motivo in ('sem_base', 'evolucao_sem_base'):
             print(f"ℹ️ {nome_limpo(arquivo)}: sem semana anterior — vale pelo nível da semana atual")
         memoria[arquivo] = {"anterior": {}, "atual": {}, "tipo": tipo,
-                            "criterio": criterio}
+                            "criterio": criterio, "criterioMotivo": motivo}
         for semana_type in ("anterior", "atual"):
             fp = slots.get(semana_type)
             if fp:

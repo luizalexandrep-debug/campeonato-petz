@@ -15,14 +15,12 @@ const sim = {
 
 const simChave = (loja, ind, dia) => `${loja}|${ind}|${dia}`;
 
-// A tela de grupos não tem criterioDoNome; o critério vem do próprio dado e,
-// na falta dele, do marcador no nome do arquivo.
-const SIM_MARCADORES_NIVEL = ['(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EVOLUÇÃO)'];
+// O critério vem pronto do servidor junto com os dados do indicador; só na falta
+// dele cai para o marcador no nome do arquivo (indicador-nome.js).
 function simCriterio(ind, bloco) {
     const c = bloco?.atual?.criterio || bloco?.anterior?.criterio;
     if (c) return c;
-    const alvo = String(ind || '').toUpperCase();
-    return SIM_MARCADORES_NIVEL.some(m => alvo.includes(m)) ? 'nivel' : 'evolucao';
+    return typeof criterioDoNome === 'function' ? criterioDoNome(ind) : 'evolucao';
 }
 
 /* Valor de um dia. Só a SEMANA ATUAL é editável — a anterior é a base de
