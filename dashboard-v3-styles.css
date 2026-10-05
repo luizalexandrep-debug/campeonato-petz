@@ -2478,7 +2478,7 @@ body {
 
 /* Aviso flutuante do resultado do Reprocessar */
 .ed-aviso {
-    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 9000;
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9000;
     max-width: min(720px, calc(100vw - 32px)); display: flex; gap: 14px; align-items: flex-start;
     padding: 12px 16px; border-radius: 12px; font-size: .92em; line-height: 1.4;
     box-shadow: 0 14px 34px rgba(16,24,40,.28); color: #14532d; background: #dcfce7; border: 1px solid #86efac;
