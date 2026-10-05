@@ -55,6 +55,26 @@ function misSituacao(m) {
              rotulo: ok ? 'Cumprindo a missão' : 'Não está cumprindo' };
 }
 
+/* Missões agrupadas por distrital, na ordem em que aparecem na tela — a página
+   e a imagem copiada leem daqui para nunca divergirem. Dentro de cada
+   distrital, as que não estão cumprindo vêm primeiro. */
+function misGrupos() {
+    const lista = Object.values(missoes.porLoja);
+    const comSit = lista.map(m => ({ m, s: misSituacao(m) }));
+    const conta = (e) => comSit.filter(x => x.s.estado === e).length;
+    const porDist = {};
+    comSit.forEach(x => (porDist[x.m.distrito || 'Sem distrito'] ||= []).push(x));
+    const ordem = { nao: 0, sem: 1, ok: 2 };
+    const grupos = Object.entries(porDist)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([dist, itens]) => {
+            itens.sort((x, y) => ordem[x.s.estado] - ordem[y.s.estado]
+                || x.m.loja.localeCompare(y.m.loja));
+            return { dist, itens, ok: itens.filter(x => x.s.estado === 'ok').length };
+        });
+    return { grupos, resumo: { ok: conta('ok'), nao: conta('nao'), sem: conta('sem'), total: lista.length } };
+}
+
 function misDesenhar() {
     const lista = Object.values(missoes.porLoja);
     document.getElementById('subtitulo').textContent =
@@ -69,25 +89,17 @@ function misDesenhar() {
         return;
     }
 
-    const comSit = lista.map(m => ({ m, s: misSituacao(m) }));
-    const n = (e) => comSit.filter(x => x.s.estado === e).length;
+    const { resumo: n, grupos } = misGrupos();
     document.getElementById('placarGeral').innerHTML = `
         <div class="mis-resumo">
-            <div class="mis-card ok"><span>${n('ok')}</span>cumprindo</div>
-            <div class="mis-card nao"><span>${n('nao')}</span>não cumprindo</div>
-            ${n('sem') ? `<div class="mis-card sem"><span>${n('sem')}</span>aguardando</div>` : ''}
-            <div class="mis-card total"><span>${lista.length}</span>missões</div>
+            <div class="mis-card ok"><span>${n.ok}</span>cumprindo</div>
+            <div class="mis-card nao"><span>${n.nao}</span>não cumprindo</div>
+            ${n.sem ? `<div class="mis-card sem"><span>${n.sem}</span>aguardando</div>` : ''}
+            <div class="mis-card total"><span>${n.total}</span>missões</div>
         </div>`;
 
-    // Agrupa por distrital; dentro, as que não estão cumprindo primeiro.
-    const porDist = {};
-    comSit.forEach(x => (porDist[x.m.distrito || 'Sem distrito'] ||= []).push(x));
-    const ordem = { nao: 0, sem: 1, ok: 2 };
-    const blocos = Object.entries(porDist)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([dist, itens]) => {
-            itens.sort((x, y) => ordem[x.s.estado] - ordem[y.s.estado] || x.m.loja.localeCompare(y.m.loja));
-            const ok = itens.filter(x => x.s.estado === 'ok').length;
+    const blocos = grupos
+        .map(({ dist, itens, ok }) => {
             return `<section class="mis-dist">
                 <div class="mis-dist-head">
                     <b>${dist}</b>

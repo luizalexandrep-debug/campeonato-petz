@@ -56,16 +56,25 @@ function psRegionalDe(loja, estrutura) {
     return '';
 }
 
-/* Asterisco ao lado da sigla — só para lojas da regional com mudança. */
-function asteriscoMudanca(loja, estrutura) {
-    if (psRegionalDe(loja, estrutura) !== PS_REGIONAL) return '';
+/* 'piorou' | 'melhorou' | null — a regra do asterisco, sem HTML, para a tela e
+   a imagem usarem a mesma. Só vale para lojas da regional em destaque. */
+function asteriscoEstado(loja, estrutura) {
+    if (psRegionalDe(loja, estrutura) !== PS_REGIONAL) return null;
     const m = psMudou(loja);
-    if (!m) return '';
+    if (!m) return null;
     // Vermelho: ontem ganhava, hoje empata ou perde. Verde: ontem perdia, hoje
     // empata ou ganha. Mudança a partir de um empate não marca.
-    const piorou = m.ontem.res === 'V';
-    const melhorou = m.ontem.res === 'D';
-    if (!piorou && !melhorou) return '';
+    if (m.ontem.res === 'V') return 'piorou';
+    if (m.ontem.res === 'D') return 'melhorou';
+    return null;
+}
+
+/* Asterisco ao lado da sigla — só para lojas da regional com mudança. */
+function asteriscoMudanca(loja, estrutura) {
+    const estado = asteriscoEstado(loja, estrutura);
+    if (!estado) return '';
+    const m = psMudou(loja);
+    const piorou = estado === 'piorou';
     return `<span class="ps-ast ${piorou ? 'piorou' : 'melhorou'}"
         title="Mudou de ontem (${m.ontem.dia}) para hoje (${m.hoje.dia}): projetava ${m.ontem.gm} x ${m.ontem.gs} (${PS_NOME_RES[m.ontem.res]}), agora ${m.hoje.gm} x ${m.hoje.gs} (${PS_NOME_RES[m.hoje.res]})">*</span>`;
 }
