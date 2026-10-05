@@ -81,6 +81,7 @@ async function estadoDadosAtualizar() {
     estadoDados.buscando = true;
     try {
         estadoDados.atual = await edBuscar(semana);
+        estadoDados.lidoEm = Date.now();
         edRender();
     } catch (e) {
         console.warn('estado dos dados indisponível', e);
@@ -106,6 +107,12 @@ function estadoDadosIniciar(semanaFn) {
             .appendChild(el);
         estadoDados.el = el;
         window.addEventListener('petz:rodada', () => estadoDadosAtualizar());
+        // Aba que ficou em segundo plano não relê; ao voltar, confere na hora
+        // em vez de mostrar um estado que pode ter ficado velho.
+        document.addEventListener('visibilitychange', () => {
+            const velho = !estadoDados.atual || (Date.now() - (estadoDados.lidoEm || 0)) > 60000;
+            if (!document.hidden && velho) estadoDadosAtualizar();
+        });
     }
     estadoDadosAtualizar();
 }
