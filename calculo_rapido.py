@@ -37,10 +37,11 @@ MARCADORES_NIVEL = ('(ATUAL)', '(NIVEL)', '(NÍVEL)', '(SEM EVOLUCAO)', '(SEM EV
 #
 # Para mexer sem alterar o código, use a variável de ambiente LOJAS_ELIMINADAS
 # com as siglas separadas por vírgula.
-# Eliminadas até a rodada 11. A classificação oficial zera pontos e gols
-# marcados de todas elas, retroativamente — foi assim com o W3NT-DF e foi
-# assim com as cinco que saíram no encerramento da rodada 11.
-_ELIMINADAS_PADRAO = 'W3NT-DF,ACLR-DF,ASTS-SP,JPES-PB,SCBA-SP,SMBA-DF'
+# Eliminadas. A classificação oficial zera pontos e gols marcados de todas
+# elas, retroativamente — foi assim com o W3NT-DF, com as cinco que saíram no
+# encerramento da rodada 11 e vai ser assim com PCBU-SP e JJAU-SP (a
+# classificação da rodada 13 ainda traz as duas com pontos).
+_ELIMINADAS_PADRAO = 'W3NT-DF,ACLR-DF,ASTS-SP,JPES-PB,SCBA-SP,SMBA-DF,PCBU-SP,JJAU-SP'
 
 
 def lojas_eliminadas():
