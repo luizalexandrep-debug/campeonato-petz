@@ -1717,6 +1717,9 @@ function abrirJogosDistrito(regional, distrito) {
     const ptsDele = linhas.reduce((t, l) => t + l.pts, 0);
     const emRisco = contra.reduce((t, l) => t + l.pts, 0);
     const conta = (r) => linhas.filter(l => l.resultado === r).length;
+    // 3 pontos por jogo em disputa (jogo sem dados não conta como disputado)
+    const ptsDisputados = contra.filter(l => !l.sem).length * 3;
+    const aprovContra = ptsDisputados ? (emRisco / ptsDisputados * 100).toFixed(1).replace('.', ',') : '0,0';
 
     const rotulo = { v: 'VENCENDO', e: 'EMPATANDO', d: 'PERDENDO', sem: 'SEM DADOS' };
 
@@ -1761,8 +1764,9 @@ function abrirJogosDistrito(regional, distrito) {
                 </div>
                 ${souEu ? (contra.length ? `
                 <div class="md-alvo">
-                    <b>⚔ ${contra.length} jogo(s) contra regionais adversárias</b>
-                    — hoje o ${distrito} soma <b>${emRisco} ponto(s)</b> neles.
+                    ⚔ Dos <b>${ptsDisputados} pontos</b> disputados contra regionais adversárias
+                    (${contra.length} jogo(s)), o ${distrito} está ganhando
+                    <b>${emRisco} ponto(s)</b>, com aproveitamento de <b>${aprovContra}%</b>.
                     Os jogos entre lojas da ${REGIONAL_DESTAQUE} (sem destaque) só
                     trocam pontos entre vocês.
                 </div>` : `<div class="md-alvo neutro">
@@ -1770,11 +1774,9 @@ function abrirJogosDistrito(regional, distrito) {
                     todos são entre lojas da ${REGIONAL_DESTAQUE}.</div>`)
                 : (contra.length ? `
                 <div class="md-alvo">
-                    <b>⚔ ${contra.length} jogo(s) contra a ${REGIONAL_DESTAQUE}</b>
-                    — hoje eles somam <b>${emRisco} ponto(s)</b> para o ${distrito}.
-                    ${emRisco > 0
-                        ? `Virar esses jogos tira até <b>${emRisco} ponto(s)</b> dele.`
-                        : 'Sua regional já está segurando todos eles.'}
+                    ⚔ Dos <b>${ptsDisputados} pontos</b> disputados contra o ${distrito}
+                    (${contra.length} jogo(s) da ${REGIONAL_DESTAQUE}), ele está ganhando
+                    <b>${emRisco} ponto(s)</b>, com aproveitamento de <b>${aprovContra}%</b>.
                 </div>` : `<div class="md-alvo neutro">
                     Nenhum jogo contra a ${REGIONAL_DESTAQUE} nesta rodada — só dá para
                     ganhar terreno pontuando mais nos jogos das suas lojas.</div>`)}
