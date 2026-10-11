@@ -3,7 +3,7 @@ Backend Flask - Campeonato Petz 2026
 Integração com dados de Semana Anterior e Semana Atual
 """
 
-from flask import Flask, jsonify, request, send_from_directory, session
+from flask import Flask, Response, jsonify, request, send_from_directory, session
 from flask_cors import CORS
 from flask_login import login_user, logout_user, login_required, current_user
 import shutil
@@ -63,10 +63,16 @@ init_db(app)
 
 @app.after_request
 def _sem_cache_api(resp):
-    """Impede navegador/CDN de servir respostas de API em cache (dados mudam)."""
+    """Impede navegador/CDN de servir respostas de API em cache (dados mudam).
+    Script/estilo pedido com ?v=<versão> é imutável: o endereço muda a cada
+    deploy, então pode ficar em cache por um ano — e o navegador deixa de
+    revalidar cada arquivo (cada revalidação seria uma chamada à função)."""
     if request.path.startswith('/api/'):
         resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         resp.headers['Pragma'] = 'no-cache'
+    elif (request.args.get('v') and resp.status_code == 200
+          and request.path.endswith(('.js', '.css'))):
+        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
     return resp
 
 # Configuração de caminhos
@@ -3184,14 +3190,47 @@ def delete_usuario(usuario_id):
 
 STATIC_DIR = str(Path(__file__).parent)
 
+
+def _versao_estaticos():
+    """Identificador do deploy, usado como ?v= nos scripts e estilos. Na Vercel
+    é o commit/deploy; fora dela, o mtime mais recente dos arquivos."""
+    v = (os.environ.get('VERCEL_GIT_COMMIT_SHA') or os.environ.get('VERCEL_DEPLOYMENT_ID') or '').strip()
+    if v:
+        return v[:12]
+    try:
+        t = max((f.stat().st_mtime_ns for ext in ('*.js', '*.css', '*.html')
+                 for f in Path(STATIC_DIR).glob(ext)), default=0)
+    except OSError:
+        t = 0
+    return format(t, 'x')[-12:] or '0'
+
+
+_VERSAO_ESTATICOS = _versao_estaticos()
+_RE_ASSET_HTML = re.compile(r'''((?:src|href)=["'])([^"':?#]+\.(?:js|css))(["'])''', re.I)
+
+
+def _html_versionado(nome):
+    """Página HTML com ?v=<deploy> nos scripts e estilos locais. A página em si
+    nunca fica em cache; os arquivos que ela cita, sim, até o próximo deploy."""
+    caminho = Path(STATIC_DIR) / nome
+    texto = caminho.read_text(encoding='utf-8')
+    texto = _RE_ASSET_HTML.sub(
+        lambda m: f"{m.group(1)}{m.group(2)}?v={_VERSAO_ESTATICOS}{m.group(3)}", texto)
+    resp = Response(texto, mimetype='text/html')
+    resp.headers['Cache-Control'] = 'no-cache'
+    return resp
+
+
 @app.route('/')
 def index():
     """Serve a página principal do dashboard"""
-    return send_from_directory(STATIC_DIR, 'dashboard-v3.html')
+    return _html_versionado('dashboard-v3.html')
 
 @app.route('/<path:filename>')
 def serve_static(filename):
     """Serve arquivos estáticos (CSS, JS, etc)"""
+    if filename.endswith('.html') and '/' not in filename and (Path(STATIC_DIR) / filename).is_file():
+        return _html_versionado(filename)
     return send_from_directory(STATIC_DIR, filename)
 
 # ============================================================
