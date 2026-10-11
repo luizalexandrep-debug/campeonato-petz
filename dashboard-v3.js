@@ -1778,7 +1778,6 @@ function abrirJogosDistrito(regional, distrito) {
                 <div class="mm-ext" style="width:${pctExt.toFixed(1)}%" title="Jogos contra outras regionais">${ptsExt ? `${f2(ptsExt / n)} · outras regionais (${plPt(ptsExt, 'pt', 'pts')})` : ''}</div>
                 <div class="mm-int" style="width:${(100 - pctExt).toFixed(1)}%" title="Jogos entre lojas da própria regional">${ptsInt ? `${f2(ptsInt / n)} · entre lojas da ${REGIONAL_DESTAQUE} (${plPt(ptsInt, 'pt', 'pts')})` : ''}</div>
             </div>
-            <div class="mm-nota">Os jogos entre lojas da ${REGIONAL_DESTAQUE} só trocam pontos entre vocês; o que compete com os concorrentes é a parte azul.</div>
 
             <div class="mm-sec">2. Nos ${plPt(ext.length, 'jogo', 'jogos')} contra outras regionais: ${ptsExt} de ${disputados} pts (${aprov}%)</div>
             <div class="mm-cards">
@@ -1839,6 +1838,7 @@ function abrirJogosDistrito(regional, distrito) {
                     <b>${distrito}</b>
                     <small>${regional} · ${lojasQueJogam(lojas).length} lojas · rodada ${state.semana}</small>
                 </div>
+                <button class="modal-btn" data-copiar-janela title="Copiar a janela como imagem para compartilhar">📋 Copiar imagem</button>
                 <button class="modal-btn" data-fechar>✕ Fechar</button>
             </div>
             <div class="modal-corpo">

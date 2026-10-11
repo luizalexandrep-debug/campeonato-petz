@@ -455,7 +455,6 @@ function desenharPainel() {
                 <div class="mm-ext" style="width:${pctExt.toFixed(1)}%" title="Jogos contra outras regionais">${ptsExt ? `${f2(ptsExt / n)} · outras regionais (${plPt(ptsExt, 'pt', 'pts')})` : ''}</div>
                 <div class="mm-int" style="width:${(100 - pctExt).toFixed(1)}%" title="Jogos entre lojas da própria regional">${ptsInt ? `${f2(ptsInt / n)} · entre lojas da ${MINHA} (${plPt(ptsInt, 'pt', 'pts')})` : ''}</div>
             </div>
-            <div class="mm-nota">Os jogos entre lojas da ${MINHA} só trocam pontos entre vocês; o que compete com os concorrentes é a parte azul.</div>
 
             <div class="mm-sec">2. Nos ${plPt(ext.length, 'jogo', 'jogos')} contra outras regionais: ${ptsExt} de ${disputados} pts (${aprov}%)</div>
             <div class="mm-cards">
@@ -525,6 +524,7 @@ function desenharPainel() {
         <div class="painel" role="dialog" aria-label="Jogos de ${dist}">
             <div class="painel-head">
                 <div><b>${dist}</b><br><small>${REGIONAL[dist]} · ${lojas.length} lojas · rodada ${SEMANA}</small></div>
+                <button class="bt" data-copiar-janela title="Copiar a janela como imagem para compartilhar">📋 Copiar imagem</button>
                 <button class="bt" data-fechar>✕ Fechar</button>
             </div>
             <div class="painel-corpo">

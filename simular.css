@@ -202,3 +202,5 @@ tr.contra-minha.linha-jogo:hover td { background: #f6ecd0; }
 .lojas-tab td, .lojas-tab th { white-space: nowrap; }
 
 @media (max-width: 1180px) { .duplas, .grupo { grid-template-columns: 1fr; } }
+
+.painel-head .bt + .bt { margin-left: 0; }
