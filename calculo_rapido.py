@@ -180,7 +180,30 @@ def mapear_indicadores(semana_anterior, semana_atual):
     return indicadores
 
 
+_TIPO_ARQ_CACHE = {}
+
+
 def detectar_tipo(file_path):
+    """Tipo do indicador ('%' ou 'R$'), com cache por (arquivo, data, tamanho).
+
+    A detecção abre a planilha duas vezes (valores e formato) e custa ~0,2 s de
+    CPU por arquivo; sem cache, cada requisição pagava isso para os ~12 arquivos
+    da rodada. O arquivo só muda quando é baixado de novo, e aí a chave muda.
+    """
+    if file_path is None:
+        return "R$"
+    chave = _chave_arquivo(file_path)
+    if chave is not None and chave in _TIPO_ARQ_CACHE:
+        return _TIPO_ARQ_CACHE[chave]
+    tipo = _detectar_tipo_bruto(file_path)
+    if chave is not None:
+        if len(_TIPO_ARQ_CACHE) >= 96:
+            _TIPO_ARQ_CACHE.pop(next(iter(_TIPO_ARQ_CACHE)), None)
+        _TIPO_ARQ_CACHE[chave] = tipo
+    return tipo
+
+
+def _detectar_tipo_bruto(file_path):
     """Detecta se o indicador é percentual ('%') ou monetário ('R$').
     1) Formato 100% percentual -> '%'; 2) senão os VALORES decidem (fração
     -> '%', centenas/milhares -> 'R$'); 3) sem valores, usa o formato.

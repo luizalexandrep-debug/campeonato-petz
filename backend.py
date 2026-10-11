@@ -167,7 +167,27 @@ MERGE_BASE = Path('/tmp/campeonato_merge')
 _merge_cache = {}
 
 
+_DATA_ARQ_CACHE = {}
+
+
 def _ultima_data_do_arquivo(caminho):
+    """Com cache por (arquivo, data de modificação, tamanho): abrir a planilha
+    custa CPU e o arquivo só muda quando é baixado de novo."""
+    try:
+        st = os.stat(caminho)
+        chave = (str(caminho), st.st_mtime_ns, st.st_size)
+    except OSError:
+        return _ultima_data_do_arquivo_bruta(caminho)
+    if chave in _DATA_ARQ_CACHE:
+        return _DATA_ARQ_CACHE[chave]
+    valor = _ultima_data_do_arquivo_bruta(caminho)
+    if len(_DATA_ARQ_CACHE) >= 96:
+        _DATA_ARQ_CACHE.pop(next(iter(_DATA_ARQ_CACHE)), None)
+    _DATA_ARQ_CACHE[chave] = valor
+    return valor
+
+
+def _ultima_data_do_arquivo_bruta(caminho):
     """Data mais recente com valor no arquivo, ou None se não der para saber.
 
     Comparar por dia da semana não basta: um arquivo que ficou com a data do
@@ -514,6 +534,22 @@ def _em_espera_throttle():
         return False
 
 
+_TTL_ASSIN = [None, None]       # [assinatura dos arquivos, TTL calculado]
+
+
+def _assinatura_arquivos(arquivos):
+    """Impressão digital barata de um conjunto de arquivos: nome, data e tamanho
+    (só um stat por arquivo, sem abrir nenhum)."""
+    sig = []
+    for f in arquivos:
+        try:
+            st = os.stat(f)
+            sig.append((f.name, st.st_mtime_ns, st.st_size))
+        except OSError:
+            sig.append((f.name, None, None))
+    return tuple(sig)
+
+
 def _ttl_efetivo():
     """Quanto tempo o /tmp desta instância vale antes de baixar de novo.
 
@@ -524,21 +560,27 @@ def _ttl_efetivo():
     metade novo e metade velho — e ficaria congelada assim por 15 minutos,
     mostrando indicadores "pendentes" que já estão lá.
 
-    Rebaixar mais cedo resolve esse caso. Quando o indicador está realmente
-    atrasado (o usuário ainda não subiu), o custo é só uma consulta a mais de
-    vez em quando.
+    Esta função roda no INÍCIO DE TODA REQUISIÇÃO. Antes ela relia todas as
+    planilhas (carregar_tudo: ~18 aberturas de Excel, ~1 s de CPU) a cada
+    chamada, o que estourou o limite de CPU do plano gratuito. Agora só olha os
+    arquivos da semana atual e guarda o resultado enquanto eles não mudarem.
     """
     try:
         import calculo_rapido as cr
         sem = semana_atual()
-        memoria = cr.carregar_tudo(dir_anterior(sem), dir_atual(sem))
+        arquivos = _listar_xlsx(dir_atual(sem))
+        assin = _assinatura_arquivos(arquivos)
+        if _TTL_ASSIN[0] == assin:
+            return _TTL_ASSIN[1]
         ultimos = set()
-        for _arq, s in memoria.items():
+        for f in arquivos:
+            dados = cr._carregar_arquivo(f)          # já tem cache por data/tamanho
             dias = [d for d in cr.DIAS_ORDENADOS
-                    if any((v or {}).get(d) for v in (s.get("atual") or {}).values())]
+                    if any((v or {}).get(d) for v in dados.values())]
             ultimos.add(dias[-1] if dias else None)
-        if len(ultimos) > 1:
-            return TTL_INCOMPLETO
+        ttl = TTL_INCOMPLETO if len(ultimos) > 1 else CACHE_TTL_SEGUNDOS
+        _TTL_ASSIN[0], _TTL_ASSIN[1] = assin, ttl
+        return ttl
     except Exception:
         pass
     return CACHE_TTL_SEGUNDOS
@@ -1717,7 +1759,32 @@ def get_farol(semana):
         return jsonify({"error": str(e)}), 500
 
 
+_CONTEUDO_CACHE = {}
+
+
 def _assinatura_conteudo(semana):
+    """Com cache pela impressão digital (nome, data, tamanho) dos arquivos: ler e
+    hashear o conteúdo de ~12 planilhas a cada consulta do selo custava CPU à toa."""
+    try:
+        caminhos = []
+        for slots in mapear_indicadores(semana).values():
+            for slot in ("anterior", "atual"):
+                if slots.get(slot):
+                    caminhos.append(Path(slots[slot]))
+        conf = arquivo_confrontos(f"Semana {semana}.xlsx")
+        if conf and Path(conf).exists():
+            caminhos.append(Path(conf))
+        sig = (semana, _assinatura_arquivos(sorted(caminhos, key=lambda x: str(x))))
+    except Exception:
+        return _assinatura_conteudo_bruta(semana)
+    if sig not in _CONTEUDO_CACHE:
+        if len(_CONTEUDO_CACHE) >= 8:
+            _CONTEUDO_CACHE.pop(next(iter(_CONTEUDO_CACHE)), None)
+        _CONTEUDO_CACHE[sig] = _assinatura_conteudo_bruta(semana)
+    return _CONTEUDO_CACHE[sig]
+
+
+def _assinatura_conteudo_bruta(semana):
     """Hash do CONTEÚDO dos arquivos que o cálculo da rodada usa (indicadores
     das duas semanas e os confrontos). Duas instâncias com a mesma assinatura
     calculam exatamente os mesmos placares; comparar só as datas não pegaria um
