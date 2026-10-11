@@ -1715,6 +1715,8 @@ function abrirJogosDistrito(regional, distrito) {
 
     const contra = linhas.filter(l => l.destaque);
     const ptsDele = linhas.reduce((t, l) => t + l.pts, 0);
+    // pontuação média por jogo (jogo sem dados não entra na média)
+    const nJogosMedia = linhas.filter(l => !l.sem).length;
     const emRisco = contra.reduce((t, l) => t + l.pts, 0);
     const conta = (r) => linhas.filter(l => l.resultado === r).length;
     // 3 pontos por jogo em disputa (jogo sem dados não conta como disputado)
@@ -1773,7 +1775,7 @@ function abrirJogosDistrito(regional, distrito) {
                     <div class="md-card ${souEu ? 'bom' : 'ruim'}"><span>${conta('v')}</span>vencendo</div>
                     <div class="md-card"><span>${conta('e')}</span>empatando</div>
                     <div class="md-card ${souEu ? 'ruim' : 'bom'}"><span>${conta('d')}</span>perdendo</div>
-                    <div class="md-card total"><span>${ptsDele}</span>pontos na rodada</div>
+                    <div class="md-card total" title="${ptsDele} ponto(s) em ${nJogosMedia} jogo(s)"><span>${nJogosMedia ? (ptsDele / nJogosMedia).toFixed(2).replace('.', ',') : '0,00'}</span>pontuação média por jogo</div>
                 </div>
                 ${souEu ? (contra.length ? `
                 <div class="md-alvo">
