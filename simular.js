@@ -400,6 +400,19 @@ function desenharPainel() {
     const ptsDisputados = contra.length * 3;     // 3 pontos por jogo em disputa
     const aprovContra = ptsDisputados ? (emRisco / ptsDisputados * 100).toFixed(1).replace('.', ',') : '0,0';
 
+    // Peso dos jogos contra a minha regional na média do distrito adversário, e
+    // o quanto ela cai se a minha regional empatar ou virar esses jogos.
+    const f2 = (v) => v.toFixed(2).replace('.', ',');
+    const vencendoContra = contra.filter(l => l.resultado === 'v');
+    const impacto = (!souEu && contra.length && nJogosMedia) ? {
+        media: ptsDele / nJogosMedia,
+        parte: emRisco / nJogosMedia,                       // pontos da média que vêm desses jogos
+        pctPts: ptsDele ? emRisco / ptsDele * 100 : 0,
+        nVence: vencendoContra.length,
+        mediaEmpate: (ptsDele - 2 * vencendoContra.length) / nJogosMedia,
+        mediaVirar: (ptsDele - emRisco) / nJogosMedia
+    } : null;
+
     // Aproveitamento contra cada regional concorrente (distrito da minha regional)
     const porReg = {};
     contra.filter(l => !l.sem).forEach(l => {
@@ -484,6 +497,24 @@ function desenharPainel() {
                     Nenhum jogo contra a ${MINHA} nesta rodada — só dá para ganhar terreno
                     pontuando mais nos jogos das suas lojas.</div>`)}
 
+
+                ${impacto ? `
+                <div class="md-impacto">
+                    <div class="mi-tit">📉 Peso dos jogos contra a ${MINHA} na média do ${dist}</div>
+                    <div class="mi-grade">
+                        <div><span>${f2(impacto.media)}</span>média hoje</div>
+                        <div><span>${f2(impacto.parte)}</span>vem dos jogos contra a ${MINHA}
+                            <small>${emRisco} de ${ptsDele} pts · ${impacto.pctPts.toFixed(0)}% da pontuação</small></div>
+                        ${impacto.nVence ? `
+                        <div class="mi-cai"><span>${f2(impacto.mediaEmpate)}</span>se empatarmos os ${impacto.nVence} que ele vence
+                            <small>${f2(impacto.mediaEmpate - impacto.media)} na média</small></div>` : ''}
+                        ${emRisco > 0 ? `
+                        <div class="mi-cai"><span>${f2(impacto.mediaVirar)}</span>se virarmos todos
+                            <small>${f2(impacto.mediaVirar - impacto.media)} na média</small></div>` : `
+                        <div><span>—</span>nada a tirar
+                            <small>sua regional já segura todos</small></div>`}
+                    </div>
+                </div>` : ''}
                 <div class="md-legenda">
                     ${souEu ? 'Cores na ótica das suas lojas: verde é bom para você.'
                         : `Cores na <b>sua ótica</b>: como o ${dist} é adversário,
