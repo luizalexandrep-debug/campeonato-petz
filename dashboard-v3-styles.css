@@ -2501,3 +2501,30 @@ body {
 .md-impacto .mi-grade small { display: block; color: var(--text-3, #7a8399); margin-top: 2px; }
 .md-impacto .mi-cai span { color: var(--success, #2e7d4f); }
 .md-impacto .mi-cai small { color: var(--success, #2e7d4f); font-weight: 600; }
+
+.md-media {
+    background: var(--bg, #f6f7fb); border: 1px solid var(--border, #e2e6ef);
+    border-radius: var(--r-md, 10px); padding: 12px 14px; margin-bottom: 12px; font-size: .88em;
+}
+.md-media .mm-topo b { font-size: 1.8em; font-weight: 800; color: var(--text, #1a2238); }
+.md-media .mm-topo span { color: var(--text-2, #475069); }
+.md-media .mm-sec { font-weight: 700; margin: 14px 0 6px; color: var(--text, #1a2238); }
+.md-media .mm-nota { color: var(--text-3, #7a8399); font-size: .9em; margin-top: 6px; }
+.md-media .mm-barra { display: flex; height: 30px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border, #e2e6ef); }
+.md-media .mm-ext { background: #dbe8fa; color: #1c4a86; display: flex; align-items: center; padding: 0 10px; white-space: nowrap; overflow: hidden; }
+.md-media .mm-int { background: #fff; color: var(--text-2, #475069); display: flex; align-items: center; padding: 0 10px; white-space: nowrap; overflow: hidden; }
+.md-media .mm-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.md-media .mm-card { border-radius: 8px; padding: 8px 12px; line-height: 1.35; }
+.md-media .mm-card small, .md-media .mm-card b { display: block; }
+.md-media .mm-card b { font-size: 1.25em; font-weight: 800; }
+.md-media .mm-card.v { background: #e3f3e8; color: #1f6b3a; }
+.md-media .mm-card.e { background: #fdf1cf; color: #7a5a00; }
+.md-media .mm-card.d { background: #fbe4e4; color: #a12626; }
+.md-media .mm-cen { display: grid; grid-template-columns: 190px 1fr 56px; align-items: center; gap: 10px; padding: 4px 0; }
+.md-media .mm-cen.total { border-top: 1px solid var(--border, #e2e6ef); margin-top: 4px; padding-top: 8px; }
+.md-media .mm-rot small { display: block; color: var(--text-3, #7a8399); font-size: .86em; }
+.md-media .mm-trilho { display: flex; height: 18px; background: #fff; border: 1px solid var(--border, #e2e6ef); border-radius: 4px; overflow: hidden; }
+.md-media .mm-base { background: #b9c0d0; }
+.md-media .mm-ganho { background: #2e8b57; }
+.md-media .mm-cen b { text-align: right; }
+@media (max-width: 560px) { .md-media .mm-cen { grid-template-columns: 1fr 56px; } .md-media .mm-trilho { grid-column: 1 / -1; order: 3; } }

@@ -1739,6 +1739,61 @@ function abrirJogosDistrito(regional, distrito) {
         mediaVirar: (ptsDele - emRisco) / nJogosMedia
     } : null;
 
+    // Explicação visual da pontuação média (distrito da minha regional): de onde
+    // ela vem, o que empates e derrotas contra outras regionais custam e quanto
+    // sobe se a minha regional virar esses jogos.
+    const blocoMedia = (() => {
+        if (!souEu || !nJogosMedia) return '';
+        const ext = linhas.filter(l => !l.contraMim && !l.sem);
+        if (!ext.length) return '';
+        const n = nJogosMedia;
+        const media = ptsDele / n;
+        const ptsExt = ext.reduce((t, l) => t + l.pts, 0);
+        const ptsInt = ptsDele - ptsExt;
+        const cV = ext.filter(l => l.resultado === 'v').length;
+        const cE = ext.filter(l => l.resultado === 'e').length;
+        const cD = ext.filter(l => l.resultado === 'd').length;
+        const disputados = ext.length * 3;
+        const pctExt = ptsDele ? ptsExt / ptsDele * 100 : 0;
+        const aprov = (ptsExt / disputados * 100).toFixed(0);
+        const larg = (v) => Math.max(0, Math.min(100, v / 3 * 100)).toFixed(1);   // escala 0–3 pts por jogo
+        const cenarios = [
+            { rot: 'Empates viram vitória', det: `${plPt(cE, 'jogo', 'jogos')} · +${2 * cE} pts`, ganho: 2 * cE, ok: cE > 0 },
+            { rot: 'Derrotas viram empate', det: `${plPt(cD, 'jogo', 'jogos')} · +${cD} pts`, ganho: cD, ok: cD > 0 },
+            { rot: 'Derrotas viram vitória', det: `${plPt(cD, 'jogo', 'jogos')} · +${3 * cD} pts`, ganho: 3 * cD, ok: cD > 0 },
+            { rot: 'Tudo vira vitória', det: `${plPt(cE + cD, 'jogo', 'jogos')} · +${2 * cE + 3 * cD} pts`, ganho: 2 * cE + 3 * cD, ok: cE + cD > 0, total: true }
+        ].filter(c => c.ok);
+        const linhaCen = (rot, det, base, extra, valor, total) => `
+            <div class="mm-cen${total ? ' total' : ''}">
+                <span class="mm-rot">${rot}<small>${det}</small></span>
+                <div class="mm-trilho"><div class="mm-base" style="width:${larg(base)}%"></div>${extra ? `<div class="mm-ganho" style="width:${larg(extra)}%"></div>` : ''}</div>
+                <b>${f2(valor)}</b>
+            </div>`;
+        return `
+        <div class="md-media">
+            <div class="mm-topo"><b>${f2(media)}</b> <span>= ${plPt(ptsDele, 'ponto', 'pontos')} ÷ ${plPt(n, 'jogo', 'jogos')}</span></div>
+
+            <div class="mm-sec">1. De onde vem o ${f2(media)}</div>
+            <div class="mm-barra">
+                <div class="mm-ext" style="width:${pctExt.toFixed(1)}%" title="Jogos contra outras regionais">${ptsExt ? `${f2(ptsExt / n)} · outras regionais (${plPt(ptsExt, 'pt', 'pts')})` : ''}</div>
+                <div class="mm-int" style="width:${(100 - pctExt).toFixed(1)}%" title="Jogos entre lojas da própria regional">${ptsInt ? `${f2(ptsInt / n)} · entre lojas da ${REGIONAL_DESTAQUE} (${plPt(ptsInt, 'pt', 'pts')})` : ''}</div>
+            </div>
+            <div class="mm-nota">Os jogos entre lojas da ${REGIONAL_DESTAQUE} só trocam pontos entre vocês; o que compete com os concorrentes é a parte azul.</div>
+
+            <div class="mm-sec">2. Nos ${plPt(ext.length, 'jogo', 'jogos')} contra outras regionais: ${ptsExt} de ${disputados} pts (${aprov}%)</div>
+            <div class="mm-cards">
+                <div class="mm-card v"><small>${plPt(cV, 'vitória', 'vitórias')}</small><b>${plPt(3 * cV, 'pt', 'pts')}</b><small>já garantem ${f2(3 * cV / n)} da média</small></div>
+                <div class="mm-card e"><small>${plPt(cE, 'empate', 'empates')}</small><b>${cE} pts · deixou ${2 * cE}</b><small>custam ${f2(2 * cE / n)} na média</small></div>
+                <div class="mm-card d"><small>${plPt(cD, 'derrota', 'derrotas')}</small><b>0 pts · deixou ${3 * cD}</b><small>custam ${f2(3 * cD / n)} na média</small></div>
+            </div>
+
+            <div class="mm-sec">3. Quanto a média sobe se a gente virar</div>
+            ${linhaCen('Hoje', '', media, 0, media, false)}
+            ${cenarios.map(c => linhaCen(c.rot, c.det, media, c.ganho / n, media + c.ganho / n, c.total)).join('')}
+            <div class="mm-nota">Barras na escala de 0 a 3,00 (3 pontos por jogo). Cada cenário muda só os jogos citados; o resto fica como está.</div>
+        </div>`;
+    })();
+
     // Aproveitamento contra cada regional concorrente (distrito da minha regional)
     const porReg = {};
     contra.filter(l => !l.sem).forEach(l => {
@@ -1830,6 +1885,7 @@ function abrirJogosDistrito(regional, distrito) {
                             <small>sua regional já segura todos</small></div>`}
                     </div>
                 </div>` : ''}
+                ${blocoMedia}
                 <div class="md-legenda">
                     ${souEu ? 'Cores na ótica das suas lojas: verde é bom para você.'
                         : `Cores na <b>sua ótica</b>: como o ${distrito} é adversário,
