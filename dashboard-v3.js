@@ -1,3 +1,6 @@
+// Concordância: 1 jogo / 2 jogos; 0 e 2+ vão para o plural.
+function plPt(n, sing, plur) { return `${n} ${n === 1 ? sing : plur}`; }
+
 /**
  * Dashboard V3 - Visualização por Tabelas
  * Mostra confrontos de uma semana com dados dia a dia
@@ -1788,13 +1791,13 @@ function abrirJogosDistrito(regional, distrito) {
                     <div class="md-card ${souEu ? 'bom' : 'ruim'}"><span>${conta('v')}</span>vencendo</div>
                     <div class="md-card"><span>${conta('e')}</span>empatando</div>
                     <div class="md-card ${souEu ? 'ruim' : 'bom'}"><span>${conta('d')}</span>perdendo</div>
-                    <div class="md-card total" title="${ptsDele} ponto(s) em ${nJogosMedia} jogo(s)"><span>${nJogosMedia ? (ptsDele / nJogosMedia).toFixed(2).replace('.', ',') : '0,00'}</span>pontuação média por jogo</div>
+                    <div class="md-card total" title="${plPt(ptsDele, 'ponto', 'pontos')} em ${plPt(nJogosMedia, 'jogo', 'jogos')}"><span>${nJogosMedia ? (ptsDele / nJogosMedia).toFixed(2).replace('.', ',') : '0,00'}</span>pontuação média por jogo</div>
                 </div>
                 ${souEu ? (contra.length ? `
                 <div class="md-alvo">
                     ⚔ Dos <b>${ptsDisputados} pontos</b> disputados contra regionais adversárias
-                    (${contra.length} jogo(s)), o ${distrito} está ganhando
-                    <b>${emRisco} ponto(s)</b>, com aproveitamento de <b>${aprovContra}%</b>.
+                    (${plPt(contra.length, 'jogo', 'jogos')}), o ${distrito} está ganhando
+                    <b>${plPt(emRisco, 'ponto', 'pontos')}</b>, com aproveitamento de <b>${aprovContra}%</b>.
                     <br>Por regional: ${detalheReg}.
                     <br>Os jogos entre lojas da ${REGIONAL_DESTAQUE} (sem destaque) só
                     trocam pontos entre vocês.
@@ -1804,8 +1807,8 @@ function abrirJogosDistrito(regional, distrito) {
                 : (contra.length ? `
                 <div class="md-alvo">
                     ⚔ Dos <b>${ptsDisputados} pontos</b> disputados contra o ${distrito}
-                    (${contra.length} jogo(s) da ${REGIONAL_DESTAQUE}), ele está ganhando
-                    <b>${emRisco} ponto(s)</b>, com aproveitamento de <b>${aprovContra}%</b>.
+                    (${plPt(contra.length, 'jogo', 'jogos')} da ${REGIONAL_DESTAQUE}), ele está ganhando
+                    <b>${plPt(emRisco, 'ponto', 'pontos')}</b>, com aproveitamento de <b>${aprovContra}%</b>.
                 </div>` : `<div class="md-alvo neutro">
                     Nenhum jogo contra a ${REGIONAL_DESTAQUE} nesta rodada — só dá para
                     ganhar terreno pontuando mais nos jogos das suas lojas.</div>`)}
@@ -1816,12 +1819,12 @@ function abrirJogosDistrito(regional, distrito) {
                     <div class="mi-grade">
                         <div><span>${f2(impacto.media)}</span>média hoje</div>
                         <div><span>${f2(impacto.parte)}</span>vem dos jogos contra a ${REGIONAL_DESTAQUE}
-                            <small>${emRisco} de ${ptsDele} pts · ${impacto.pctPts.toFixed(0)}% da pontuação</small></div>
+                            <small>${emRisco} de ${ptsDele} ${ptsDele === 1 ? 'ponto' : 'pontos'} · ${impacto.pctPts.toFixed(0)}% da pontuação</small></div>
                         ${impacto.nVence ? `
-                        <div class="mi-cai"><span>${f2(impacto.mediaEmpate)}</span>se empatarmos os ${impacto.nVence} que ele vence
+                        <div class="mi-cai"><span>${f2(impacto.mediaEmpate)}</span>${impacto.nVence === 1 ? 'se empatarmos o jogo que ele vence' : `se empatarmos os ${impacto.nVence} jogos que ele vence`}
                             <small>${f2(impacto.mediaEmpate - impacto.media)} na média</small></div>` : ''}
                         ${emRisco > 0 ? `
-                        <div class="mi-cai"><span>${f2(impacto.mediaVirar)}</span>se virarmos todos
+                        <div class="mi-cai"><span>${f2(impacto.mediaVirar)}</span>${contra.length === 1 ? 'se virarmos o jogo' : 'se virarmos todos'}
                             <small>${f2(impacto.mediaVirar - impacto.media)} na média</small></div>` : `
                         <div><span>—</span>nada a tirar
                             <small>sua regional já segura todos</small></div>`}
