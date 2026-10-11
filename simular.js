@@ -382,14 +382,16 @@ function desenharPainel() {
         });
     }));
 
-    // Primeiro os jogos contra a minha regional e, dentro deles, os que ainda
-    // dá para virar — é a mesma ordem da janela do dashboard.
+    // Mesma regra da janela do dashboard: distrito adversário destaca os jogos
+    // contra a minha regional; distrito da minha regional destaca os jogos
+    // contra regionais concorrentes (entre lojas nossas só trocam pontos).
+    linhas.forEach(l => { l.destaque = souEu ? !l.contraMim : l.contraMim; });
     const ordem = { d: 0, e: 1, v: 2 };
-    linhas.sort((x, y) => (y.contraMim - x.contraMim)
+    linhas.sort((x, y) => (y.destaque - x.destaque)
         || (ordem[y.resultado] - ordem[x.resultado])
         || x.minha.localeCompare(y.minha));
 
-    const contra = linhas.filter(l => l.contraMim);
+    const contra = linhas.filter(l => l.destaque);
     const ptsDele = linhas.reduce((t, l) => t + l.pts, 0);
     const emRisco = contra.reduce((t, l) => t + l.pts, 0);
     const conta = (r) => linhas.filter(l => l.resultado === r).length;
@@ -405,7 +407,7 @@ function desenharPainel() {
     const rProj = proj.find(x => x.dist === dist), rEdi = edi.find(x => x.dist === dist);
 
     const corpo = linhas.map(l => `
-        <tr class="${l.contraMim ? 'contra-minha' : ''} linha-jogo">
+        <tr class="${l.destaque ? 'contra-minha' : ''} linha-jogo">
             <td><b>${l.minha}</b></td>
             <td class="c placar-cel">
                 <span class="placar ${l.editado ? 'editado' : ''}">
@@ -445,7 +447,16 @@ function desenharPainel() {
                     <div class="md-card total"><span>${ptsDele}</span>pontos na rodada</div>
                 </div>
 
-                ${contra.length ? `
+                ${souEu ? (contra.length ? `
+                <div class="md-alvo">
+                    <b>⚔ ${contra.length} jogo(s) contra regionais adversárias</b>
+                    — hoje o ${dist} soma <b>${emRisco} ponto(s)</b> neles.
+                    Os jogos entre lojas da ${MINHA} (sem destaque) só trocam pontos
+                    entre vocês.
+                </div>` : `<div class="md-alvo neutro">
+                    Nenhum jogo do ${dist} contra outra regional nesta rodada —
+                    todos são entre lojas da ${MINHA}.</div>`)
+                : (contra.length ? `
                 <div class="md-alvo">
                     <b>⚔ ${contra.length} jogo(s) contra a ${MINHA}</b>
                     — hoje eles somam <b>${emRisco} ponto(s)</b> para o ${dist}.
@@ -454,7 +465,7 @@ function desenharPainel() {
                         : 'Sua regional já está segurando todos eles.'}
                 </div>` : `<div class="md-alvo neutro">
                     Nenhum jogo contra a ${MINHA} nesta rodada — só dá para ganhar terreno
-                    pontuando mais nos jogos das suas lojas.</div>`}
+                    pontuando mais nos jogos das suas lojas.</div>`)}
 
                 <div class="md-legenda">
                     ${souEu ? 'Cores na ótica das suas lojas: verde é bom para você.'

@@ -1699,15 +1699,21 @@ function abrirJogosDistrito(regional, distrito) {
         };
     });
 
-    // primeiro os jogos contra a minha regional, e dentro deles os que ainda
-    // dão para virar (onde o distrito adversário está ganhando)
+    const souEu = regional === REGIONAL_DESTAQUE;
+    // Distrito adversário: o que interessa são os jogos contra a MINHA regional
+    // (dá para tirar pontos de um concorrente). Distrito da minha própria
+    // regional: jogo entre lojas nossas só troca pontos entre nós — o que
+    // interessa são os jogos das lojas contra regionais concorrentes.
+    linhas.forEach(l => { l.destaque = souEu ? !l.contraMim : l.contraMim; });
+
+    // primeiro os jogos em destaque, e dentro deles os que ainda dão para
+    // virar (onde o distrito adversário está ganhando)
     const ordem = { d: 0, e: 1, v: 2, sem: 3 };
-    linhas.sort((x, y) => (y.contraMim - x.contraMim)
+    linhas.sort((x, y) => (y.destaque - x.destaque)
         || (ordem[y.resultado] - ordem[x.resultado])
         || x.minha.localeCompare(y.minha));
 
-    const souEu = regional === REGIONAL_DESTAQUE;
-    const contra = linhas.filter(l => l.contraMim);
+    const contra = linhas.filter(l => l.destaque);
     const ptsDele = linhas.reduce((t, l) => t + l.pts, 0);
     const emRisco = contra.reduce((t, l) => t + l.pts, 0);
     const conta = (r) => linhas.filter(l => l.resultado === r).length;
@@ -1723,7 +1729,7 @@ function abrirJogosDistrito(regional, distrito) {
     };
 
     const corpo = linhas.map((l, i) => `
-        <tr class="${l.contraMim ? 'contra-minha' : ''} linha-jogo"
+        <tr class="${l.destaque ? 'contra-minha' : ''} linha-jogo"
             onclick="abrirDetalhesJogo('${l.minha}','${l.adv}')" title="Ver os gols deste jogo">
             <td class="l"><b>${l.minha}</b></td>
             <td class="c placar ${corDe(l.resultado)}">${l.gm} × ${l.gs}</td>
@@ -1753,7 +1759,16 @@ function abrirJogosDistrito(regional, distrito) {
                     <div class="md-card ${souEu ? 'ruim' : 'bom'}"><span>${conta('d')}</span>perdendo</div>
                     <div class="md-card total"><span>${ptsDele}</span>pontos na rodada</div>
                 </div>
-                ${contra.length ? `
+                ${souEu ? (contra.length ? `
+                <div class="md-alvo">
+                    <b>⚔ ${contra.length} jogo(s) contra regionais adversárias</b>
+                    — hoje o ${distrito} soma <b>${emRisco} ponto(s)</b> neles.
+                    Os jogos entre lojas da ${REGIONAL_DESTAQUE} (sem destaque) só
+                    trocam pontos entre vocês.
+                </div>` : `<div class="md-alvo neutro">
+                    Nenhum jogo do ${distrito} contra outra regional nesta rodada —
+                    todos são entre lojas da ${REGIONAL_DESTAQUE}.</div>`)
+                : (contra.length ? `
                 <div class="md-alvo">
                     <b>⚔ ${contra.length} jogo(s) contra a ${REGIONAL_DESTAQUE}</b>
                     — hoje eles somam <b>${emRisco} ponto(s)</b> para o ${distrito}.
@@ -1762,7 +1777,7 @@ function abrirJogosDistrito(regional, distrito) {
                         : 'Sua regional já está segurando todos eles.'}
                 </div>` : `<div class="md-alvo neutro">
                     Nenhum jogo contra a ${REGIONAL_DESTAQUE} nesta rodada — só dá para
-                    ganhar terreno pontuando mais nos jogos das suas lojas.</div>`}
+                    ganhar terreno pontuando mais nos jogos das suas lojas.</div>`)}
                 <div class="md-legenda">
                     ${souEu ? 'Cores na ótica das suas lojas: verde é bom para você.'
                         : `Cores na <b>sua ótica</b>: como o ${distrito} é adversário,
