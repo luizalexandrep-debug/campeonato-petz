@@ -1721,6 +1721,19 @@ function abrirJogosDistrito(regional, distrito) {
     const ptsDisputados = contra.filter(l => !l.sem).length * 3;
     const aprovContra = ptsDisputados ? (emRisco / ptsDisputados * 100).toFixed(1).replace('.', ',') : '0,0';
 
+    // Aproveitamento contra cada regional concorrente (distrito da minha regional)
+    const porReg = {};
+    contra.filter(l => !l.sem).forEach(l => {
+        const r = l.advRegional;
+        if (!porReg[r]) porReg[r] = { pts: 0, disp: 0 };
+        porReg[r].pts += l.pts;
+        porReg[r].disp += 3;
+    });
+    const detalheReg = Object.entries(porReg)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([r, v]) => `<b>${r}</b>: ${v.pts} de ${v.disp} pts (${(v.pts / v.disp * 100).toFixed(1).replace('.', ',')}%)`)
+        .join(' · ');
+
     const rotulo = { v: 'VENCENDO', e: 'EMPATANDO', d: 'PERDENDO', sem: 'SEM DADOS' };
 
     // A cor mostra o SEU interesse. Se o distrito é adversário, a vitória dele
@@ -1767,7 +1780,8 @@ function abrirJogosDistrito(regional, distrito) {
                     ⚔ Dos <b>${ptsDisputados} pontos</b> disputados contra regionais adversárias
                     (${contra.length} jogo(s)), o ${distrito} está ganhando
                     <b>${emRisco} ponto(s)</b>, com aproveitamento de <b>${aprovContra}%</b>.
-                    Os jogos entre lojas da ${REGIONAL_DESTAQUE} (sem destaque) só
+                    <br>Por regional: ${detalheReg}.
+                    <br>Os jogos entre lojas da ${REGIONAL_DESTAQUE} (sem destaque) só
                     trocam pontos entre vocês.
                 </div>` : `<div class="md-alvo neutro">
                     Nenhum jogo do ${distrito} contra outra regional nesta rodada —

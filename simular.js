@@ -398,6 +398,19 @@ function desenharPainel() {
     const ptsDisputados = contra.length * 3;     // 3 pontos por jogo em disputa
     const aprovContra = ptsDisputados ? (emRisco / ptsDisputados * 100).toFixed(1).replace('.', ',') : '0,0';
 
+    // Aproveitamento contra cada regional concorrente (distrito da minha regional)
+    const porReg = {};
+    contra.filter(l => !l.sem).forEach(l => {
+        const r = l.advRegional;
+        if (!porReg[r]) porReg[r] = { pts: 0, disp: 0 };
+        porReg[r].pts += l.pts;
+        porReg[r].disp += 3;
+    });
+    const detalheReg = Object.entries(porReg)
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([r, v]) => `<b>${r}</b>: ${v.pts} de ${v.disp} pts (${(v.pts / v.disp * 100).toFixed(1).replace('.', ',')}%)`)
+        .join(' · ');
+
     // A cor mostra o SEU interesse: se o distrito é adversário, a vitória dele
     // sai em vermelho e a derrota em verde.
     const corDe = (res) => (souEu || res === 'e') ? res : (res === 'v' ? 'd' : 'v');
@@ -454,7 +467,8 @@ function desenharPainel() {
                     ⚔ Dos <b>${ptsDisputados} pontos</b> disputados contra regionais adversárias
                     (${contra.length} jogo(s)), o ${dist} está ganhando
                     <b>${emRisco} ponto(s)</b>, com aproveitamento de <b>${aprovContra}%</b>.
-                    Os jogos entre lojas da ${MINHA} (sem destaque) só trocam pontos
+                    <br>Por regional: ${detalheReg}.
+                    <br>Os jogos entre lojas da ${MINHA} (sem destaque) só trocam pontos
                     entre vocês.
                 </div>` : `<div class="md-alvo neutro">
                     Nenhum jogo do ${dist} contra outra regional nesta rodada —
