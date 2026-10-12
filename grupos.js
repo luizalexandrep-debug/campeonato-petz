@@ -847,9 +847,10 @@ function buscarDias(loja) {
 
 function prefetchJogo(loja) {
     const p = (st.projAtual || {})[loja];
-    if (!p) return;
+    const adv = p ? p.adv : advDoResumo(loja);
+    if (!adv) return;
     buscarDias(loja);
-    if (p.adv) buscarDias(p.adv);
+    buscarDias(adv);
 }
 
 // Em qual grupo a loja joga (o confronto pode envolver loja de outro grupo).
@@ -1702,10 +1703,19 @@ function tabela(linhas, posBase, ehSim, posOriginal) {
         </tr></thead><tbody>${corpo}</tbody></table>`;
 }
 
+// Adversário da loja na rodada, pelo calendário do resumo — vale mesmo antes de
+// haver qualquer venda lançada (rodada recém-aberta, sem projeção de placar).
+function advDoResumo(time) {
+    const g = (st.summary?.games || []).find(j => j.team1 === time || j.team2 === time);
+    return g ? (g.team1 === time ? g.team2 : g.team1) : null;
+}
+
 function confrontoTexto(time) {
     const p = (st.projAtual || {})[time];
-    if (!p) return `${time} · sem jogo na rodada ${st.semana || '-'}`;
-    return `${time} ${p.gm} × ${p.gs} ${p.adv}`;
+    if (p) return `${time} ${p.gm} × ${p.gs} ${p.adv}`;
+    const adv = advDoResumo(time);
+    if (adv) return `${time} × ${adv} · sem placar ainda`;
+    return `${time} · sem jogo na rodada ${st.semana || '-'}`;
 }
 
 // Tooltip próprio: o title nativo demora ~1s para aparecer.
