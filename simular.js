@@ -38,6 +38,7 @@ async function carregar() {
     const sem = await pegar('/semana');
     VIGENTE = sem.semana;
     SEMANA = rodadaEscolhida(sem.semana, sem.disponiveis || [sem.semana]) ?? sem.semana;
+    carregarEditadosSim();
     const seletor = document.getElementById('fRodada');
     seletor.innerHTML = (sem.disponiveis || [SEMANA]).slice().reverse()
         .map(n => `<option value="${n}" ${n === SEMANA ? 'selected' : ''}>Rodada ${n}${
@@ -51,7 +52,7 @@ async function carregar() {
 async function trocarRodada(n) {
     SEMANA = n;
     rodadaGuardar(n, VIGENTE);
-    Object.keys(editados).forEach(k => delete editados[k]);
+    carregarEditadosSim();
     document.getElementById('grupos').innerHTML =
         '<div class="info-bar"><span>Carregando os jogos...</span></div>';
     await montar();
@@ -118,6 +119,24 @@ async function montar() {
 }
 
 const editados = {};       // "CASA×FORA" -> gols da casa
+
+/* Guardados no navegador, por rodada: recarregar a página não apaga o simulado. */
+const chaveEditadosSim = () => `petz.editados.simular.${SEMANA}`;
+function carregarEditadosSim() {
+    Object.keys(editados).forEach(k => delete editados[k]);
+    try {
+        const j = JSON.parse(localStorage.getItem(chaveEditadosSim()) || '{}');
+        Object.entries(j || {}).forEach(([k, v]) => {
+            if (Number.isInteger(v) && v >= 0 && v <= GOLS) editados[k] = v;
+        });
+    } catch (e) { /* sem storage: começa vazio */ }
+}
+function salvarEditadosSim() {
+    try {
+        if (Object.keys(editados).length) localStorage.setItem(chaveEditadosSim(), JSON.stringify(editados));
+        else localStorage.removeItem(chaveEditadosSim());
+    } catch (e) { /* sem storage: vale só nesta carga */ }
+}
 let filtro = null;
 let distritoAberto = null;
 const abertos = { somado: false, editada: false };
@@ -618,6 +637,7 @@ function verGols(casa, fora) {
 }
 
 function desenhar() {
+    salvarEditadosSim();
     document.getElementById('chips').innerHTML =
         `<span class="rotulo" style="margin-right:4px">Grupo</span>` +
         `<button class="chip" aria-pressed="${!filtro}" data-grupo="">Todos</button>` +

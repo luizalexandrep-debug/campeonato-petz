@@ -26,6 +26,25 @@ const st = {
 const GOLS_JOGO = 6;
 const chaveJogo = (g) => `${g.team1}|${g.team2}`;
 
+/* Placares mexidos ficam guardados no navegador, por rodada: recarregar a página
+   (ou voltar a ela) não apaga o que foi simulado. 'Voltar ao projetado' limpa. */
+const chaveEditados = () => `petz.editados.grupos.${st.semana}`;
+function carregarEditados() {
+    st.editados = {};
+    try {
+        const j = JSON.parse(localStorage.getItem(chaveEditados()) || '{}');
+        Object.entries(j || {}).forEach(([k, v]) => {
+            if (Number.isInteger(v) && v >= 0 && v <= GOLS_JOGO) st.editados[k] = v;
+        });
+    } catch (e) { /* sem storage: começa vazio */ }
+}
+function salvarEditados() {
+    try {
+        if (Object.keys(st.editados).length) localStorage.setItem(chaveEditados(), JSON.stringify(st.editados));
+        else localStorage.removeItem(chaveEditados());
+    } catch (e) { /* sem storage: vale só nesta carga */ }
+}
+
 /* Placar do jogo em gols do team1 e do team2. Com `original`, ignora o que foi
    editado e devolve a projeção do app. */
 function placarDoJogo(g, original) {
@@ -129,6 +148,7 @@ function montarSelects() {
     const guardada = (typeof rodadaEscolhida === 'function')
         ? rodadaEscolhida(st.semanaVigente, projetaveis) : null;
     st.semana = guardada ?? (projetaveis.includes(st.semanaVigente) ? st.semanaVigente : (projetaveis[0] ?? null));
+    carregarEditados();
 
     const sR = document.getElementById('fRodada');
     sR.innerHTML = projetaveis.length
@@ -138,7 +158,7 @@ function montarSelects() {
     sR.onchange = async (e) => {
         st.semana = parseInt(e.target.value, 10);
         if (typeof rodadaGuardar === 'function') rodadaGuardar(st.semana, st.semanaVigente);
-        st.editados = {};          // os jogos mudam com a rodada: placares mexidos não valem mais
+        carregarEditados();        // cada rodada guarda os seus próprios placares mexidos
         _cacheDias.clear();
         info('⏳ Carregando rodada...');
         await trocarBase(st.semana - 1);
@@ -1531,6 +1551,7 @@ document.addEventListener('click', (e) => {
 });
 
 function render() {
+    salvarEditados();
     const painel = document.getElementById('painel');
     // O cenário de eliminação refaz o acumulado antes de qualquer ordenação.
     let base = st.grupos[st.grupo] || [];
