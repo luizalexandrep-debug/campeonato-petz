@@ -1672,7 +1672,31 @@ async function abrirGrupoLoja(loja) {
 // são neles que dá para tirar pontos de um concorrente direto.
 // ============================================================
 
-function abrirJogosDistrito(regional, distrito) {
+// O que missoes.js precisa saber desta página (sino de missão na janela do distrito).
+window.missoesCtx = window.missoesCtx || {
+    semana: () => state.semana,
+    jogos: () => state.gamesSummary?.games || [],
+    estrutura: () => state.estrutura || {},
+    // Depois de criar/editar/remover uma missão a janela é refeita no mesmo lugar.
+    redesenhar: () => {
+        const a = window.__distAberto;
+        if (!a) return;
+        const corpo = document.querySelector('.modal-dist .modal-corpo');
+        const topo = corpo ? corpo.scrollTop : 0;
+        document.querySelector('.modal-dist [data-fechar]')?.click();
+        abrirJogosDistrito(a.regional, a.distrito).then(() => {
+            const c = document.querySelector('.modal-dist .modal-corpo');
+            if (c) c.scrollTop = topo;
+        });
+    }
+};
+
+async function abrirJogosDistrito(regional, distrito) {
+    // Missões da rodada, para o sino de cada jogo (carrega uma vez por rodada).
+    if (typeof missoesCarregar === 'function' && missoes.semana !== state.semana) {
+        await missoesCarregar(state.semana);
+    }
+    window.__distAberto = { regional, distrito };
     const lojas = (state.estrutura?.[regional]?.[distrito]) || [];
     const jogos = (state.gamesSummary?.games || [])
         .filter(g => lojas.includes(g.team1) || lojas.includes(g.team2));
@@ -1819,7 +1843,7 @@ function abrirJogosDistrito(regional, distrito) {
     const corpo = linhas.map((l, i) => `
         <tr class="${l.destaque ? 'contra-minha' : ''} linha-jogo"
             onclick="abrirDetalhesJogo('${l.minha}','${l.adv}')" title="Ver os gols deste jogo">
-            <td class="l"><b>${l.minha}</b></td>
+            <td class="l"><b>${l.minha}</b>${typeof sinoHTML === 'function' ? sinoHTML(l.minha) : ''}</td>
             <td class="c placar ${corDe(l.resultado)}">${l.gm} × ${l.gs}</td>
             <td class="l"><b>${l.adv}</b>
                 ${l.contraMim ? '<span class="tag-minha">sua regional</span>' : ''}
@@ -1904,7 +1928,11 @@ function abrirJogosDistrito(regional, distrito) {
             </div>
         </div>`;
 
-    const fechar = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const fechar = () => {
+        fundo.remove();
+        document.removeEventListener('keydown', esc);
+        if (typeof misFecharPop === 'function') misFecharPop();
+    };
     const esc = (e) => { if (e.key === 'Escape') fechar(); };
     fundo.addEventListener('click', (e) => {
         if (e.target === fundo || e.target.hasAttribute('data-fechar')) fechar();

@@ -27,6 +27,15 @@ const pegar = (p) => fetch(`/api${p}`, { cache: 'no-store' }).then(r => {
 let REGIONAL = {};        // distrito -> regional
 let DISTRITOS = {};       // loja -> distrito
 let GRUPOS = {};          // grupo -> { tabela, jogos }
+let ESTRUTURA_SIM = {}, JOGOS_RESUMO = [];   // para o sino de missão (missoes.js)
+
+// O que missoes.js precisa saber desta página.
+window.missoesCtx = {
+    semana: () => SEMANA,
+    jogos: () => JOGOS_RESUMO,
+    estrutura: () => ESTRUTURA_SIM,
+    redesenhar: () => desenhar()
+};
 let BASE_DIST = {};       // distrito -> pontuação média acumulada
 let NOMES_GRUPOS = [];
 let SEMANA = null, RODADA_BASE = null, VIGENTE = null;
@@ -69,6 +78,8 @@ async function montar() {
 
     RODADA_BASE = cls.rodada;
     const estrutura = est.estrutura || est;
+    ESTRUTURA_SIM = estrutura;
+    JOGOS_RESUMO = resumo.games || [];
     REGIONAL = {}; DISTRITOS = {};
     Object.entries(estrutura).forEach(([reg, dists]) =>
         Object.entries(dists).forEach(([dist, lojas]) => {
@@ -110,6 +121,7 @@ async function montar() {
     Object.entries(acc).forEach(([dist, x]) => BASE_DIST[dist] = x.soma / x.n);
 
     NOMES_GRUPOS = Object.keys(GRUPOS).sort((a, b) => numDoGrupo(a) - numDoGrupo(b));
+    if (typeof missoesCarregar === 'function') await missoesCarregar(SEMANA);
 
     document.getElementById('subtitulo').textContent =
         `Rodada ${SEMANA} sobre o acumulado até a rodada ${RODADA_BASE} · `
@@ -514,7 +526,7 @@ function desenharPainel() {
 
     const corpo = linhas.map(l => `
         <tr class="${l.destaque ? 'contra-minha' : ''} linha-jogo">
-            <td><b>${l.minha}</b></td>
+            <td><b>${l.minha}</b>${typeof sinoHTML === 'function' ? sinoHTML(l.minha) : ''}</td>
             <td class="c placar-cel">
                 <span class="placar ${l.editado ? 'editado' : ''}">
                     <input class="gol" type="number" min="0" max="${GOLS}" value="${l.gm}"
