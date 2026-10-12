@@ -1710,11 +1710,17 @@ function advDoResumo(time) {
     return g ? (g.team1 === time ? g.team2 : g.team1) : null;
 }
 
+// Sigla do adversário seguida do distrito dele: 'OLDA-PE (NE1/ES - Eliab)'.
+function advComDistrito(adv) {
+    const d = distritoDaLoja(adv);
+    return d ? `${adv} (${d})` : adv;
+}
+
 function confrontoTexto(time) {
     const p = (st.projAtual || {})[time];
-    if (p) return `${time} ${p.gm} × ${p.gs} ${p.adv}`;
+    if (p) return `${time} ${p.gm} × ${p.gs} ${advComDistrito(p.adv)}`;
     const adv = advDoResumo(time);
-    if (adv) return `${time} × ${adv} · sem placar ainda`;
+    if (adv) return `${time} × ${advComDistrito(adv)} · sem placar ainda`;
     return `${time} · sem jogo na rodada ${st.semana || '-'}`;
 }
 
