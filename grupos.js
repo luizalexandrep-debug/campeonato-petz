@@ -1703,7 +1703,9 @@ function tabela(linhas, posBase, ehSim, posOriginal) {
                 letra ? ` <span class="res-letra ${letra[1]}">${letra[0]}</span>` : ''}</td>`
             : (ehSim ? '<td class="c">—</td>' : '');
         const mexeu = orig && orig !== pos ? ' sp-mexeu' : '';
-        return `<tr class="${(dest + foco + mexeu).trim()}">
+        // Eliminada do campeonato: a linha sai grifada em vermelho.
+        const elim = lojaEliminada(r.time) ? ' elim' : '';
+        return `<tr class="${(dest + foco + mexeu + elim).trim()}"${elim ? ' title="Loja eliminada do campeonato"' : ''}>
             <td>${pos}${difOrig}</td>
             ${posBase ? `<td>${mov}</td>` : ''}
             <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}"

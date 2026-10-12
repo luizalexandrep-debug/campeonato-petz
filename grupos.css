@@ -1071,3 +1071,10 @@
 .mis-bt.salvar { background: #1e2a5a; border-color: #1e2a5a; color: #fff; }
 .mis-bt.remover { color: #dc2626; margin-right: auto; }
 .mis-pop-erro { color: #dc2626; margin-top: 8px; }
+
+/* Lojas eliminadas do campeonato: linha grifada em vermelho */
+.quadro .tab-grupo tr.elim td { background: #fdecea; color: #a12626; }
+.quadro .tab-grupo tr.elim td.l,
+.quadro .tab-grupo tr.elim td.pts { color: #a12626; }
+.quadro .tab-grupo tr.elim td.l { box-shadow: inset 3px 0 0 #c0392b; }
+.quadro .tab-grupo tr.elim .sigla { text-decoration-color: #c0392b; }
