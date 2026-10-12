@@ -571,7 +571,7 @@ function desenharPainel() {
                     ⚔ Dos <b>${ptsDisputados} pontos</b> disputados contra regionais adversárias
                     (${plPt(contra.length, 'jogo', 'jogos')}), o ${dist} está ganhando
                     <b>${plPt(emRisco, 'ponto', 'pontos')}</b>, com aproveitamento de <b>${aprovContra}%</b>.
-                    <br>Por regional: ${detalheReg}.
+                    ${detalheReg ? `<br>Por regional: ${detalheReg}.` : ''}
                     <br>Os jogos entre lojas da ${MINHA} (sem destaque) só trocam pontos
                     entre vocês.
                 </div>` : `<div class="md-alvo neutro">
