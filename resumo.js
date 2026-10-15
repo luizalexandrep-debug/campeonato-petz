@@ -1062,9 +1062,11 @@ function rsmDentroDoLimite(it) {
 }
 
 let rsmGolFiltro = '';               // '' = todos os gols
+let rsmDistFiltro = '';              // '' = todos os distritos
 
 function rsmFiltrarPorPouco(d, comGol) {
-    const doGol = it => !comGol || !rsmGolFiltro || it.indicador === rsmGolFiltro;
+    const doGol = it => !comGol || ((!rsmGolFiltro || it.indicador === rsmGolFiltro)
+        && (!rsmDistFiltro || it.distrito === rsmDistFiltro));
     const p = (d.porPouco?.perdidos || []).filter(rsmDentroDoLimite).filter(doGol);
     const g = (d.porPouco?.ganhos || []).filter(rsmDentroDoLimite).filter(doGol);
     return {
@@ -1082,6 +1084,11 @@ function rsmBlocoPorPouco(d) {
     if (rsmGolFiltro && !gols.includes(rsmGolFiltro)) gols.push(rsmGolFiltro);
     const botoesGol = ['', ...gols].map(g =>
         `<button class="rs-lim${rsmGolFiltro === g ? ' on' : ''}" data-gol="${g.replace(/"/g, '&quot;')}" onclick="rsmTrocarGol(this.dataset.gol)">${g || 'Todos os gols'}</button>`).join('');
+    const dists = [...new Set([...(d.porPouco.perdidos || []), ...(d.porPouco.ganhos || [])]
+        .filter(rsmDentroDoLimite).map(x => x.distrito).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    if (rsmDistFiltro && !dists.includes(rsmDistFiltro)) dists.push(rsmDistFiltro);
+    const botoesDist = ['', ...dists].map(g =>
+        `<button class="rs-lim${rsmDistFiltro === g ? ' on' : ''}" data-dist="${g.replace(/"/g, '&quot;')}" onclick="rsmTrocarDist(this.dataset.dist)">${g || 'Todos os distritos'}</button>`).join('');
     const botoes = RSM_LIMITES.map(v =>
         `<button class="rs-lim${rsmLimite === v ? ' on' : ''}" onclick="rsmTrocarLimite(${v})">até R$ ${v}</button>`).join('');
 
@@ -1115,6 +1122,9 @@ function rsmBlocoPorPouco(d) {
     <div class="rs-limites">
         <span class="pequeno">Filtrar por gol:</span> ${botoesGol}
     </div>
+    <div class="rs-limites">
+        <span class="pequeno">Filtrar por distrito:</span> ${botoesDist}
+    </div>
     <div class="rs-nota">A margem é quanto faltava na semana para alcançar a evolução do adversário naquele gol —
         a mesma conta do "falta p/ virar" do detalhe do jogo. Linha destacada = aquele gol sozinho mudaria o resultado da partida.</div>
 
@@ -1126,6 +1136,11 @@ function rsmBlocoPorPouco(d) {
         <h5>😅 Ganhamos por pouco <small>${f.ganhos.length} ${f.ganhos.length === 1 ? 'gol' : 'gols'}, sendo ${f.ganhosDecisivos.length} que ${f.ganhosDecisivos.length === 1 ? 'segurou' : 'seguraram'} o resultado</small></h5>
         ${tabela(f.ganhos, false, 'Nenhum gol ganho no sufoco dentro desse limite.')}
     </div>`;
+}
+
+function rsmTrocarDist(g) {
+    rsmDistFiltro = g;
+    rsmRender();
 }
 
 function rsmTrocarGol(g) {
