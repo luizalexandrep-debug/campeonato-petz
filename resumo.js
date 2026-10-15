@@ -1061,9 +1061,12 @@ function rsmDentroDoLimite(it) {
     return it.tipo === '%' ? it.falta <= RSM_LIMITE_PCT : it.falta <= rsmLimite;
 }
 
-function rsmFiltrarPorPouco(d) {
-    const p = (d.porPouco?.perdidos || []).filter(rsmDentroDoLimite);
-    const g = (d.porPouco?.ganhos || []).filter(rsmDentroDoLimite);
+let rsmGolFiltro = '';               // '' = todos os gols
+
+function rsmFiltrarPorPouco(d, comGol) {
+    const doGol = it => !comGol || !rsmGolFiltro || it.indicador === rsmGolFiltro;
+    const p = (d.porPouco?.perdidos || []).filter(rsmDentroDoLimite).filter(doGol);
+    const g = (d.porPouco?.ganhos || []).filter(rsmDentroDoLimite).filter(doGol);
     return {
         perdidos: p, ganhos: g,
         perdidosDecisivos: p.filter(x => x.decisivo),
@@ -1073,7 +1076,12 @@ function rsmFiltrarPorPouco(d) {
 
 function rsmBlocoPorPouco(d) {
     if (!d.porPouco) return '<div class="rs-nota">Margens indisponíveis para esta rodada.</div>';
-    const f = rsmFiltrarPorPouco(d);
+    const f = rsmFiltrarPorPouco(d, true);
+    const gols = [...new Set([...(d.porPouco.perdidos || []), ...(d.porPouco.ganhos || [])]
+        .filter(rsmDentroDoLimite).map(x => x.indicador))].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    if (rsmGolFiltro && !gols.includes(rsmGolFiltro)) gols.push(rsmGolFiltro);
+    const botoesGol = ['', ...gols].map(g =>
+        `<button class="rs-lim${rsmGolFiltro === g ? ' on' : ''}" data-gol="${g.replace(/"/g, '&quot;')}" onclick="rsmTrocarGol(this.dataset.gol)">${g || 'Todos os gols'}</button>`).join('');
     const botoes = RSM_LIMITES.map(v =>
         `<button class="rs-lim${rsmLimite === v ? ' on' : ''}" onclick="rsmTrocarLimite(${v})">até R$ ${v}</button>`).join('');
 
@@ -1104,6 +1112,9 @@ function rsmBlocoPorPouco(d) {
         <span class="pequeno">Considerar "por pouco" quando faltou:</span> ${botoes}
         <span class="pequeno">· nos gols de share, até ${(RSM_LIMITE_PCT * 100).toFixed(1).replace('.', ',')} p.p.</span>
     </div>
+    <div class="rs-limites">
+        <span class="pequeno">Filtrar por gol:</span> ${botoesGol}
+    </div>
     <div class="rs-nota">A margem é quanto faltava na semana para alcançar a evolução do adversário naquele gol —
         a mesma conta do "falta p/ virar" do detalhe do jogo. Linha destacada = aquele gol sozinho mudaria o resultado da partida.</div>
 
@@ -1115,6 +1126,11 @@ function rsmBlocoPorPouco(d) {
         <h5>😅 Ganhamos por pouco <small>${f.ganhos.length} ${f.ganhos.length === 1 ? 'gol' : 'gols'}, sendo ${f.ganhosDecisivos.length} que ${f.ganhosDecisivos.length === 1 ? 'segurou' : 'seguraram'} o resultado</small></h5>
         ${tabela(f.ganhos, false, 'Nenhum gol ganho no sufoco dentro desse limite.')}
     </div>`;
+}
+
+function rsmTrocarGol(g) {
+    rsmGolFiltro = g;
+    rsmRender();
 }
 
 function rsmTrocarLimite(v) {
