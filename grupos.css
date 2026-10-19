@@ -1103,3 +1103,4 @@
 .camp-faixa.proj .camp-kpi { background: #eaf6f3; }
 .camp-faixa.proj .camp-kpi.ouro { background: #fff8dc; }
 .camp-kpi span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.comparacao .quadro-head { min-height: 52px; align-items: center; }
