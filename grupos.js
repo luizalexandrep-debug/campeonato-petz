@@ -1628,10 +1628,10 @@ function render() {
         então a coluna simulada repete a classificação atual. Ela passa a se mover
         assim que o primeiro dia da rodada for lançado.</div>` : ''}
     ${semTabela ? `<div class="alerta-info">Escolha um grupo acima para ver as duas tabelas lado a lado.</div>` : `
+    ${typeof campFaixaGrupo === 'function' ? `<div class="camp-faixa-topo">${campFaixaGrupo(analiseCamp)}</div>` : ''}
     <div class="comparacao">
         <div class="quadro atual">
             <div class="quadro-head">📋 Classificação atual <small>até a rodada ${st.rodadaBase}</small></div>
-            ${typeof campFaixaGrupo === 'function' ? campFaixaGrupo(analiseCamp) : ''}
             <div class="tab-wrap">${tabela(atual, null, false, null, analiseCamp)}</div>
             <div class="legenda">Fonte: pasta “Classificação Lojas” do SharePoint.</div>
         </div>

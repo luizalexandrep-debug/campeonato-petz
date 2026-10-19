@@ -1093,3 +1093,6 @@
 .quadro .tab-grupo tr.camp { outline: 2px solid #d4a017; outline-offset: -2px; }
 .quadro .tab-grupo tr.camp td.l { color: #8a6100; }
 .chip-camp { box-shadow: inset 0 0 0 2px #d4a017; }
+
+.camp-faixa-topo { background: var(--surface); border-radius: var(--r-md); box-shadow: var(--shadow-sm); margin-bottom: var(--s-5); }
+.camp-faixa-topo .camp-faixa { border-bottom: 0; }
