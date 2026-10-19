@@ -73,7 +73,8 @@ async function rsmMontar() {
             if (i.regional === REGIONAL_DESTAQUE && (gm === 6 || gs === 6)) {
                 (gm === 6 ? golead.pro : golead.contra).push({
                     loja, adv, placar: `${gm} x ${gs}`, distrito: i.distrito,
-                    advReg: ia ? ia.regional : '—'
+                    advReg: ia ? ia.regional : '—',
+                    elimLoja: lojaEliminada(loja), elimAdv: lojaEliminada(adv)
                 });
             }
         });
@@ -368,11 +369,11 @@ function rsmBlocoDestaques(d) {
     const gPro = cx('🎯 Goleadas a favor <small>6 x 0</small>', d.golead.pro,
         'Nenhuma goleada de 6x0 a favor nesta rodada.',
         x => `<li>${rsmSigla(x.loja, x.distrito)} ${x.placar} <b>${x.adv}</b>
-              <small>${x.advReg}</small></li>`, 'bom');
+              <small>${x.advReg}</small>${rsmAvisoElim(x)}</li>`, 'bom');
     const gCon = cx('🧨 Goleadas contra <small>0 x 6</small>', d.golead.contra,
         'Nenhuma loja nossa levou 6x0. Bom sinal.',
         x => `<li>${rsmSigla(x.loja, x.distrito)} ${x.placar} <b>${x.adv}</b>
-              <small>${x.advReg}</small></li>`, 'ruim');
+              <small>${x.advReg}</small>${rsmAvisoElim(x)}</li>`, 'ruim');
 
     const rot = { V: 'vitória', E: 'empate', D: 'derrota' };
     const dom = d.viradas.filter(v => v.noDomingo);
@@ -580,8 +581,8 @@ function rsmRoteiroTexto() {
     L.push('');
 
     L.push('5) GOLEADAS E VIRADAS');
-    L.push(`   6x0 a favor: ${d.golead.pro.length ? d.golead.pro.map(x => `${x.loja} ${x.placar} ${x.adv}`).join('; ') : 'nenhuma'}`);
-    L.push(`   6x0 contra: ${d.golead.contra.length ? d.golead.contra.map(x => `${x.loja} ${x.placar} ${x.adv}`).join('; ') : 'nenhuma'}`);
+    L.push(`   6x0 a favor: ${d.golead.pro.length ? d.golead.pro.map(x => `${x.loja} ${x.placar} ${x.adv}${rsmTextoElim(x)}`).join('; ') : 'nenhuma'}`);
+    L.push(`   6x0 contra: ${d.golead.contra.length ? d.golead.contra.map(x => `${x.loja} ${x.placar} ${x.adv}${rsmTextoElim(x)}`).join('; ') : 'nenhuma'}`);
     const dom = d.viradas.filter(v => v.noDomingo);
     L.push(`   Viradas no último dia (${dom.length}):`);
     dom.forEach(v => L.push(`      ${v.loja} (${v.distrito}) vs ${v.adv}: ${rot[v.de]} ${v.placarAntes} -> ${rot[v.para]} ${v.placarFim} (${v.ganho > 0 ? '+' : ''}${v.ganho} pt)`));
@@ -660,6 +661,18 @@ function rsmSigla(loja, distrito) {
     if (!temJogo) return `<b>${loja}</b>${dist}`;
     return `<b class="rs-sigla" title="Ver os gols de ${loja}"
         onclick="event.stopPropagation(); abrirDetalhesJogo('${loja.replace(/'/g, "\\'")}')">${loja}</b>${dist}`;
+}
+
+// Goleada com loja eliminada no jogo não vale como mérito: a eliminada não joga.
+function rsmAvisoElim(x) {
+    const quem = [x.elimAdv ? x.adv : null, x.elimLoja ? x.loja : null].filter(Boolean);
+    if (!quem.length) return '';
+    return ` <span class="rs-elim" title="Loja eliminada do campeonato: o placar não é mérito">⛔ ${quem.join(' e ')} ${quem.length > 1 ? 'eliminadas' : 'eliminada'} — sem mérito</span>`;
+}
+
+function rsmTextoElim(x) {
+    const quem = [x.elimAdv ? x.adv : null, x.elimLoja ? x.loja : null].filter(Boolean);
+    return quem.length ? ` (atenção: ${quem.join(' e ')} ${quem.length > 1 ? 'estão eliminadas' : 'está eliminada'} do campeonato, então não foi mérito)` : '';
 }
 
 function rsmNome(loja, distrito) {
@@ -802,7 +815,7 @@ function rsmRoteiroNarrado() {
             `**${rsmNome(x.loja, x.distrito)}** não deu chance ao ${x.adv}, da ${x.advReg}: 6 a 0 e ponto final.`,
             `Teve ${rsmNome(x.loja, x.distrito)} fazendo bonito contra o ${x.adv}, da ${x.advReg} — **seis gols a zero**, jogo de um time só.`,
             `E **${rsmNome(x.loja, x.distrito)}** aplicou o 6 a 0 no ${x.adv}, da ${x.advReg}. Aula do começo ao fim.`
-        ], i)));
+        ], i) + rsmTextoElim(x)));
     } else {
         pgo.push(`Goleada a favor nesta rodada, nenhuma. Ninguém aplicou o 6 a 0 — fica o desafio para a próxima.`);
     }
@@ -817,7 +830,7 @@ function rsmRoteiroNarrado() {
             `**${rsmNome(x.loja, x.distrito)}** levou seis do ${x.adv}, da ${x.advReg}. Zerinho na conta e muita conversa para ter na segunda-feira.`,
             `**${rsmNome(x.loja, x.distrito)}** foi atropelada pelo ${x.adv}, da ${x.advReg}: 0 a 6. Semana que vem eu quero ver reação.`,
             `Deu ${x.adv}, da ${x.advReg}, por 6 a 0 em cima ${rsmNome(x.loja, x.distrito) ? 'da **' + rsmNome(x.loja, x.distrito) + '**' : ''}. Não teve jogo.`
-        ], i)));
+        ], i) + rsmTextoElim(x)));
     } else {
         pgo.push(`E o melhor: **nenhuma loja nossa levou 6 a 0**. Ninguém foi atropelado, e isso também é resultado.`);
     }
