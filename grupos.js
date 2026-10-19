@@ -1605,6 +1605,9 @@ function render() {
     </div>`;
 
     const semTabela = !st.grupo;
+    // Campeã matemática: sempre sobre a classificação oficial, nunca a projeção.
+    const analiseCamp = st.grupo && typeof campAnalisarGrupo === 'function'
+        ? campAnalisarGrupo(st.grupos[st.grupo]) : null;
 
     // Números que aparecem fechados, no cabeçalho do box
     const pan = calcularPanorama();
@@ -1628,7 +1631,8 @@ function render() {
     <div class="comparacao">
         <div class="quadro atual">
             <div class="quadro-head">📋 Classificação atual <small>até a rodada ${st.rodadaBase}</small></div>
-            <div class="tab-wrap">${tabela(atual, null, false)}</div>
+            ${typeof campFaixaGrupo === 'function' ? campFaixaGrupo(analiseCamp) : ''}
+            <div class="tab-wrap">${tabela(atual, null, false, null, analiseCamp)}</div>
             <div class="legenda">Fonte: pasta “Classificação Lojas” do SharePoint.</div>
         </div>
         <div class="quadro sim">
@@ -1678,7 +1682,7 @@ function render() {
           + (st.semana ? ` + projeção da rodada ${st.semana}` : ''));
 }
 
-function tabela(linhas, posBase, ehSim, posOriginal) {
+function tabela(linhas, posBase, ehSim, posOriginal, camp) {
     const corpo = linhas.map((r, i) => {
         const pos = i + 1;
         // Com placares editados, mostra onde a loja estaria só com a projeção
@@ -1705,17 +1709,19 @@ function tabela(linhas, posBase, ehSim, posOriginal) {
         const mexeu = orig && orig !== pos ? ' sp-mexeu' : '';
         // Eliminada do campeonato: a linha sai grifada em vermelho.
         const elim = lojaEliminada(r.time) ? ' elim' : '';
-        return `<tr class="${(dest + foco + mexeu + elim).trim()}"${elim ? ' title="Loja eliminada do campeonato"' : ''}>
+        const ehCamp = camp && camp.camp && pos === 1;
+        const colsCamp = camp ? `<td>${campRestam(r)}</td><td>${campMaximo(r)}</td><td>${campSituacao(camp, r, pos)}</td>` : '';
+        return `<tr class="${(dest + foco + mexeu + elim + (ehCamp ? ' camp' : '')).trim()}"${elim ? ' title="Loja eliminada do campeonato"' : ''}>
             <td>${pos}${difOrig}</td>
             ${posBase ? `<td>${mov}</td>` : ''}
             <td class="l"><span class="sigla" data-jogo="${confrontoTexto(r.time)}"
-                onclick="event.stopPropagation(); abrirDetalhesJogo('${r.time}')">${r.time}</span>${
+                onclick="event.stopPropagation(); abrirDetalhesJogo('${r.time}')">${ehCamp ? '🏆 ' : ''}${r.time}</span>${
                 ehSim && typeof asteriscoMudanca === 'function' ? asteriscoMudanca(r.time, st.estrutura) : ''}${
                 ehSim && st.semana && typeof sinoHTML === 'function' ? sinoHTML(r.time) : ''}</td>
             <td class="pts">${r.pts}</td>
             ${ganho}
             <td>${r.jogos}</td><td>${r.vit}</td><td>${r.emp}</td><td>${r.der}</td>
-            <td>${r.gm}</td><td>${r.gs}</td><td>${r.sg}</td></tr>`;
+            <td>${r.gm}</td><td>${r.gs}</td><td>${r.sg}</td>${colsCamp}</tr>`;
     }).join('');
 
     return `<table class="tab-grupo">
@@ -1723,6 +1729,7 @@ function tabela(linhas, posBase, ehSim, posOriginal) {
             <th>#</th>${posBase ? '<th>Mov.</th>' : ''}<th class="l">Time</th><th>Pts</th>
             ${ehSim ? '<th>+Rod.</th>' : ''}
             <th>J</th><th>V</th><th>E</th><th>D</th><th>GM</th><th>GS</th><th>SG</th>
+            ${camp ? '<th title="Pontos que ainda pode ganhar (3 por jogo que falta)">Restam</th><th title="Pontos atuais + restantes">Máx.</th><th>Situação</th>' : ''}
         </tr></thead><tbody>${corpo}</tbody></table>`;
 }
 

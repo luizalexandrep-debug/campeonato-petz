@@ -2560,3 +2560,31 @@ body {
 .mis-bt.remover { color: #dc2626; margin-right: auto; }
 .mis-pop-erro { color: #dc2626; margin-top: 8px; }
 
+
+/* ====== Campeãs matemáticas (box da home + janela) ====== */
+.camp-box { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; margin-bottom: 16px; }
+.camp-head { background: linear-gradient(135deg, #b8860b, #d4a017 55%, #f0c94a); color: #fff; padding: 12px 16px; font-weight: 800; }
+.camp-head small { font-weight: 500; opacity: .92; }
+.camp-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; padding: 14px; }
+.camp-card { border: 2px solid #d4a017; background: linear-gradient(160deg, #fff8dc, #fff); border-radius: 12px; padding: 12px 14px; position: relative; }
+.camp-card .camp-tr { position: absolute; right: 10px; top: 6px; font-size: 1.8em; }
+.camp-card b { font-size: 1.15em; }
+.camp-card small { display: block; color: #5b6475; }
+.camp-tag { display: inline-block; margin-top: 6px; background: #d4a017; color: #fff; border-radius: 999px; padding: 1px 9px; font-size: .75em; font-weight: 800; }
+.camp-vazio { padding: 18px; text-align: center; color: #5b6475; }
+.camp-disputa { padding: 4px 14px 14px; }
+.camp-disputa h4 { margin: 6px 0; font-size: .8em; color: #5b6475; text-transform: uppercase; letter-spacing: .04em; }
+.camp-lista { display: flex; flex-wrap: wrap; gap: 6px; }
+.camp-lista span { background: #f2f4f9; border: 1px solid #e3e7ef; border-radius: 8px; padding: 4px 9px; font-size: .82em; }
+.camp-fundo { position: fixed; inset: 0; background: rgba(10,14,30,.72); display: flex; align-items: center; justify-content: center; z-index: 9000; padding: 16px; }
+.camp-modal { position: relative; overflow: hidden; background: #fff; border-radius: 20px; max-width: 460px; width: 100%; text-align: center; padding: 28px 24px 22px; border: 3px solid #d4a017; box-shadow: 0 0 0 6px rgba(212,160,23,.25), 0 20px 60px rgba(0,0,0,.5); animation: campSobe .5s ease; }
+@keyframes campSobe { from { transform: translateY(30px) scale(.92); opacity: 0; } }
+.camp-trofeu { font-size: 76px; line-height: 1; animation: campPula 1.4s ease-in-out infinite; filter: drop-shadow(0 6px 10px rgba(212,160,23,.5)); }
+@keyframes campPula { 50% { transform: translateY(-8px) rotate(-4deg); } }
+.camp-modal h3 { margin: 6px 0 2px; font-size: 1.5em; color: #a87800; }
+.camp-sub { color: #5b6475; margin: 0 0 12px; }
+.camp-loja { font-size: 2em; font-weight: 900; letter-spacing: .02em; }
+.camp-info { background: #fff8dc; border: 1px solid #d4a017; border-radius: 12px; padding: 10px; margin: 12px 0; font-size: .92em; }
+.camp-fechar { background: #1e2a5a; color: #fff; border: 0; border-radius: 10px; padding: 10px 22px; font-weight: 700; cursor: pointer; }
+.camp-conf { position: absolute; top: -12px; width: 8px; height: 14px; opacity: .9; animation: campCai linear infinite; }
+@keyframes campCai { to { transform: translateY(560px) rotate(540deg); } }

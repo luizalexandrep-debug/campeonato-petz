@@ -2387,6 +2387,7 @@ function loadRankingDashboard() {
     // ---------- Render ----------
     container.innerHTML = `
     ${blocoAvisos}
+    <div id="campBox"></div>
     <div class="home-sections">
         ${secaoBase}
         <section class="sec atual">
@@ -2411,6 +2412,7 @@ function loadRankingDashboard() {
     </div>
 
     <div class="linha-cheia">${insightsR2Html(simulado)}</div>`;
+    if (typeof campPreencherBox === 'function') campPreencherBox('campBox');
 }
 
 function loadGamesFromSummary(regional) {

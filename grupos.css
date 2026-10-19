@@ -1078,3 +1078,18 @@
 .quadro .tab-grupo tr.elim td.pts { color: #a12626; }
 .quadro .tab-grupo tr.elim td.l { box-shadow: inset 3px 0 0 #c0392b; }
 .quadro .tab-grupo tr.elim .sigla { text-decoration-color: #c0392b; }
+
+/* ====== Campeãs matemáticas ====== */
+.camp-faixa { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.camp-kpi { flex: 1 1 140px; background: var(--bg, #f2f4f9); border-radius: 10px; padding: 8px 12px; }
+.camp-kpi span { display: block; color: var(--text-3, #6b7280); font-size: .72em; text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+.camp-kpi b { font-size: 1.25em; }
+.camp-kpi.ouro { background: #fff8dc; border: 1px solid #d4a017; }
+.camp-sit { display: inline-block; padding: 1px 9px; border-radius: 999px; font-weight: 800; font-size: .85em; background: #e8f0fe; color: #1a4fa0; }
+.camp-sit.zero { background: #eee; color: #888; font-weight: 600; }
+.camp-sit.ok { background: #d4a017; color: #fff; }
+.quadro .tab-grupo tr.camp td { background: linear-gradient(90deg, #fff8dc, transparent 90%); }
+.quadro .tab-grupo tr.camp td:first-child { box-shadow: inset 4px 0 0 #d4a017; }
+.quadro .tab-grupo tr.camp { outline: 2px solid #d4a017; outline-offset: -2px; }
+.quadro .tab-grupo tr.camp td.l { color: #8a6100; }
+.chip-camp { box-shadow: inset 0 0 0 2px #d4a017; }
