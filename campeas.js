@@ -95,15 +95,16 @@ async function campPreencherBox(idBox) {
 }
 
 /* ---------- faixa do grupo (tela de classificação) ---------- */
-function campFaixaGrupo(a) {
+function campFaixaGrupo(a, titulo, proj) {
     if (!a) return '';
-    return `<div class="camp-faixa">
+    return `<div class="camp-faixa${proj ? ' proj' : ''}">
+        ${titulo ? `<div class="camp-faixa-tit">${titulo}</div>` : ''}
         <div class="camp-kpi"><span>Rodadas restantes</span><b>${a.rodadasFalta} de ${CAMP_TOTAL_RODADAS}</b></div>
-        <div class="camp-kpi"><span>Pontos em disputa por loja</span><b>${a.rodadasFalta * 3}</b></div>
+        <div class="camp-kpi"><span>Pts em disputa por loja</span><b>${a.rodadasFalta * 3}</b></div>
         ${a.camp
-            ? `<div class="camp-kpi ouro"><span>Campeã</span><b>🏆 ${campEsc(a.lider.time)}</b></div>`
+            ? `<div class="camp-kpi ouro"><span>${proj ? 'Campeã na projeção' : 'Campeã'}</span><b>🏆 ${campEsc(a.lider.time)}</b></div>`
             : `<div class="camp-kpi"><span>Líder ${campEsc(a.lider.time)} precisa de</span><b>+${a.precisa} pts</b></div>`}
-        <div class="camp-kpi"><span>Maior máximo entre os rivais</span><b>${a.teto} pts</b></div>
+        <div class="camp-kpi"><span>Maior máximo dos rivais</span><b>${a.teto} pts</b></div>
     </div>`;
 }
 

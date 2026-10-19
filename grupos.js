@@ -1606,6 +1606,7 @@ function render() {
 
     const semTabela = !st.grupo;
     // Campeã matemática: sempre sobre a classificação oficial, nunca a projeção.
+    const analiseSim = st.grupo && typeof campAnalisarGrupo === 'function' ? campAnalisarGrupo(simulado) : null;
     const analiseCamp = st.grupo && typeof campAnalisarGrupo === 'function'
         ? campAnalisarGrupo(st.grupos[st.grupo]) : null;
 
@@ -1628,7 +1629,11 @@ function render() {
         então a coluna simulada repete a classificação atual. Ela passa a se mover
         assim que o primeiro dia da rodada for lançado.</div>` : ''}
     ${semTabela ? `<div class="alerta-info">Escolha um grupo acima para ver as duas tabelas lado a lado.</div>` : `
-    ${typeof campFaixaGrupo === 'function' ? `<div class="camp-faixa-topo">${campFaixaGrupo(analiseCamp)}</div>` : ''}
+    ${typeof campFaixaGrupo === 'function' ? `<div class="comparacao camp-faixas">
+        <div class="camp-faixa-card">${campFaixaGrupo(analiseCamp, '📋 Oficial · até a rodada ' + st.rodadaBase)}</div>
+        <div class="camp-faixa-card">${st.semana && !semDados
+            ? campFaixaGrupo(analiseSim, '🔮 Projeção · com a rodada ' + st.semana, true) : ''}</div>
+    </div>` : ''}
     <div class="comparacao">
         <div class="quadro atual">
             <div class="quadro-head">📋 Classificação atual <small>até a rodada ${st.rodadaBase}</small></div>

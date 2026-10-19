@@ -1094,5 +1094,12 @@
 .quadro .tab-grupo tr.camp td.l { color: #8a6100; }
 .chip-camp { box-shadow: inset 0 0 0 2px #d4a017; }
 
-.camp-faixa-topo { background: var(--surface); border-radius: var(--r-md); box-shadow: var(--shadow-sm); margin-bottom: var(--s-5); }
-.camp-faixa-topo .camp-faixa { border-bottom: 0; }
+
+.camp-faixas { margin-bottom: var(--s-5); align-items: stretch; }
+.camp-faixa-card { background: var(--surface); border-radius: var(--r-md); box-shadow: var(--shadow-sm); min-width: 0; }
+.camp-faixa-card:empty { display: none; }
+.camp-faixa-card .camp-faixa { border-bottom: 0; }
+.camp-faixa-tit { flex: 1 1 100%; font-weight: 800; font-size: .85em; color: var(--text-2, #475569); }
+.camp-faixa.proj .camp-kpi { background: #eaf6f3; }
+.camp-faixa.proj .camp-kpi.ouro { background: #fff8dc; }
+.camp-kpi span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
