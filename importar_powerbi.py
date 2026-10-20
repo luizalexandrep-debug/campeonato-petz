@@ -13,9 +13,10 @@ padrão: um arquivo por indicador, uma linha por loja e uma coluna por dia
     python3 importar_powerbi.py --simular          # só mostra, não grava
 
 Como usar no dia a dia: salve o export de cada dia na pasta da rodada, com a
-data no nome (19-10-2026.xlsx, 20-10-2026.xlsx...), e rode o comando. Ele relê
-TODOS os arquivos de data da pasta e refaz os arquivos por indicador, então pode
-rodar de novo à vontade (é idempotente). Depois é só 'Reprocessar' no site.
+data no nome (19-10-2026.xlsx, 20-10-2026.xlsx...), e rode o comando. Ele guarda
+os exports na subpasta 'powerbi' (o app lê todo .xlsx solto na pasta como se
+fosse um indicador), relê TODOS eles e refaz os arquivos por indicador, então
+pode rodar de novo à vontade (é idempotente). Depois é só 'Reprocessar' no site.
 
 Modo de leitura do RESULTADO_ATUAL:
   acumulado (padrão): o valor é o total da semana até aquele dia; o dia vale a
@@ -52,14 +53,35 @@ def norm(t):
     return re.sub(r"[^A-Z0-9]", "", t.upper())
 
 
+SUBPASTA = "powerbi"
+
+
 def snapshots(pasta: Path):
-    """[(data, arquivo)] dos 'dd-mm-aaaa.xlsx' da pasta, em ordem de data."""
-    achados = []
-    for f in pasta.glob("*.xlsx"):
-        m = RE_DATA.match(f.name)
-        if m and not f.name.startswith("~"):
-            achados.append((date(int(m[3]), int(m[2]), int(m[1])), f))
-    return sorted(achados)
+    """[(data, arquivo)] dos 'dd-mm-aaaa.xlsx' da pasta e da subpasta 'powerbi',
+    em ordem de data. Os exports ficam na subpasta porque o app trata TODO
+    .xlsx da pasta da rodada como um indicador."""
+    achados = {}
+    for base in (pasta, pasta / SUBPASTA):
+        if not base.is_dir():
+            continue
+        for f in base.glob("*.xlsx"):
+            m = RE_DATA.match(f.name)
+            if m and not f.name.startswith("~"):
+                achados.setdefault(date(int(m[3]), int(m[2]), int(m[1])), f)
+    return sorted(achados.items())
+
+
+def guardar_exports(pasta: Path):
+    """Move os 'dd-mm-aaaa.xlsx' soltos na pasta da rodada para 'powerbi/'."""
+    sub = pasta / SUBPASTA
+    for f in sorted(pasta.glob("*.xlsx")):
+        if RE_DATA.match(f.name) and not f.name.startswith("~"):
+            sub.mkdir(exist_ok=True)
+            destino = sub / f.name
+            if destino.exists():
+                destino = sub / f"{f.stem} (1){f.suffix}"
+            f.rename(destino)
+            print(f"📦 {f.name} movido para {SUBPASTA}/ (o app não deve ler esse arquivo como indicador)")
 
 
 def achar_pasta(origem: Path):
@@ -177,6 +199,8 @@ def main():
     if not pasta or not pasta.is_dir():
         print("❌ Não achei a pasta da rodada com arquivos 'dd-mm-aaaa.xlsx'. Use --pasta.")
         return 1
+    if not args.simular:
+        guardar_exports(pasta)
     snaps = snapshots(pasta)
     if not snaps:
         print(f"❌ Nenhum arquivo 'dd-mm-aaaa.xlsx' em {pasta}")
