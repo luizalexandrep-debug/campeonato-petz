@@ -134,10 +134,16 @@ def nome_limpo(arquivo):
     return re.sub(r'\s+', ' ', nome).strip(' -–_:')
 
 
+# Export diário do Power BI ('19-10-2026.xlsx'): não é um indicador; é a fonte
+# que importar_powerbi.py converte para os arquivos por indicador.
+_RE_EXPORT_DIA = re.compile(r'^\d{2}-\d{2}-\d{4}\.xlsx$', re.I)
+
+
 def _listar_xlsx(semana_path):
     if not semana_path.exists():
         return []
-    return sorted(f for f in semana_path.glob("*.xlsx") if not f.name.startswith("~"))
+    return sorted(f for f in semana_path.glob("*.xlsx")
+                  if not f.name.startswith("~") and not _RE_EXPORT_DIA.match(f.name))
 
 
 def _chave(nome_arquivo):

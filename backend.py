@@ -679,7 +679,8 @@ def _listar_xlsx(semana_path):
     if not semana_path.exists():
         return []
     return sorted(
-        f for f in semana_path.glob("*.xlsx") if not f.name.startswith("~")
+        f for f in semana_path.glob("*.xlsx")
+        if not f.name.startswith("~") and not re.match(r"^\d{2}-\d{2}-\d{4}\.xlsx$", f.name)
     )
 
 
