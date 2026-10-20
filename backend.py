@@ -47,7 +47,15 @@ def _database_uri():
 
 
 app.config['SQLALCHEMY_DATABASE_URI'] = _database_uri()
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
+# No Vercel cada instância serverless ficava com um pool de conexões abertas, e
+# várias instâncias (mais o app nps-r2, que usa o mesmo banco) estouravam o limite
+# do Prisma Postgres: 'too many connections for role prisma_migration'. Aqui cada
+# requisição abre e FECHA a própria conexão (NullPool), sem segurar nada parado.
+if os.environ.get('VERCEL'):
+    from sqlalchemy.pool import NullPool
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'poolclass': NullPool}
+else:
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True}
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'sua-chave-secreta-mude-isso-em-producao')
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SECURE'] = False  # Mude para True em produção (HTTPS)
