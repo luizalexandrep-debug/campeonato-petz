@@ -53,7 +53,7 @@ function campCarregar() {
                 Object.entries(e).forEach(([reg, ds]) =>
                     Object.entries(ds || {}).forEach(([dist, ls]) =>
                         (ls || []).forEach(l => { loja[l] = { regional: reg, distrito: dist }; })));
-                return { rodada: cls.rodada, analise: campAnalisarTodos(cls.grupos), loja };
+                return { rodada: cls.rodada, grupos: cls.grupos, analise: campAnalisarTodos(cls.grupos), loja };
             })
             .catch(e => { _campDados = null; throw e; });
     }
@@ -63,14 +63,58 @@ function campCarregar() {
 const campCurto = (g) => g.replace('Série ', '').replace(' - Grupo ', ' · G');
 const campEsc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+/* ---------- projeção da rodada em andamento ---------- */
+// Classificação oficial + o placar projetado de cada jogo da rodada atual.
+// Jogos sem nenhuma venda lançada (semDados) não entram: projetariam empate 0x0.
+function campProjetarGrupos(grupos, jogos) {
+    const por = {};
+    (jogos || []).forEach(g => {
+        if (g.semDados || !g.scoreProjected) return;
+        const m = String(g.scoreProjected).match(/(\d+)\s*x\s*(\d+)/i);
+        if (!m) return;
+        const a = +m[1], b = +m[2];
+        por[g.team1] = { gm: a, gs: b };
+        por[g.team2] = { gm: b, gs: a };
+    });
+    const novos = {};
+    Object.entries(grupos || {}).forEach(([nome, linhas]) => {
+        novos[nome] = linhas.map(r => {
+            const p = por[r.time];
+            if (!p) return r;
+            const pts = p.gm > p.gs ? 3 : (p.gm === p.gs ? 1 : 0);
+            return { ...r, pts: r.pts + pts, jogos: r.jogos + 1,
+                vit: r.vit + (pts === 3 ? 1 : 0), emp: r.emp + (pts === 1 ? 1 : 0), der: r.der + (pts === 0 ? 1 : 0),
+                gm: r.gm + p.gm, gs: r.gs + p.gs, sg: r.sg + p.gm - p.gs };
+        });
+    });
+    return campAnalisarTodos(novos);
+}
+
+let _campResumo = null;
+async function campResumoDaRodada() {
+    if (!_campResumo) {
+        _campResumo = fetch('/api/semana', { cache: 'no-store' }).then(r => r.json())
+            .then(s => fetch(`/api/games-summary/${s.semana}`, { cache: 'no-store' }))
+            .then(r => r.json()).catch(() => null);
+    }
+    return _campResumo;
+}
+
 /* ---------- box da página inicial ---------- */
-async function campPreencherBox(idBox) {
+async function campPreencherBox(idBox, resumo) {
     const el = document.getElementById(idBox);
     if (!el) return;
     let d;
     try { d = await campCarregar(); } catch (e) { return; }
     const nomes = Object.keys(d.analise);
     if (!nomes.length) return;
+    // Projeção: só faz sentido se a rodada do resumo ainda não está na classificação oficial.
+    let proj = {};
+    try {
+        const rs = resumo && resumo.games ? resumo : await campResumoDaRodada();
+        if (rs && rs.games && Number(rs.week) > Number(d.rodada)) proj = campProjetarGrupos(d.grupos, rs.games);
+    } catch (e) { proj = {}; }
+    const projeta = (n) => !d.analise[n].camp && proj[n] && proj[n].camp && proj[n].lider.time === d.analise[n].lider.time;
     const camps = nomes.filter(n => d.analise[n].camp);
     const disp = nomes.filter(n => !d.analise[n].camp)
         .sort((a, b) => d.analise[a].precisa - d.analise[b].precisa);
@@ -90,7 +134,11 @@ async function campPreencherBox(idBox) {
             : `<div class="camp-vazio">Nenhuma loja campeã matemática ainda.${prox
                 ? `<br>Mais perto: <b>${campEsc(prox.lider.time)}</b> (${campEsc(campCurto(disp[0]))}), precisa de +${prox.precisa} pts.` : ''}</div>`}
         ${disp.length ? `<div class="camp-disputa"><h4>Em disputa (${disp.length} grupos) — pontos que o líder ainda precisa para garantir o título</h4>
-            <div class="camp-lista">${disp.map(n => `<span><b>${campEsc(d.analise[n].lider.time)}</b> ${campEsc(campCurto(n))} · +${d.analise[n].precisa}</span>`).join('')}</div></div>` : ''}
+            <div class="camp-lista">${disp.map(n => projeta(n)
+                ? `<span class="camp-proj" title="Com os resultados projetados desta rodada, ${campEsc(d.analise[n].lider.time)} garante o título. Ainda não é oficial.">
+                    <b>${campEsc(d.analise[n].lider.time)}</b> ${campEsc(campCurto(n))} · 🏆 projeta o título</span>`
+                : `<span><b>${campEsc(d.analise[n].lider.time)}</b> ${campEsc(campCurto(n))} · +${d.analise[n].precisa}</span>`).join('')}</div>
+            ${disp.some(projeta) ? '<div class="camp-leg">Cinza: com os resultados projetados da rodada em andamento a loja se garante campeã — só vale quando a classificação oficial confirmar.</div>' : ''}</div>` : ''}
     </section>`;
 }
 

@@ -2412,7 +2412,7 @@ function loadRankingDashboard() {
     </div>
 
     <div class="linha-cheia">${insightsR2Html(simulado)}</div>`;
-    if (typeof campPreencherBox === 'function') campPreencherBox('campBox');
+    if (typeof campPreencherBox === 'function') campPreencherBox('campBox', state.gamesSummary);
 }
 
 function loadGamesFromSummary(regional) {

@@ -2614,3 +2614,7 @@ body {
 .pg-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #e3e7ef; background: #fff; }
 .pg-form textarea { flex: 1; resize: none; border: 1px solid #c9d6ee; border-radius: 10px; padding: 8px; font: inherit; }
 .pg-form button { border: 0; border-radius: 10px; padding: 0 14px; background: #2b5aa8; color: #fff; font-weight: 700; cursor: pointer; }
+
+.camp-lista span.camp-proj { background: #e5e7eb; border-color: #cbd0d8; color: #6b7280; }
+.camp-lista span.camp-proj b { color: #4b5563; }
+.camp-leg { margin-top: 8px; font-size: .78em; color: #6b7280; }
