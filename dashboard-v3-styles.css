@@ -2588,3 +2588,29 @@ body {
 .camp-fechar { background: #1e2a5a; color: #fff; border: 0; border-radius: 10px; padding: 10px 22px; font-weight: 700; cursor: pointer; }
 .camp-conf { position: absolute; top: -12px; width: 8px; height: 14px; opacity: .9; animation: campCai linear infinite; }
 @keyframes campCai { to { transform: translateY(560px) rotate(540deg); } }
+
+/* ====== Botão "Perguntar" (assistente) ====== */
+.pg-fab { position: fixed; right: 18px; bottom: 18px; z-index: 800; border: 0; border-radius: 999px; padding: 12px 18px; font-weight: 800; color: #fff; cursor: pointer; background: linear-gradient(135deg, #2b5aa8, #1e4483); box-shadow: 0 6px 18px rgba(30,68,131,.45); }
+.pg-fab:hover { filter: brightness(1.1); }
+.pg-painel { position: fixed; right: 18px; bottom: 70px; z-index: 850; width: min(440px, calc(100vw - 24px)); height: min(640px, calc(100vh - 100px)); background: #fff; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.35); display: none; flex-direction: column; overflow: hidden; }
+.pg-painel.on { display: flex; }
+.pg-topo { background: linear-gradient(135deg, #2b5aa8, #1e4483); color: #fff; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+.pg-x { background: transparent; border: 0; color: #fff; font-size: 1.1em; cursor: pointer; }
+.pg-conversa { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; background: #f5f7fb; }
+.pg-msg { max-width: 92%; padding: 9px 12px; border-radius: 12px; font-size: .92em; line-height: 1.45; word-wrap: break-word; }
+.pg-msg.eu { align-self: flex-end; background: #2b5aa8; color: #fff; }
+.pg-msg.bot { align-self: flex-start; background: #fff; color: #1f2937; border: 1px solid #e3e7ef; }
+.pg-msg.erro { background: #fdecea; color: #a12626; border-color: #f5c6c2; }
+.pg-msg p { margin: 0 0 6px; } .pg-msg p:last-child { margin: 0; }
+.pg-msg ul { margin: 4px 0 6px 18px; padding: 0; }
+.pg-tab { overflow-x: auto; margin: 4px 0; }
+.pg-tab table { border-collapse: collapse; font-size: .85em; }
+.pg-tab th, .pg-tab td { border: 1px solid #e3e7ef; padding: 4px 7px; text-align: left; white-space: nowrap; }
+.pg-tab th { background: #eef2fa; }
+.pg-pensando { color: #6b7280; font-style: italic; }
+.pg-sugestoes { display: flex; flex-direction: column; gap: 6px; }
+.pg-sugestoes button { text-align: left; border: 1px solid #c9d6ee; background: #fff; color: #1e4483; border-radius: 10px; padding: 8px 10px; cursor: pointer; font-size: .86em; }
+.pg-sugestoes button:hover { background: #eaf0fb; }
+.pg-form { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #e3e7ef; background: #fff; }
+.pg-form textarea { flex: 1; resize: none; border: 1px solid #c9d6ee; border-radius: 10px; padding: 8px; font: inherit; }
+.pg-form button { border: 0; border-radius: 10px; padding: 0 14px; background: #2b5aa8; color: #fff; font-weight: 700; cursor: pointer; }

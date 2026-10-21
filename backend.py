@@ -3004,6 +3004,35 @@ def reprocessar(semana):
         traceback.print_exc()
         return jsonify({"error": f"Falha ao reprocessar: {e}"}), 500
 
+
+# ============================================================
+# PERGUNTAR (assistente com Gemini) — só para administradores
+# ============================================================
+
+@app.route('/api/perguntar', methods=['POST'])
+@login_required
+def perguntar_api():
+    """Responde uma pergunta sobre o campeonato usando o Gemini + dados do app."""
+    if not getattr(current_user, 'é_admin', False):
+        return jsonify({"error": "Apenas administradores"}), 403
+    corpo = request.get_json(silent=True) or {}
+    pergunta = str(corpo.get('pergunta') or '').strip()
+    if not pergunta:
+        return jsonify({"error": "Escreva uma pergunta."}), 400
+    try:
+        garantir_arquivos_frescos()
+    except Exception:
+        pass
+    import perguntar
+    try:
+        return jsonify(perguntar.responder(pergunta, corpo.get('historico')))
+    except perguntar.ErroPergunta as e:
+        return jsonify({"error": str(e)}), 502
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Falha ao responder: {e}"}), 500
+
 # ============================================================
 # AUTENTICAÇÃO
 # ============================================================
