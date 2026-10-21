@@ -30,7 +30,9 @@ Como responder:
 - Se a pergunta não disser a rodada, use a rodada atual (a ferramenta devolve quando você não informa).
 - Responda em português do Brasil, direto, em poucas linhas. Use listas ou tabelas quando ajudar.
 - Se os dados não bastarem para responder, diga o que falta em vez de chutar.
-- Cite a sigla das lojas exatamente como vieram das ferramentas."""
+- Cite a sigla das lojas exatamente como vieram das ferramentas.
+- Formatação: use **negrito** e listas com '-'. Não use asteriscos simples nem outros símbolos de markdown.
+- Rodada atual: {{RODADA_ATUAL}}. "Próxima semana"/"semana que vem" é a rodada {{RODADA_PROXIMA}}; "semana passada" é a {{RODADA_ANTERIOR}}. Informe 'rodada' na ferramenta quando for outra que não a atual."""
 
 FERRAMENTAS = [{"functionDeclarations": [
     {
@@ -165,7 +167,10 @@ def consultar_jogos(rodada=None, loja=None, regional=None, distrito=None, uf=Non
             if j.get("realizado") and gols_eu is not None:
                 item["placar_oficial"] = f"{int(gols_eu)} x {int(gols_adv)}"
             saida.append(item)
-    return _cortar(saida)
+    res = _cortar(saida)
+    res["rodada_consultada"] = rodada
+    res["rodada_atual"] = b.semana_atual()
+    return res
 
 
 def consultar_classificacao(grupo=None, loja=None, regional=None, distrito=None, uf=None, ate_posicao=None):
@@ -257,15 +262,32 @@ def _chamar_gemini(corpo, restante):
     if not chave:
         raise ErroPergunta("A chave GEMINI_API_KEY não está configurada na Vercel.")
     modelo = os.environ.get("GEMINI_MODEL", MODELO_PADRAO).strip() or MODELO_PADRAO
-    try:
-        r = requests.post(URL.format(modelo=modelo), json=corpo, timeout=max(5, min(40, restante)),
-                          headers={"x-goog-api-key": chave, "Content-Type": "application/json"})
-    except requests.Timeout:
-        raise ErroPergunta("O Gemini demorou demais para responder. Tente de novo.")
-    except requests.RequestException as e:
-        raise ErroPergunta(f"Não consegui falar com o Gemini: {e}")
+    inicio = time.time()
+    r = None
+    # O plano gratuito às vezes responde 500/503 (modelo sobrecarregado) e passa
+    # em segundos: tenta de novo antes de desistir, dentro do prazo da função.
+    for tentativa in range(3):
+        sobra = restante - (time.time() - inicio)
+        if sobra < 6:
+            break
+        try:
+            r = requests.post(URL.format(modelo=modelo), json=corpo, timeout=max(5, min(40, sobra)),
+                              headers={"x-goog-api-key": chave, "Content-Type": "application/json"})
+        except requests.Timeout:
+            raise ErroPergunta("O Gemini demorou demais para responder. Tente de novo.")
+        except requests.RequestException as e:
+            raise ErroPergunta(f"Não consegui falar com o Gemini: {e}")
+        if r.status_code in (500, 502, 503, 504) and tentativa < 2:
+            time.sleep(2 * (tentativa + 1))
+            continue
+        break
+    if r is None:
+        raise ErroPergunta("A pergunta estourou o tempo. Tente algo mais específico.")
     if r.status_code == 429:
         raise ErroPergunta("Limite gratuito do Gemini atingido por agora. Tente de novo em alguns minutos.")
+    if r.status_code in (500, 502, 503, 504):
+        raise ErroPergunta("O Gemini está sobrecarregado neste momento (erro do lado do Google). "
+                           "Espere alguns segundos e tente de novo.")
     if r.status_code in (400, 401, 403):
         try:
             msg = r.json().get("error", {}).get("message", "")
@@ -280,6 +302,12 @@ def _chamar_gemini(corpo, restante):
 def responder(pergunta, historico=None):
     """Devolve {'resposta': texto, 'consultas': [nomes das ferramentas usadas]}."""
     inicio = time.time()
+    try:
+        atual = int(_b().semana_atual())
+    except Exception:
+        atual = 0
+    instrucoes = (INSTRUCOES.replace("{RODADA_ATUAL}", str(atual))
+                  .replace("{RODADA_PROXIMA}", str(atual + 1)).replace("{RODADA_ANTERIOR}", str(atual - 1)))
     contents = []
     for h in (historico or [])[-8:]:
         papel = "model" if h.get("papel") == "assistente" else "user"
@@ -294,7 +322,7 @@ def responder(pergunta, historico=None):
         if restante < 5:
             raise ErroPergunta("A pergunta ficou complicada demais e estourou o tempo. Tente algo mais específico.")
         dados = _chamar_gemini({
-            "systemInstruction": {"parts": [{"text": INSTRUCOES}]},
+            "systemInstruction": {"parts": [{"text": instrucoes}]},
             "contents": contents,
             "tools": FERRAMENTAS,
             "generationConfig": {"temperature": 0.2},
