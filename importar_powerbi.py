@@ -19,11 +19,13 @@ fosse um indicador), relê TODOS eles e refaz os arquivos por indicador, então
 pode rodar de novo à vontade (é idempotente). Depois é só 'Reprocessar' no site.
 
 Modo de leitura do RESULTADO_ATUAL:
-  acumulado (padrão): o valor é o total da semana até aquele dia; o dia vale a
+  dia (padrão)      : o valor é só o do dia do nome do arquivo (confirmado: o total
+                      de Vendas de 24/10 é de um dia, não da semana).
+  acumulado         : o valor é o total da semana até aquele dia; o dia vale a
                       diferença para o arquivo anterior.
-  dia               : o valor é só o do dia.
-Na segunda-feira os dois modos dão o mesmo resultado; confira na terça (ver o
-aviso que o script imprime quando o total não cresce como acumulado).
+
+O script NÃO apaga o que o arquivo da rodada já tem: só acrescenta os dias que
+faltam (use --sobrescrever para trocar também os dias existentes).
 """
 import argparse
 import re
@@ -168,6 +170,45 @@ def diarios(por_data, modo):
     return saida, avisos
 
 
+RE_COL = re.compile(r"(\d{2})/(\d{2})/(\d{4})")
+
+
+def ler_existente(destino: Path):
+    """{loja: {data: valor}} das colunas de dia que o arquivo da rodada já tem."""
+    if not destino.exists():
+        return {}
+    ws = openpyxl.load_workbook(destino, data_only=True, read_only=True).active
+    linhas = list(ws.iter_rows(values_only=True))
+    if not linhas:
+        return {}
+    cols = {}
+    for j, h in enumerate(linhas[0]):
+        m = RE_COL.search(str(h or ""))
+        if m:
+            cols[j] = date(int(m[3]), int(m[2]), int(m[1]))
+    saida = {}
+    for r in linhas[1:]:
+        if not r or not r[0]:
+            continue
+        saida[str(r[0]).strip()] = {d: (None if r[j] in (None, "-", "") else r[j])
+                                    for j, d in cols.items() if j < len(r)}
+    return saida
+
+
+def mesclar(existente, novo, sobrescrever):
+    """Soma o que veio do Power BI ao que o arquivo já tinha.
+    Dia que já existe no arquivo fica como está, a menos que --sobrescrever."""
+    dias_antigos = {d for l in existente.values() for d in l}
+    lojas = {l: dict(v) for l, v in existente.items()}
+    for loja, dias in novo.items():
+        alvo = lojas.setdefault(loja, {})
+        for d, v in dias.items():
+            if d in dias_antigos and not sobrescrever:
+                continue
+            alvo[d] = v
+    return lojas
+
+
 def gravar(destino: Path, lojas, datas):
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -190,7 +231,9 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pasta", help="pasta da rodada (SEMANA ATUAL/rodada N)")
     ap.add_argument("--origem", help="pasta do campeonato no OneDrive")
-    ap.add_argument("--modo", choices=["acumulado", "dia"], default="acumulado")
+    ap.add_argument("--modo", choices=["acumulado", "dia"], default="dia")
+    ap.add_argument("--sobrescrever", action="store_true",
+                    help="troca também os dias que o arquivo da rodada já tem (padrão: só preenche dias que faltam)")
     ap.add_argument("--simular", action="store_true", help="não grava nada")
     args = ap.parse_args()
 
@@ -213,7 +256,7 @@ def main():
         print(f"❌ Exports de semanas diferentes na mesma pasta: {', '.join(f'{d:%d/%m}' for d in fora)}")
         return 1
     ate = snaps[-1][0]
-    datas = [segunda + timedelta(days=i) for i in range((ate - segunda).days + 1)]
+    datas = [d for d, _ in snaps]
 
     rod = pasta.name.split()[-1]
     anteriores = []
@@ -236,9 +279,15 @@ def main():
         resumo = " | ".join(f"{d:%d/%m}: R$ {t:,.0f}" for d, t in zip(datas, totais))
         base = " (nome igual ao da semana anterior)" if any(f.name == nome for f in anteriores) \
             else " ⚠️ sem arquivo da semana anterior com esse nome"
-        print(f"✔ {aba:32s} → {nome}{base}\n    {len(lojas)} lojas · {resumo}")
+        existente = ler_existente(pasta / nome)
+        final = mesclar(existente, lojas, args.sobrescrever)
+        todas = sorted({d for l in final.values() for d in l})
+        novos = [d for d in todas if not any(d in l for l in existente.values())]
+        print(f"✔ {aba:32s} → {nome}{base}\n    {len(lojas)} lojas no Power BI · {resumo}")
+        print(f"    arquivo ficará com {len(todas)} dia(s): {', '.join(f'{d:%d/%m}' for d in todas)}"
+              + (f" · novos: {', '.join(f'{d:%d/%m}' for d in novos)}" if novos else " · nada novo"))
         if not args.simular:
-            gravar(pasta / nome, lojas, datas)
+            gravar(pasta / nome, final, todas)
 
     for a in avisos:
         print(f"\n⚠️  {a}")
