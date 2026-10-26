@@ -684,12 +684,8 @@ SIMILARIDADE_MIN = 0.6
 
 def _listar_xlsx(semana_path):
     """Lista os arquivos .xlsx de uma pasta (ignora temporários do Excel)."""
-    if not semana_path.exists():
-        return []
-    return sorted(
-        f for f in semana_path.glob("*.xlsx")
-        if not f.name.startswith("~") and not re.match(r"^\d{2}-\d{2}-\d{4}\.xlsx$", f.name)
-    )
+    import calculo_rapido as cr
+    return cr._listar_xlsx(semana_path)   # uma regra só (inclui a soma de bases "NOME 1/2")
 
 
 def _chave(nome_arquivo):

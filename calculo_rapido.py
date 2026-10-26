@@ -6,9 +6,11 @@ abrir os arquivos repetidamente.
 Este módulo é usado tanto pelo gerador de cache local quanto pelo endpoint de
 reprocessamento no servidor.
 """
+import hashlib
 import math
 import os
 import re
+import tempfile
 import unicodedata
 from pathlib import Path
 from difflib import SequenceMatcher
@@ -139,11 +141,90 @@ def nome_limpo(arquivo):
 _RE_EXPORT_DIA = re.compile(r'^\d{2}-\d{2}-\d{4}\.xlsx$', re.I)
 
 
+# Um gol pode somar duas bases extraídas separadamente (ex.: uma categoria + uma
+# marca). Elas sobem como 'NOME 1.xlsx' e 'NOME 2.xlsx' e valem UM indicador: a
+# soma, loja a loja e dia a dia. Vale com 2 ou mais partes na mesma pasta.
+_RE_PARTE = re.compile(r'^(?P<base>.*\S)\s+(?P<n>\d)\.xlsx$', re.I)
+_PASTA_COMBINADOS = Path(tempfile.gettempdir()) / "campeonato_combinados"
+
+
+def _num(v):
+    if v in (None, "", "-"):
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _combinar_partes(base, partes):
+    """Grava (se preciso) o xlsx com a soma das partes e devolve o caminho."""
+    nome = re.sub(r"\s+", " ", base).strip() + ".xlsx"
+    pasta = _PASTA_COMBINADOS / hashlib.md5(str(partes[0].parent).encode()).hexdigest()[:12]
+    destino = pasta / nome
+    recente = max(p.stat().st_mtime for p in partes)
+    if destino.exists() and destino.stat().st_mtime >= recente:
+        return destino
+
+    colunas, soma = [], {}
+    for p in partes:
+        wb = openpyxl.load_workbook(p, data_only=True, read_only=True)
+        linhas = list(wb.active.iter_rows(values_only=True))
+        wb.close()
+        idx_head, col_dias, _tot = _achar_cabecalho(linhas)
+        if idx_head is None or not col_dias:
+            continue
+        cab = linhas[idx_head]
+        for j, _dia in col_dias:
+            rotulo = str(cab[j]).strip()
+            if rotulo not in colunas:
+                colunas.append(rotulo)
+        for row in linhas[idx_head + 1:]:
+            if not row or not row[0] or not str(row[0]).strip():
+                continue
+            loja = str(row[0]).strip()
+            alvo = soma.setdefault(loja, {})
+            for j, _dia in col_dias:
+                v = _num(row[j] if j < len(row) else None)
+                if v is not None:
+                    r = str(cab[j]).strip()
+                    alvo[r] = alvo.get(r, 0.0) + v
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+    ws.append(["Sigla Loja", "Data Dia Sem"] + colunas)
+    for loja in sorted(soma):
+        ws.append([loja, None] + [round(soma[loja][c], 6) if c in soma[loja] else "-" for c in colunas])
+    pasta.mkdir(parents=True, exist_ok=True)
+    tmp = destino.with_suffix(".tmp.xlsx")
+    wb.save(tmp)
+    tmp.replace(destino)
+    print(f"ℹ️ {nome}: soma de {len(partes)} base(s) ({', '.join(p.name for p in partes)})")
+    return destino
+
+
 def _listar_xlsx(semana_path):
     if not semana_path.exists():
         return []
-    return sorted(f for f in semana_path.glob("*.xlsx")
-                  if not f.name.startswith("~") and not _RE_EXPORT_DIA.match(f.name))
+    arquivos = [f for f in semana_path.glob("*.xlsx")
+                if not f.name.startswith("~") and not _RE_EXPORT_DIA.match(f.name)]
+    grupos = {}
+    for f in arquivos:
+        m = _RE_PARTE.match(f.name)
+        if m:
+            grupos.setdefault(re.sub(r"\s+", " ", m["base"]).strip().upper(), []).append(f)
+    saida = list(arquivos)
+    for chave, partes in grupos.items():
+        if len(partes) < 2:
+            continue                      # parte única: segue como arquivo normal
+        partes.sort(key=lambda p: p.name)
+        try:
+            combinado = _combinar_partes(_RE_PARTE.match(partes[0].name)["base"], partes)
+        except Exception as e:
+            print(f"⚠️ Não consegui somar as bases de {chave}: {e}")
+            continue
+        saida = [f for f in saida if f not in partes] + [combinado]
+    return sorted(saida, key=lambda f: f.name)
 
 
 def _chave(nome_arquivo):
