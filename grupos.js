@@ -1046,14 +1046,31 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) 
     const ant = dados.anterior?.dias || {};
     const atu = dados.atual?.dias || {};
     const agregar = (o) => ehPct ? agregarPct(o) : DIAS_JOGO.reduce((t, d) => t + ((o || {})[d] || 0), 0);
+    // Gol por NÍVEL: vale o valor da própria semana. A semana anterior não entra
+    // na conta, então as colunas comparam direto com o adversário (mesma regra
+    // da janela do dashboard).
+    const ehNivel = (dados.atual?.criterio || dados.anterior?.criterio
+                     || (typeof criterioDoNome === 'function' ? criterioDoNome(indicador) : 'evolucao')) === 'nivel';
+    const advNome = adversario?.__loja;
     // Totais com os valores simulados (a semana anterior nunca muda).
     const totalAtu = simTotal(loja, indicador, dados.atual, ehPct, 'atual');
     const totalAnt = simTotal(loja, indicador, dados.anterior, ehPct, 'anterior');
+    const totalAdvAtu = adversario ? simTotal(advNome, indicador, adversario.atual, ehPct, 'atual') : 0;
     const usaTotal = ehPct && !!(atu[CHAVE_TOTAL] || ant[CHAVE_TOTAL]);
+    const sinal = (v) => `${v > 0 ? '+' : ''}${f(v)}`;
 
     const linhas = DIAS_JOGO.map(dia => {
-        const a = ant[dia] || 0;
         const b = simValor(loja, indicador, dia, atu, 'atual');
+        if (ehNivel) {
+            const a = adversario ? simValor(advNome, indicador, dia, adversario.atual?.dias, 'atual') : null;
+            const dif = a === null ? null : b - a;
+            const cls = dif > 0 ? 'positive' : dif < 0 ? 'negative' : 'neutral';
+            return `<tr><td class="day-label">${dia}</td>
+                <td class="value-anterior">${a === null ? '—' : f(a)}</td>
+                <td class="value-atual">${simCampo(loja, indicador, dia, b, f, ehPct)}</td>
+                <td class="evolution ${cls}">${dif === null ? '—' : sinal(dif)}</td></tr>`;
+        }
+        const a = ant[dia] || 0;
         const ev = evolucaoPct(a, b);
         // Dia sem valor na semana atual pode ser dia que ainda não chegou:
         // -100% ali assusta sem informar. O que vale é a linha TOTAL.
@@ -1066,11 +1083,13 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) 
     }).join('');
 
     const tA = totalAnt, tB = totalAtu;
-    const evo = evolucaoPct(tA, tB);
+    const evo = ehNivel ? (tB - totalAdvAtu) : evolucaoPct(tA, tB);
     let classe = evo > 0 ? 'positive' : evo < 0 ? 'negative' : 'neutral';
     let falta = null;
-    if (adversario) {
-        const advNome = adversario.__loja;
+    if (adversario && ehNivel) {
+        if (tB > totalAdvAtu) classe = 'evolution-melhor';
+        else if (tB < totalAdvAtu) { classe = 'evolution-pior'; falta = totalAdvAtu - tB; }
+    } else if (adversario) {
         const evoAdv = evolucaoPct(simTotal(advNome, indicador, adversario.anterior, ehPct, 'anterior'),
                                    simTotal(advNome, indicador, adversario.atual, ehPct, 'atual'));
         if (evo > evoAdv) classe = 'evolution-melhor';
@@ -1084,20 +1103,23 @@ function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) 
     }
 
     const fezGol = marcou === null ? classe === 'evolution-melhor' : marcou;
+    const colTotal2 = ehNivel ? (adversario ? f(totalAdvAtu) : '—') : f(tA);
+    const colTotal4 = ehNivel ? (adversario ? sinal(evo) : '—') : `${evo.toFixed(2)}%`;
 
     return `<div class="table-container">
         <div class="table-title${fezGol ? ' marcou' : ''}">
+            ${ehNivel ? '<span class="tt-nivel" title="Este gol vale pelo valor da semana atual, não pela evolução">nível</span>' : ''}
             <span class="tt-loja">${loja}</span><span class="tt-ind">${typeof nomeIndicador === 'function' ? nomeIndicador(indicador) : indicador.replace(/\.xlsx$/i, '')}</span>
             ${fezGol ? '<span class="tt-gol" title="Está fazendo este gol">⚽</span>' : ''}</div>
         <table>
-            <thead><tr><th>Dia</th><th>S. Anterior</th><th>S. Atual</th><th>Evolução</th></tr></thead>
+            <thead><tr><th>Dia</th><th>${ehNivel ? 'Adversário' : 'S. Anterior'}</th><th>${ehNivel ? 'Esta loja' : 'S. Atual'}</th><th>${ehNivel ? 'Diferença' : 'Evolução'}</th></tr></thead>
             <tbody>
                 ${linhas}
                 <tr class="total-row">
                     <td class="day-label">${ehPct && !usaTotal ? 'MÉDIA' : 'TOTAL'}</td>
-                    <td style="text-align:center">${f(tA)}</td>
+                    <td style="text-align:center">${colTotal2}</td>
                     <td style="text-align:center">${simCampoTotal(loja, indicador, tB, f, ehPct)}</td>
-                    <td class="evolution ${classe}" style="text-align:center">${evo.toFixed(2)}%</td>
+                    <td class="evolution ${classe}" style="text-align:center">${colTotal4}</td>
                 </tr>
                 ${falta !== null ? `<tr><td colspan="3" style="background:#fff3cd;color:#6b4d00;font-size:.85em">Falta p/ virar</td>
                     <td style="background:#fff3cd;color:#6b4d00;font-weight:800;text-align:center">+${f(falta)}</td></tr>` : ''}
