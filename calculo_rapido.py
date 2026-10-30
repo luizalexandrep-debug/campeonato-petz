@@ -11,6 +11,7 @@ import math
 import os
 import re
 import tempfile
+import uuid
 import unicodedata
 from pathlib import Path
 from difflib import SequenceMatcher
@@ -196,9 +197,11 @@ def _combinar_partes(base, partes):
     for loja in sorted(soma):
         ws.append([loja, None] + [round(soma[loja][c], 6) if c in soma[loja] else "-" for c in colunas])
     pasta.mkdir(parents=True, exist_ok=True)
-    tmp = destino.with_suffix(".tmp.xlsx")
+    # Nome único: requisições simultâneas gravavam o MESMO temporário e uma delas
+    # falhava, devolvendo as partes 1 e 2 como indicadores separados.
+    tmp = pasta / f"{destino.stem}.{os.getpid()}.{uuid.uuid4().hex[:8]}.tmp"
     wb.save(tmp)
-    tmp.replace(destino)
+    os.replace(tmp, destino)
     print(f"ℹ️ {nome}: soma de {len(partes)} base(s) ({', '.join(p.name for p in partes)})")
     return destino
 
