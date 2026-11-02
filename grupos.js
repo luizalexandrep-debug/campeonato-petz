@@ -197,6 +197,7 @@ async function trocarBase(rodada) {
             st.rodadaBase = cls.rodada;
             st.grupos = cls.grupos;
             st.resumo = null;          // o resumo é sempre da rodada aberta
+            montarChipsGrupo();        // os troféus dos chips seguem a base aberta
         }
     } catch (e) {
         console.error('Falha ao trocar a base', e);
@@ -607,12 +608,19 @@ function montarChipsGrupo() {
     const bar = document.getElementById('grupoBar');
     if (!bar) return;
     const curto = (g) => g.replace(/S[ée]rie\s+([A-D])\s+-\s+Grupo\s+(\d+)/i, '$1$2');
+    // Grupo com campeã matemática (classificação oficial da base aberta): 🏆 no chip.
+    const camp = typeof campAnalisarTodos === 'function' ? campAnalisarTodos(st.grupos) : {};
     const chip = (valor, rotulo, titulo) =>
         `<button class="chip-grupo${st.grupo === valor ? ' ativo' : ''}" title="${titulo}"
             onclick="selecionarGrupo('${valor.replace(/'/g, "\\'")}')">${rotulo}</button>`;
     bar.innerHTML = `<span class="chip-label">Grupo:</span>`
         + chip('', 'Todos', 'Insights de todos os grupos')
-        + (st.nomesGrupos || []).map(g => chip(g, curto(g), g)).join('');
+        + (st.nomesGrupos || []).map(g => {
+            const c = camp[g];
+            return c && c.camp
+                ? chip(g, `${curto(g)} 🏆`, `${g} · campeã: ${c.lider.time} (${c.lider.pts} pts)`)
+                : chip(g, curto(g), g);
+        }).join('');
 }
 
 function selecionarGrupo(g) {
