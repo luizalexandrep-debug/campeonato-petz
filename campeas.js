@@ -142,7 +142,60 @@ async function campPreencherBox(idBox, resumo) {
         ${projetadas.length ? `<div class="camp-leg camp-leg-proj">Cartões cinza com borda pontilhada: com os resultados projetados da rodada em andamento a loja se garante campeã. Só vale quando a classificação oficial confirmar.</div>` : ''}
         ${disp.length ? `<div class="camp-disputa"><h4>Em disputa (${disp.length} grupos) — pontos que o líder ainda precisa para garantir o título</h4>
             <div class="camp-lista">${disp.map(n => `<span><b>${campEsc(d.analise[n].lider.time)}</b> ${campEsc(campCurto(n))} · +${d.analise[n].precisa}</span>`).join('')}</div></div>` : ''}
+        ${camps.length ? '<div class="camp-rodape"><button type="button" class="camp-btn-dist">Ver por distrito</button></div>' : ''}
     </section>`;
+    const bt = el.querySelector('.camp-btn-dist');
+    if (bt) bt.onclick = () => campAbrirRankingDistritos(
+        camps.map(n => ({ grupo: n, loja: d.analise[n].lider.time, pts: d.analise[n].lider.pts })),
+        projetadas.map(n => ({ grupo: n, loja: proj[n].lider.time })), d.loja, d.rodada);
+}
+
+/* ---------- ranking de distritos por lojas campeãs ---------- */
+function campRankingDistritos(camps, projetadas, lojaInfo) {
+    const mapa = {};
+    const linha = (c) => {
+        const e = lojaInfo[c.loja] || { distrito: '—', regional: '—' };
+        return (mapa[e.distrito] = mapa[e.distrito] || { distrito: e.distrito, regional: e.regional, camps: [], proj: [] });
+    };
+    camps.forEach(c => linha(c).camps.push(c));
+    projetadas.forEach(c => linha(c).proj.push(c));
+    return Object.values(mapa).sort((a, b) =>
+        b.camps.length - a.camps.length || b.proj.length - a.proj.length || a.distrito.localeCompare(b.distrito, 'pt-BR'));
+}
+
+function campAbrirRankingDistritos(camps, projetadas, lojaInfo, rodada) {
+    const rank = campRankingDistritos(camps, projetadas, lojaInfo);
+    const porReg = {};
+    camps.forEach(c => { const r = (lojaInfo[c.loja] || {}).regional || '—'; porReg[r] = (porReg[r] || 0) + 1; });
+    const medalha = ['🥇', '🥈', '🥉'];
+    // Posição por empate: distritos com o mesmo número de campeãs dividem o lugar.
+    let pos = 0, ant = null;
+    const linhas = rank.map((r, i) => {
+        if (r.camps.length !== ant) { pos = i + 1; ant = r.camps.length; }
+        return `<tr><td class="camp-pos">${pos <= 3 && r.camps.length ? medalha[pos - 1] : pos + 'º'}</td>
+            <td class="l"><b>${campEsc(r.distrito)}</b><small>${campEsc(r.regional)}</small></td>
+            <td class="camp-n">${r.camps.length}${r.proj.length ? `<span class="camp-n-proj" title="Projetadas com os resultados da rodada em andamento">+${r.proj.length}</span>` : ''}</td>
+            <td class="l">${r.camps.map(c => `<span class="camp-loja-chip" title="${campEsc(c.grupo)}">🏆 ${campEsc(c.loja)}</span>`).join('')}${
+                r.proj.map(c => `<span class="camp-loja-chip proj" title="${campEsc(c.grupo)} · projetada">${campEsc(c.loja)}</span>`).join('')}</td></tr>`;
+    }).join('');
+    const fundo = document.createElement('div');
+    fundo.className = 'camp-fundo';
+    fundo.innerHTML = `<div class="camp-modal camp-modal-rank" role="dialog" aria-modal="true">
+        <div class="camp-rank-topo"><b>🏆 Campeãs por distrito</b>
+            <small>${camps.length} campeã${camps.length === 1 ? '' : 's'} · classificação oficial até a rodada ${rodada}</small>
+            <button class="camp-x" title="Fechar">✕</button></div>
+        <div class="camp-rank-reg">${Object.entries(porReg).sort((a, b) => b[1] - a[1])
+            .map(([r, n]) => `<span><b>${n}</b> ${campEsc(r)}</span>`).join('')}</div>
+        <div class="camp-rank-corpo"><table class="camp-rank-tab">
+            <thead><tr><th></th><th class="l">Distrito</th><th>Campeãs</th><th class="l">Lojas</th></tr></thead>
+            <tbody>${linhas}</tbody></table></div>
+        ${projetadas.length ? '<div class="camp-leg camp-leg-proj">Em cinza e com “+N”: lojas que projetam o título com os resultados da rodada em andamento (ainda não oficial).</div>' : ''}
+    </div>`;
+    const sair = () => { fundo.remove(); document.removeEventListener('keydown', esc); };
+    const esc = (e) => { if (e.key === 'Escape') sair(); };
+    fundo.addEventListener('click', (e) => { if (e.target === fundo || e.target.classList.contains('camp-x')) sair(); });
+    document.addEventListener('keydown', esc);
+    document.body.appendChild(fundo);
 }
 
 /* ---------- faixa do grupo (tela de classificação) ---------- */

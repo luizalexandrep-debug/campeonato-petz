@@ -2621,3 +2621,26 @@ body {
 .camp-card.proj .camp-tag { background: #9ca3af; }
 .camp-leg { margin-top: 8px; font-size: .78em; color: #6b7280; }
 .camp-leg-proj { padding: 0 14px 6px; margin-top: 0; }
+
+.camp-rodape { display: flex; justify-content: flex-end; padding: 0 14px 12px; }
+.camp-btn-dist { border: 0; border-radius: 999px; padding: 8px 16px; font-weight: 800; font-size: .85em; color: #fff; cursor: pointer; background: linear-gradient(135deg, #b8860b, #d4a017); box-shadow: 0 2px 8px rgba(184,134,11,.4); }
+.camp-btn-dist:hover { filter: brightness(1.08); }
+.camp-modal-rank { max-width: 720px; text-align: left; padding: 0; display: flex; flex-direction: column; max-height: calc(100vh - 40px); }
+.camp-rank-topo { position: relative; background: linear-gradient(135deg, #b8860b, #d4a017 55%, #f0c94a); color: #fff; padding: 14px 44px 12px 16px; }
+.camp-rank-topo b { font-size: 1.15em; display: block; }
+.camp-rank-topo small { opacity: .92; }
+.camp-x { position: absolute; right: 12px; top: 12px; background: transparent; border: 0; color: #fff; font-size: 1.1em; cursor: pointer; }
+.camp-rank-reg { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #e3e7ef; font-size: .85em; }
+.camp-rank-reg span { background: #fff8dc; border: 1px solid #d4a017; border-radius: 999px; padding: 2px 10px; }
+.camp-rank-corpo { overflow: auto; padding: 4px 8px 8px; }
+.camp-rank-tab { width: 100%; border-collapse: collapse; font-size: .9em; }
+.camp-rank-tab th { text-align: center; padding: 8px; color: #5b6475; font-size: .78em; text-transform: uppercase; letter-spacing: .04em; border-bottom: 2px solid #e3e7ef; }
+.camp-rank-tab td { padding: 8px; border-bottom: 1px solid #eef0f5; vertical-align: top; text-align: center; }
+.camp-rank-tab .l { text-align: left; }
+.camp-rank-tab td.l b { display: block; }
+.camp-rank-tab td.l small { color: #6b7280; }
+.camp-pos { font-size: 1.2em; white-space: nowrap; }
+.camp-n { font-size: 1.3em; font-weight: 900; color: #a87800; white-space: nowrap; }
+.camp-n-proj { font-size: .6em; font-weight: 700; color: #9ca3af; margin-left: 4px; }
+.camp-loja-chip { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; border-radius: 999px; background: #fff8dc; border: 1px solid #d4a017; font-size: .8em; font-weight: 700; }
+.camp-loja-chip.proj { background: #f3f4f6; border: 1px dashed #9ca3af; color: #6b7280; }
