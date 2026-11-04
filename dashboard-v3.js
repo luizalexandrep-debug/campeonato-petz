@@ -1718,6 +1718,7 @@ async function abrirJogosDistrito(regional, distrito) {
         const sem = semResultado(g);
         return {
             minha, adv, gm, gs, sem,
+            intra: lojas.includes(adv),      // as duas lojas são do distrito
             advRegional: lojaReg[adv] || '—',
             advDistrito: lojaDist[adv] || '',
             contraMim: lojaReg[adv] === REGIONAL_DESTAQUE,
@@ -1840,16 +1841,21 @@ async function abrirJogosDistrito(regional, distrito) {
         return res === 'v' ? 'd' : 'v';        // inverte para a ótica da R2
     };
 
+    const botoesSim = (l, i) => l.sem ? '—' : ['v', 'e', 'd'].map(r =>
+        `<button type="button" class="sim-bt ${corDe(r)}" data-sim="${i}:${r}"
+            title="Se a loja ${l.minha} ${r === 'v' ? 'vencer' : r === 'e' ? 'empatar' : 'perder'} este jogo"
+            onclick="event.stopPropagation(); __distSim.set(${i}, '${r}')">${r === 'v' ? 'V' : r === 'e' ? 'E' : 'D'}</button>`).join('');
     const corpo = linhas.map((l, i) => `
-        <tr class="${l.destaque ? 'contra-minha' : ''} linha-jogo"
+        <tr class="${l.destaque ? 'contra-minha' : ''} linha-jogo" data-i="${i}"
             onclick="abrirDetalhesJogo('${l.minha}','${l.adv}')" title="Ver os gols deste jogo">
             <td class="l"><b>${l.minha}</b>${typeof sinoHTML === 'function' ? sinoHTML(l.minha) : ''}</td>
             <td class="c placar ${corDe(l.resultado)}">${l.gm} × ${l.gs}</td>
             <td class="l"><b>${l.adv}</b>
                 ${l.contraMim ? '<span class="tag-minha">sua regional</span>' : ''}
                 <small>${l.advRegional}${l.advDistrito ? ` · ${l.advDistrito}` : ''}</small></td>
-            <td class="c"><span class="res ${corDe(l.resultado)}">${rotulo[l.resultado]}</span></td>
-            <td class="c b">${l.sem ? '—' : '+' + l.pts}</td>
+            <td class="c td-sit"><span class="res ${corDe(l.resultado)}">${rotulo[l.resultado]}</span></td>
+            <td class="c b td-pts">${l.sem ? '—' : '+' + l.pts}</td>
+            <td class="c col-sim">${botoesSim(l, i)}</td>
             <td class="c lupa">🔍</td>
         </tr>`).join('');
 
@@ -1862,6 +1868,8 @@ async function abrirJogosDistrito(regional, distrito) {
                     <b>${distrito}</b>
                     <small>${regional} · ${lojasQueJogam(lojas).length} lojas · rodada ${state.semana}</small>
                 </div>
+                <button class="modal-btn" data-sim-toggle onclick="__distSim.alternar()"
+                    title="Escolha o resultado de cada jogo e veja para quanto vai a pontuação média do distrito">🎯 Simular placares</button>
                 <button class="modal-btn" data-copiar-janela title="Copiar a janela como imagem para compartilhar">📋 Copiar imagem</button>
                 <button class="modal-btn" data-fechar>✕ Fechar</button>
             </div>
@@ -1910,6 +1918,11 @@ async function abrirJogosDistrito(regional, distrito) {
                     </div>
                 </div>` : ''}
                 ${blocoMedia}
+                <div class="md-sim" hidden>
+                    <div class="ms-tit">🎯 Simulação <small>Escolha V, E ou D na coluna “Simular” para mudar o resultado da loja do ${distrito} em cada jogo.</small></div>
+                    <div class="ms-cen"></div>
+                    <div class="ms-grade"></div>
+                </div>
                 <div class="md-legenda">
                     ${souEu ? 'Cores na ótica das suas lojas: verde é bom para você.'
                         : `Cores na <b>sua ótica</b>: como o ${distrito} é adversário,
@@ -1921,6 +1934,7 @@ async function abrirJogosDistrito(regional, distrito) {
                     <thead><tr>
                         <th class="l">Loja do ${distrito}</th><th class="c">Placar</th>
                         <th class="l">Adversário</th><th class="c">Situação</th><th class="c">Pts</th>
+                        <th class="c col-sim">Simular</th>
                         <th class="c"></th>
                     </tr></thead>
                     <tbody>${corpo}</tbody>
@@ -1939,6 +1953,105 @@ async function abrirJogosDistrito(regional, distrito) {
     });
     document.addEventListener('keydown', esc);
     document.body.appendChild(fundo);
+
+    /* ---------- simulação de placares do distrito ---------- */
+    const raiz = fundo.querySelector('.modal-dist');
+    const painel = raiz.querySelector('.md-sim');
+    const sim = {};                                    // índice da linha -> 'v' | 'e' | 'd'
+    const ptsDe = (r) => r === 'v' ? 3 : r === 'e' ? 1 : 0;
+    const ptsAmbos = (r) => r === 'e' ? 2 : 3;          // jogo entre duas lojas do próprio distrito
+    const originais = linhas.map((_, i) => {
+        const tr = raiz.querySelector(`tr[data-i="${i}"]`);
+        return { sit: tr.querySelector('.td-sit').innerHTML, pts: tr.querySelector('.td-pts').innerHTML };
+    });
+    const rk = (typeof calcularRankingSimulado === 'function' && state.historico) ? calcularRankingSimulado() : [];
+    const meu = rk.find(r => r.distrito === distrito);
+    const noEscopo = linhas.map((l, i) => ({ l, i })).filter(x => x.l.destaque && !x.l.sem);
+    // Cenários prontos: valem só para os jogos em destaque (os mesmos da análise acima).
+    const cenarios = souEu ? [
+        { rot: 'Empates viram vitória', f: l => l.resultado === 'e' ? 'v' : null },
+        { rot: 'Derrotas viram empate', f: l => l.resultado === 'd' ? 'e' : null },
+        { rot: 'Derrotas viram vitória', f: l => l.resultado === 'd' ? 'v' : null },
+        { rot: 'Tudo vira vitória', f: l => l.resultado !== 'v' ? 'v' : null }
+    ] : [
+        { rot: 'Jogos que ele vence viram empate', f: l => l.resultado === 'v' ? 'e' : null },
+        { rot: 'Jogos que ele vence viram derrota dele', f: l => l.resultado === 'v' ? 'd' : null },
+        { rot: 'Empates viram derrota dele', f: l => l.resultado === 'e' ? 'd' : null },
+        { rot: 'Tudo vira derrota dele', f: l => l.resultado !== 'd' ? 'd' : null }
+    ];
+    raiz.querySelector('.ms-cen').innerHTML = cenarios.map((c, k) =>
+        `<button type="button" class="sim-cen" onclick="__distSim.cenario(${k})">${c.rot}</button>`).join('')
+        + '<button type="button" class="sim-cen limpar" onclick="__distSim.limpar()">Limpar</button>';
+
+    const atualizar = () => {
+        let dMod = 0, dRank = 0, mudou = 0;
+        linhas.forEach((l, i) => {
+            const tr = raiz.querySelector(`tr[data-i="${i}"]`);
+            const novo = sim[i];
+            const muda = !!novo && !l.sem && novo !== l.resultado;
+            tr.classList.toggle('sim-mudou', muda);
+            tr.querySelectorAll('.sim-bt').forEach(b => b.classList.toggle('on', b.dataset.sim === `${i}:${novo || l.resultado}`));
+            tr.querySelector('.td-sit').innerHTML = muda
+                ? `<span class="res ${corDe(novo)}">${rotulo[novo]}</span><small>simulado · era ${rotulo[l.resultado].toLowerCase()}</small>`
+                : originais[i].sit;
+            tr.querySelector('.td-pts').innerHTML = muda ? `+${ptsDe(novo)}` : originais[i].pts;
+            if (muda) {
+                mudou++;
+                dMod += ptsDe(novo) - l.pts;
+                dRank += l.intra ? ptsAmbos(novo) - ptsAmbos(l.resultado) : ptsDe(novo) - l.pts;
+            }
+        });
+        const ptsSim = ptsDele + dMod;
+        const mediaHoje = nJogosMedia ? ptsDele / nJogosMedia : 0;
+        const mediaSim = nJogosMedia ? ptsSim / nJogosMedia : 0;
+        const dMedia = mediaSim - mediaHoje;
+        const sinal = (v) => (v > 0 ? '+' : '') + f2(v);
+        const cor = (v) => Math.abs(v) < 0.005 ? '' : ((v > 0) === souEu ? 'bom' : 'ruim');   // na sua ótica
+        let html = `
+            <div class="ms-card"><small>Pontuação média por jogo (rodada)</small>
+                <b>${f2(mediaHoje)} <i>→</i> ${f2(mediaSim)}</b>
+                <em class="${cor(dMedia)}">${sinal(dMedia)}</em></div>
+            <div class="ms-card"><small>Pontos da rodada</small>
+                <b>${ptsDele} <i>→</i> ${ptsSim}</b>
+                <em class="${cor(dMod)}">${dMod > 0 ? '+' : ''}${dMod} ${Math.abs(dMod) === 1 ? 'ponto' : 'pontos'}</em></div>`;
+        if (meu) {
+            const novoAcum = (meu.acumConq + dRank) / meu.nLojas;
+            const antes = meu.posicao;
+            const pos = 1 + rk.filter(r => r.distrito !== distrito && (r.simAcum > novoAcum + 1e-9
+                || (Math.abs(r.simAcum - novoAcum) <= 1e-9 && r.distrito.localeCompare(distrito) < 0))).length;
+            const dAcum = novoAcum - meu.simAcum;
+            html += `
+            <div class="ms-card"><small>Acumulado simulado (ranking)</small>
+                <b>${f2(meu.simAcum)} <i>→</i> ${f2(novoAcum)}</b>
+                <em class="${cor(dAcum)}">${sinal(dAcum)}</em></div>
+            <div class="ms-card"><small>Posição no ranking de distritos</small>
+                <b>${antes}º <i>→</i> ${pos}º</b>
+                <em class="${cor(antes - pos)}">${pos === antes ? 'mesma posição' : (pos < antes ? `sobe ${antes - pos}` : `cai ${pos - antes}`)}</em></div>`;
+        }
+        painel.querySelector('.ms-grade').innerHTML = html +
+            `<div class="ms-nota">${mudou ? `${plPt(mudou, 'jogo alterado', 'jogos alterados')}.` : 'Nenhum jogo alterado ainda.'}
+             ${souEu ? '' : `Como ${distrito} é adversário, número menor para ele é bom para você.`}
+             Só simula a rodada ${state.semana}; não grava nada.</div>`;
+    };
+    window.__distSim = {
+        alternar() {
+            const ligada = !raiz.classList.contains('sim-on');
+            raiz.classList.toggle('sim-on', ligada);
+            painel.hidden = !ligada;
+            raiz.querySelector('[data-sim-toggle]').textContent = ligada ? '✕ Sair da simulação' : '🎯 Simular placares';
+            if (ligada) atualizar();
+        },
+        set(i, r) {
+            if (sim[i] === r || (!sim[i] && linhas[i].resultado === r)) delete sim[i]; else sim[i] = r;
+            atualizar();
+        },
+        cenario(k) {
+            Object.keys(sim).forEach(x => delete sim[x]);
+            noEscopo.forEach(({ l, i }) => { const r = cenarios[k].f(l); if (r) sim[i] = r; });
+            atualizar();
+        },
+        limpar() { Object.keys(sim).forEach(x => delete sim[x]); atualizar(); }
+    };
 }
 
 /* Avisos dispensados: guardados por rodada e tipo, só neste navegador. */

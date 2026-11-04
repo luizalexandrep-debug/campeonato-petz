@@ -2644,3 +2644,33 @@ body {
 .camp-n-proj { font-size: .6em; font-weight: 700; color: #9ca3af; margin-left: 4px; }
 .camp-loja-chip { display: inline-block; margin: 2px 4px 2px 0; padding: 2px 8px; border-radius: 999px; background: #fff8dc; border: 1px solid #d4a017; font-size: .8em; font-weight: 700; }
 .camp-loja-chip.proj { background: #f3f4f6; border: 1px dashed #9ca3af; color: #6b7280; }
+
+/* ====== Simulação de placares na janela do distrito ====== */
+.modal-dist .col-sim { display: none; }
+.modal-dist.sim-on .col-sim { display: table-cell; white-space: nowrap; }
+.sim-bt { border: 1px solid #c9d6ee; background: #fff; color: #6b7280; border-radius: 6px; width: 26px; height: 26px; margin: 0 2px; font-weight: 800; font-size: .8em; cursor: pointer; }
+.sim-bt:hover { background: #eef2fa; }
+.sim-bt.on.v { background: #157347; border-color: #157347; color: #fff; }
+.sim-bt.on.d { background: #c0392b; border-color: #c0392b; color: #fff; }
+.sim-bt.on.e { background: #e0a800; border-color: #e0a800; color: #fff; }
+.md-tabela tr.sim-mudou td { background: #eef6ff !important; box-shadow: none; }
+.md-tabela tr.sim-mudou td:first-child { box-shadow: inset 3px 0 0 #2b5aa8; }
+.md-tabela tr.sim-mudou .placar { text-decoration: line-through; opacity: .55; }
+.md-sim { background: #f2f7ff; border: 1px solid #c6dbf2; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+.md-sim[hidden] { display: none; }
+.ms-tit { font-weight: 800; color: #1e4483; margin-bottom: 8px; }
+.ms-tit small { display: block; font-weight: 500; color: #5b6475; }
+.ms-cen { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.sim-cen { border: 1px solid #9db8e0; background: #fff; color: #1e4483; border-radius: 999px; padding: 5px 12px; font-size: .82em; font-weight: 700; cursor: pointer; }
+.sim-cen:hover { background: #dbe8fb; }
+.sim-cen.limpar { border-color: #d5d9e2; color: #6b7280; }
+.ms-grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.ms-card { background: #fff; border: 1px solid #dbe6f7; border-radius: 10px; padding: 8px 10px; }
+.ms-card small { display: block; color: #6b7280; font-size: .72em; text-transform: uppercase; letter-spacing: .03em; font-weight: 700; }
+.ms-card b { display: block; font-size: 1.25em; font-variant-numeric: tabular-nums; }
+.ms-card b i { color: #9ca3af; font-style: normal; font-weight: 400; }
+.ms-card em { font-style: normal; font-weight: 800; font-size: .88em; color: #6b7280; }
+.ms-card em.bom { color: #157347; }
+.ms-card em.ruim { color: #c0392b; }
+.ms-nota { grid-column: 1 / -1; font-size: .8em; color: #5b6475; }
+@media (max-width: 720px) { .ms-grade { grid-template-columns: repeat(2, 1fr); } }
