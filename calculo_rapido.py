@@ -520,12 +520,18 @@ def _ler_longo(linhas, head):
         # Guarda parte e total para fechar o percentual oficial da semana.
         if c_pix is not None and c_base is not None:
             a = acum.setdefault(sigla, [0.0, 0.0])
-            for k, col in ((0, c_pix), (1, c_base)):
+            v = []
+            for col in (c_pix, c_base):
                 try:
-                    if col < len(row) and row[col] not in (None, '-'):
-                        a[k] += float(row[col])
+                    v.append(float(row[col]) if col < len(row) and row[col] not in (None, '-') else 0.0)
                 except (ValueError, TypeError):
-                    pass
+                    v.append(0.0)
+            # O export já veio com "Realizado (R$)" e "Realizado PIX (R$)" TROCADOS
+            # num dia (o PIX maior que a venda total: 85% de share na semana).
+            # O PIX nunca passa da venda, então a parte é sempre o menor valor.
+            parte, base = (min(v), max(v)) if min(v) >= 0 else (v[0], v[1])
+            a[0] += parte
+            a[1] += base
     for sigla, (parte, base) in acum.items():
         if base:
             dados[sigla][CHAVE_TOTAL] = round(parte / base, 6)
