@@ -2696,7 +2696,7 @@ body {
 .modal-fundo.sim-livre .modal-dist {
     pointer-events: auto; position: fixed; margin: 0;
     width: 720px; height: min(86vh, 820px); min-width: 420px; min-height: 300px; max-width: 98vw; max-height: 98vh;
-    display: flex; flex-direction: column; resize: both; overflow: hidden;
+    display: flex; flex-direction: column; resize: both; overflow: hidden; transition: none !important;
     box-shadow: 0 18px 50px rgba(16, 24, 40, .38), 0 0 0 1px rgba(30, 68, 131, .25);
 }
 .modal-fundo.sim-livre .modal-dist .modal-head { cursor: grab; user-select: none; touch-action: none; flex: none; }

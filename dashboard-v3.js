@@ -2094,7 +2094,9 @@ async function abrirJogosDistrito(regional, distrito) {
     const gravarPos = () => {
         try {
             const r = raiz.getBoundingClientRect();
-            localStorage.setItem(CHAVE_POS, JSON.stringify({ left: r.left, top: r.top, w: r.width, h: r.height }));
+            const l = parseFloat(raiz.style.left), t = parseFloat(raiz.style.top);   // o estilo é a fonte da verdade
+            localStorage.setItem(CHAVE_POS, JSON.stringify({
+                left: isNaN(l) ? r.left : l, top: isNaN(t) ? r.top : t, w: r.width, h: r.height }));
         } catch (e) { /* sem storage: volta ao padrão na próxima */ }
     };
     const limitar = (l, t, w, h) => ({
