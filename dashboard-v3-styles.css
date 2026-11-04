@@ -2690,10 +2690,19 @@ body {
 .md-fixo .ms-grade { grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .md-fixo .ms-card { padding: 5px 8px; }
 .md-fixo .ms-card b { font-size: 1.05em; }
-/* Com a simulação ligada a janela vai para a esquerda e a página de trás fica à vista e clicável. */
-.modal-fundo.sim-livre { background: transparent; pointer-events: none; justify-content: flex-start; padding-left: 12px; padding-right: 0; overflow: visible; }
-.modal-fundo.sim-livre .modal-dist { pointer-events: auto; width: clamp(480px, calc(100vw - 640px), 720px); }
-@media (max-width: 1100px) {
-    .modal-fundo.sim-livre { background: rgba(15, 23, 42, .35); pointer-events: auto; justify-content: center; padding: 12px; }
-    .modal-fundo.sim-livre .modal-dist { width: min(880px, 100%); }
+/* Com a simulação ligada a janela vira flutuante: arrasta pelo cabeçalho, redimensiona pelo canto
+   e lembra a posição. A página de trás fica à vista e clicável. */
+.modal-fundo.sim-livre { background: transparent; pointer-events: none; padding: 0; overflow: visible; }
+.modal-fundo.sim-livre .modal-dist {
+    pointer-events: auto; position: fixed; margin: 0;
+    width: 720px; height: min(86vh, 820px); min-width: 420px; min-height: 300px; max-width: 98vw; max-height: 98vh;
+    display: flex; flex-direction: column; resize: both; overflow: hidden;
+    box-shadow: 0 18px 50px rgba(16, 24, 40, .38), 0 0 0 1px rgba(30, 68, 131, .25);
+}
+.modal-fundo.sim-livre .modal-dist .modal-head { cursor: grab; user-select: none; touch-action: none; flex: none; }
+.modal-fundo.sim-livre .modal-dist .modal-head.arrastando { cursor: grabbing; }
+.modal-fundo.sim-livre .modal-dist .modal-corpo { flex: 1; min-height: 0; max-height: none; }
+@media (max-width: 700px) {
+    .modal-fundo.sim-livre { background: rgba(15, 23, 42, .35); pointer-events: auto; padding: 0; }
+    .modal-fundo.sim-livre .modal-dist { position: static; width: 100% !important; height: auto !important; max-height: none; resize: none; }
 }

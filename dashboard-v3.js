@@ -2088,12 +2088,69 @@ async function abrirJogosDistrito(regional, distrito) {
         fundo.classList.remove('sim-livre');
         if (tinha) redesenharPagina();
     };
+    /* ---------- janela flutuante: arrasta pelo cabeçalho, redimensiona pelo canto ---------- */
+    const CHAVE_POS = 'distSimJanela';
+    const lerPos = () => { try { return JSON.parse(localStorage.getItem(CHAVE_POS) || 'null'); } catch (e) { return null; } };
+    const gravarPos = () => {
+        try {
+            const r = raiz.getBoundingClientRect();
+            localStorage.setItem(CHAVE_POS, JSON.stringify({ left: r.left, top: r.top, w: r.width, h: r.height }));
+        } catch (e) { /* sem storage: volta ao padrão na próxima */ }
+    };
+    const limitar = (l, t, w, h) => ({
+        left: Math.min(Math.max(8 - w + 120, l), innerWidth - 120),     // sempre sobra um pedaço para pegar
+        top: Math.min(Math.max(0, t), innerHeight - 60)
+    });
+    const posicionar = (p) => {
+        const w = Math.min(p.w, innerWidth - 16), h = Math.min(p.h, innerHeight - 16);
+        const { left, top } = limitar(p.left, p.top, w, h);
+        Object.assign(raiz.style, { left: left + 'px', top: top + 'px', width: w + 'px', height: h + 'px' });
+    };
+    let ro = null, arrasto = null;
+    const cabeca = raiz.querySelector('.modal-head');
+    const aoMover = (e) => {
+        if (!arrasto) return;
+        const r = raiz.getBoundingClientRect();
+        const { left, top } = limitar(e.clientX - arrasto.dx, e.clientY - arrasto.dy, r.width, r.height);
+        raiz.style.left = left + 'px'; raiz.style.top = top + 'px';
+    };
+    const aoSoltar = () => { if (arrasto) { arrasto = null; cabeca.classList.remove('arrastando'); gravarPos(); } };
+    cabeca.addEventListener('pointerdown', (e) => {
+        if (!raiz.classList.contains('sim-on') || e.target.closest('button')) return;
+        const r = raiz.getBoundingClientRect();
+        arrasto = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+        cabeca.classList.add('arrastando');
+        cabeca.setPointerCapture(e.pointerId);
+        e.preventDefault();
+    });
+    cabeca.addEventListener('pointermove', aoMover);
+    cabeca.addEventListener('pointerup', aoSoltar);
+    cabeca.addEventListener('pointercancel', aoSoltar);
+    // duplo clique no cabeçalho: volta para a posição padrão
+    cabeca.addEventListener('dblclick', (e) => {
+        if (!raiz.classList.contains('sim-on') || e.target.closest('button')) return;
+        try { localStorage.removeItem(CHAVE_POS); } catch (er) { /* ok */ }
+        flutuar(true);
+    });
+    const flutuar = (padrao) => {
+        const salvo = padrao ? null : lerPos();
+        const w = Math.min(720, innerWidth - 16), h = Math.min(Math.round(innerHeight * .86), 820);
+        posicionar(salvo || { left: Math.max(8, (innerWidth - w) / 2), top: Math.max(8, (innerHeight - h) / 4), w, h });
+        if (!ro && typeof ResizeObserver === 'function') {
+            let primeiro = true;
+            ro = new ResizeObserver(() => { if (primeiro) { primeiro = false; return; } if (raiz.classList.contains('sim-on')) gravarPos(); });
+            ro.observe(raiz);
+        }
+    };
+    const desflutuar = () => { ['left', 'top', 'width', 'height'].forEach(k => { raiz.style[k] = ''; }); };
+
     window.__distSim = {
         encerrar,
         alternar() {
             const ligada = !raiz.classList.contains('sim-on');
             raiz.classList.toggle('sim-on', ligada);
-            fundo.classList.toggle('sim-livre', ligada);       // janela à esquerda, página visível
+            fundo.classList.toggle('sim-livre', ligada);       // janela flutuante, página visível
+            if (ligada) flutuar(); else desflutuar();
             painel.hidden = !ligada;
             raiz.querySelector('[data-sim-toggle]').textContent = ligada ? '✕ Sair da simulação' : '🎯 Simular placares';
             if (ligada) atualizar(); else { Object.keys(sim).forEach(x => delete sim[x]); atualizar(); }
