@@ -80,7 +80,14 @@ def _sem_cache_api(resp):
         resp.headers['Pragma'] = 'no-cache'
     elif (request.args.get('v') and resp.status_code == 200
           and request.path.endswith(('.js', '.css'))):
-        resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        # Imutável só quando a versão pedida é a DESTA instância. Durante um deploy,
+        # uma instância antiga pode receber o pedido de um endereço novo e responder
+        # com o arquivo velho; marcado como imutável, ele ficaria preso no navegador
+        # e na CDN por um ano.
+        if request.args.get('v') == _VERSAO_ESTATICOS:
+            resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            resp.headers['Cache-Control'] = 'no-store'
     return resp
 
 # Configuração de caminhos
