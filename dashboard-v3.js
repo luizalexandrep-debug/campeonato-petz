@@ -1692,6 +1692,10 @@ window.missoesCtx = window.missoesCtx || {
 };
 
 async function abrirJogosDistrito(regional, distrito) {
+    // Outra janela de distrito (com simulação) ainda aberta: devolve os placares
+    // originais e fecha, para não misturar duas simulações.
+    if (window.__distSim && window.__distSim.encerrar) window.__distSim.encerrar();
+    document.querySelectorAll('.modal-dist').forEach(m => m.closest('.modal-fundo')?.remove());
     // Missões da rodada, para o sino de cada jogo (carrega uma vez por rodada).
     if (typeof missoesCarregar === 'function' && missoes.semana !== state.semana) {
         await missoesCarregar(state.semana);
@@ -1718,6 +1722,7 @@ async function abrirJogosDistrito(regional, distrito) {
         const sem = semResultado(g);
         return {
             minha, adv, gm, gs, sem,
+            g, orig: g.scoreProjected, souTime1: minha === g.team1,
             intra: lojas.includes(adv),      // as duas lojas são do distrito
             advRegional: lojaReg[adv] || '—',
             advDistrito: lojaDist[adv] || '',
@@ -1874,11 +1879,19 @@ async function abrirJogosDistrito(regional, distrito) {
                 <button class="modal-btn" data-fechar>✕ Fechar</button>
             </div>
             <div class="modal-corpo">
+                <div class="md-fixo">
                 <div class="md-resumo">
-                    <div class="md-card ${souEu ? 'bom' : 'ruim'}"><span>${conta('v')}</span>vencendo</div>
-                    <div class="md-card"><span>${conta('e')}</span>empatando</div>
-                    <div class="md-card ${souEu ? 'ruim' : 'bom'}"><span>${conta('d')}</span>perdendo</div>
-                    <div class="md-card total" title="${plPt(ptsDele, 'ponto', 'pontos')} em ${plPt(nJogosMedia, 'jogo', 'jogos')}"><span>${nJogosMedia ? (ptsDele / nJogosMedia).toFixed(2).replace('.', ',') : '0,00'}</span>pontuação média por jogo</div>
+                    <div class="md-card ${souEu ? 'bom' : 'ruim'}"><span data-k="v">${conta('v')}</span>vencendo</div>
+                    <div class="md-card"><span data-k="e">${conta('e')}</span>empatando</div>
+                    <div class="md-card ${souEu ? 'ruim' : 'bom'}"><span data-k="d">${conta('d')}</span>perdendo</div>
+                    <div class="md-card total" title="${plPt(ptsDele, 'ponto', 'pontos')} em ${plPt(nJogosMedia, 'jogo', 'jogos')}"><span data-k="media">${nJogosMedia ? (ptsDele / nJogosMedia).toFixed(2).replace('.', ',') : '0,00'}</span>pontuação média por jogo<em class="md-delta" data-k="delta"></em></div>
+                </div>
+                <div class="md-sim" hidden>
+                    <div class="ms-topo"><b>🎯 Simulação</b>
+                        <small>V, E ou D na coluna “Simular” = resultado da loja do ${distrito}. A tabela de baixo da página acompanha.</small></div>
+                    <div class="ms-cen"></div>
+                    <div class="ms-grade"></div>
+                </div>
                 </div>
                 ${souEu ? (contra.length ? `
                 <div class="md-alvo">
@@ -1918,11 +1931,6 @@ async function abrirJogosDistrito(regional, distrito) {
                     </div>
                 </div>` : ''}
                 ${blocoMedia}
-                <div class="md-sim" hidden>
-                    <div class="ms-tit">🎯 Simulação <small>Escolha V, E ou D na coluna “Simular” para mudar o resultado da loja do ${distrito} em cada jogo.</small></div>
-                    <div class="ms-cen"></div>
-                    <div class="ms-grade"></div>
-                </div>
                 <div class="md-legenda">
                     ${souEu ? 'Cores na ótica das suas lojas: verde é bom para você.'
                         : `Cores na <b>sua ótica</b>: como o ${distrito} é adversário,
@@ -1943,6 +1951,7 @@ async function abrirJogosDistrito(regional, distrito) {
         </div>`;
 
     const fechar = () => {
+        if (window.__distSim && window.__distSim.encerrar) window.__distSim.encerrar();
         fundo.remove();
         document.removeEventListener('keydown', esc);
         if (typeof misFecharPop === 'function') misFecharPop();
@@ -1955,17 +1964,24 @@ async function abrirJogosDistrito(regional, distrito) {
     document.body.appendChild(fundo);
 
     /* ---------- simulação de placares do distrito ---------- */
+    // A simulação troca o placar dos jogos NO RESUMO da rodada (e devolve ao
+    // fechar), então tudo o que lê o resumo — ranking de distritos, regionais,
+    // insights — recalcula junto, inclusive o distrito do adversário.
     const raiz = fundo.querySelector('.modal-dist');
     const painel = raiz.querySelector('.md-sim');
     const sim = {};                                    // índice da linha -> 'v' | 'e' | 'd'
     const ptsDe = (r) => r === 'v' ? 3 : r === 'e' ? 1 : 0;
-    const ptsAmbos = (r) => r === 'e' ? 2 : 3;          // jogo entre duas lojas do próprio distrito
+    const placarDe = (l, r) => {                       // placar fictício (6 gols) para o resultado da loja do distrito
+        const meu = r === 'v' ? 4 : r === 'e' ? 3 : 2;
+        return l.souTime1 ? `${meu} x ${6 - meu}` : `${6 - meu} x ${meu}`;
+    };
     const originais = linhas.map((_, i) => {
         const tr = raiz.querySelector(`tr[data-i="${i}"]`);
         return { sit: tr.querySelector('.td-sit').innerHTML, pts: tr.querySelector('.td-pts').innerHTML };
     });
-    const rk = (typeof calcularRankingSimulado === 'function' && state.historico) ? calcularRankingSimulado() : [];
-    const meu = rk.find(r => r.distrito === distrito);
+    const temRanking = typeof calcularRankingSimulado === 'function' && !!state.historico;
+    const rk0 = temRanking ? calcularRankingSimulado() : [];      // antes de qualquer alteração
+    const meu0 = rk0.find(r => r.distrito === distrito);
     const noEscopo = linhas.map((l, i) => ({ l, i })).filter(x => x.l.destaque && !x.l.sem);
     // Cenários prontos: valem só para os jogos em destaque (os mesmos da análise acima).
     const cenarios = souEu ? [
@@ -1983,63 +1999,104 @@ async function abrirJogosDistrito(regional, distrito) {
         `<button type="button" class="sim-cen" onclick="__distSim.cenario(${k})">${c.rot}</button>`).join('')
         + '<button type="button" class="sim-cen limpar" onclick="__distSim.limpar()">Limpar</button>';
 
+    // Redesenha a página (tabelas de baixo) uma vez por quadro, se a home estiver aberta.
+    let agendado = false;
+    const redesenharPagina = () => {
+        if (agendado) return;
+        agendado = true;
+        requestAnimationFrame(() => {
+            agendado = false;
+            if (typeof loadRankingDashboard === 'function' && document.querySelector('#gamesContainer .home-sections')) {
+                loadRankingDashboard();
+            }
+        });
+    };
+    const aplicarNoResumo = () => {
+        linhas.forEach((l, i) => {
+            const novo = sim[i];
+            l.g.scoreProjected = (novo && !l.sem && novo !== l.resultado) ? placarDe(l, novo) : l.orig;
+        });
+    };
+    const setTxt = (k, v) => { const el = raiz.querySelector(`[data-k="${k}"]`); if (el) el.textContent = v; };
+
     const atualizar = () => {
-        let dMod = 0, dRank = 0, mudou = 0;
+        let dMod = 0, mudou = 0;
+        const cont = { v: 0, e: 0, d: 0 };
         linhas.forEach((l, i) => {
             const tr = raiz.querySelector(`tr[data-i="${i}"]`);
             const novo = sim[i];
             const muda = !!novo && !l.sem && novo !== l.resultado;
+            const efetivo = muda ? novo : l.resultado;
+            if (efetivo !== 'sem') cont[efetivo]++;
             tr.classList.toggle('sim-mudou', muda);
-            tr.querySelectorAll('.sim-bt').forEach(b => b.classList.toggle('on', b.dataset.sim === `${i}:${novo || l.resultado}`));
+            tr.querySelectorAll('.sim-bt').forEach(b => b.classList.toggle('on', b.dataset.sim === `${i}:${efetivo}`));
             tr.querySelector('.td-sit').innerHTML = muda
                 ? `<span class="res ${corDe(novo)}">${rotulo[novo]}</span><small>simulado · era ${rotulo[l.resultado].toLowerCase()}</small>`
                 : originais[i].sit;
             tr.querySelector('.td-pts').innerHTML = muda ? `+${ptsDe(novo)}` : originais[i].pts;
-            if (muda) {
-                mudou++;
-                dMod += ptsDe(novo) - l.pts;
-                dRank += l.intra ? ptsAmbos(novo) - ptsAmbos(l.resultado) : ptsDe(novo) - l.pts;
-            }
+            if (muda) { mudou++; dMod += ptsDe(novo) - l.pts; }
         });
+        aplicarNoResumo();                              // placares simulados valem para a página inteira
         const ptsSim = ptsDele + dMod;
         const mediaHoje = nJogosMedia ? ptsDele / nJogosMedia : 0;
         const mediaSim = nJogosMedia ? ptsSim / nJogosMedia : 0;
         const dMedia = mediaSim - mediaHoje;
         const sinal = (v) => (v > 0 ? '+' : '') + f2(v);
         const cor = (v) => Math.abs(v) < 0.005 ? '' : ((v > 0) === souEu ? 'bom' : 'ruim');   // na sua ótica
+        // cartões fixos do topo, ao vivo
+        setTxt('v', cont.v); setTxt('e', cont.e); setTxt('d', cont.d);
+        setTxt('media', f2(mediaSim));
+        const dl = raiz.querySelector('[data-k="delta"]');
+        dl.textContent = mudou ? `${sinal(dMedia)} vs ${f2(mediaHoje)}` : '';
+        dl.className = 'md-delta ' + (mudou ? cor(dMedia) : '');
+
         let html = `
-            <div class="ms-card"><small>Pontuação média por jogo (rodada)</small>
-                <b>${f2(mediaHoje)} <i>→</i> ${f2(mediaSim)}</b>
-                <em class="${cor(dMedia)}">${sinal(dMedia)}</em></div>
             <div class="ms-card"><small>Pontos da rodada</small>
                 <b>${ptsDele} <i>→</i> ${ptsSim}</b>
                 <em class="${cor(dMod)}">${dMod > 0 ? '+' : ''}${dMod} ${Math.abs(dMod) === 1 ? 'ponto' : 'pontos'}</em></div>`;
-        if (meu) {
-            const novoAcum = (meu.acumConq + dRank) / meu.nLojas;
-            const antes = meu.posicao;
-            const pos = 1 + rk.filter(r => r.distrito !== distrito && (r.simAcum > novoAcum + 1e-9
-                || (Math.abs(r.simAcum - novoAcum) <= 1e-9 && r.distrito.localeCompare(distrito) < 0))).length;
-            const dAcum = novoAcum - meu.simAcum;
+        if (meu0) {
+            const rk1 = calcularRankingSimulado();      // já com os placares simulados
+            const meu1 = rk1.find(r => r.distrito === distrito) || meu0;
+            const dAcum = meu1.simAcum - meu0.simAcum;
+            const antes = meu0.posicao, pos = meu1.posicao;
             html += `
-            <div class="ms-card"><small>Acumulado simulado (ranking)</small>
-                <b>${f2(meu.simAcum)} <i>→</i> ${f2(novoAcum)}</b>
+            <div class="ms-card"><small>Acumulado (ranking)</small>
+                <b>${f2(meu0.simAcum)} <i>→</i> ${f2(meu1.simAcum)}</b>
                 <em class="${cor(dAcum)}">${sinal(dAcum)}</em></div>
-            <div class="ms-card"><small>Posição no ranking de distritos</small>
+            <div class="ms-card"><small>Posição no ranking</small>
                 <b>${antes}º <i>→</i> ${pos}º</b>
                 <em class="${cor(antes - pos)}">${pos === antes ? 'mesma posição' : (pos < antes ? `sobe ${antes - pos}` : `cai ${pos - antes}`)}</em></div>`;
+            // outros distritos que mudaram de posição por causa da simulação
+            const mexidos = rk1.filter(r => r.distrito !== distrito && (rk0.find(o => o.distrito === r.distrito) || {}).posicao !== r.posicao)
+                .map(r => ({ d: r.distrito, de: rk0.find(o => o.distrito === r.distrito).posicao, para: r.posicao }));
+            if (mexidos.length) {
+                html += `<div class="ms-nota"><b>Outros distritos que mexem de posição:</b> ${mexidos
+                    .sort((x, y) => x.para - y.para)
+                    .map(m => `${m.d} ${m.de}º → ${m.para}º`).join(' · ')}</div>`;
+            }
         }
         painel.querySelector('.ms-grade').innerHTML = html +
             `<div class="ms-nota">${mudou ? `${plPt(mudou, 'jogo alterado', 'jogos alterados')}.` : 'Nenhum jogo alterado ainda.'}
              ${souEu ? '' : `Como ${distrito} é adversário, número menor para ele é bom para você.`}
-             Só simula a rodada ${state.semana}; não grava nada.</div>`;
+             A simulação vale para a página toda e some ao fechar a janela; não grava nada.</div>`;
+        redesenharPagina();
+    };
+    const encerrar = () => {
+        const tinha = Object.keys(sim).length > 0 || raiz.classList.contains('sim-on');
+        Object.keys(sim).forEach(x => delete sim[x]);
+        linhas.forEach(l => { l.g.scoreProjected = l.orig; });
+        fundo.classList.remove('sim-livre');
+        if (tinha) redesenharPagina();
     };
     window.__distSim = {
+        encerrar,
         alternar() {
             const ligada = !raiz.classList.contains('sim-on');
             raiz.classList.toggle('sim-on', ligada);
+            fundo.classList.toggle('sim-livre', ligada);       // janela à esquerda, página visível
             painel.hidden = !ligada;
             raiz.querySelector('[data-sim-toggle]').textContent = ligada ? '✕ Sair da simulação' : '🎯 Simular placares';
-            if (ligada) atualizar();
+            if (ligada) atualizar(); else { Object.keys(sim).forEach(x => delete sim[x]); atualizar(); }
         },
         set(i, r) {
             if (sim[i] === r || (!sim[i] && linhas[i].resultado === r)) delete sim[i]; else sim[i] = r;

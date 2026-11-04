@@ -2674,3 +2674,26 @@ body {
 .ms-card em.ruim { color: #c0392b; }
 .ms-nota { grid-column: 1 / -1; font-size: .8em; color: #5b6475; }
 @media (max-width: 720px) { .ms-grade { grid-template-columns: repeat(2, 1fr); } }
+
+/* ====== Simulação do distrito: cartões fixos + janela à esquerda ====== */
+.md-fixo { position: sticky; top: calc(-1 * var(--s-4)); z-index: 1; background: var(--surface); padding: var(--s-4) 0 6px; margin-top: calc(-1 * var(--s-4)); }
+.md-fixo .md-resumo { margin-bottom: 8px; }
+.md-card.total { position: relative; }
+.md-delta { display: block; font-style: normal; font-size: .85em; font-weight: 800; color: #6b7280; min-height: 1.1em; }
+.md-delta.bom { color: #157347; }
+.md-delta.ruim { color: #c0392b; }
+.md-fixo .md-sim { margin-bottom: 4px; padding: 8px 12px; }
+.ms-topo { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 6px; }
+.ms-topo b { color: #1e4483; }
+.ms-topo small { color: #5b6475; font-size: .78em; }
+.md-fixo .ms-cen { margin-bottom: 6px; }
+.md-fixo .ms-grade { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.md-fixo .ms-card { padding: 5px 8px; }
+.md-fixo .ms-card b { font-size: 1.05em; }
+/* Com a simulação ligada a janela vai para a esquerda e a página de trás fica à vista e clicável. */
+.modal-fundo.sim-livre { background: transparent; pointer-events: none; justify-content: flex-start; padding-left: 12px; padding-right: 0; overflow: visible; }
+.modal-fundo.sim-livre .modal-dist { pointer-events: auto; width: clamp(500px, calc(100vw - 520px), 760px); }
+@media (max-width: 1100px) {
+    .modal-fundo.sim-livre { background: rgba(15, 23, 42, .35); pointer-events: auto; justify-content: center; padding: 12px; }
+    .modal-fundo.sim-livre .modal-dist { width: min(880px, 100%); }
+}
