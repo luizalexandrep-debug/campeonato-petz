@@ -2840,6 +2840,23 @@ def _calcular_summary(semana):
                                 f"então esse gol não está sendo disputado."
                 })
 
+    # Share PIX lançado com 'Realizado PIX' maior que 'Realizado': colunas trocadas.
+    # O cálculo já corrige, mas quem lançou precisa saber que a planilha saiu fora do padrão.
+    for arquivo, sem in memoria.items():
+        for rotulo, chave in (("semana anterior", "anterior"), ("semana atual", "atual")):
+            m = (sem.get("meta") or {}).get(chave) or {}
+            if m.get("linhas_invertidas"):
+                datas = ", ".join(f"{d} ({n})" for d, n in sorted(m.get("datas", {}).items()))
+                avisos.append({
+                    "tipo": "outros",
+                    "indicador": cr.nome_limpo(arquivo),
+                    "semana": rotulo,
+                    "mensagem": (f"⚠️ {cr.nome_limpo(arquivo)} ({rotulo}): {m['linhas_invertidas']} linha(s) com o "
+                                 f"PIX maior que a venda total — parece lançamento com as colunas 'Realizado (R$)' e "
+                                 f"'Realizado PIX (R$)' trocadas. Dias: {datas}. O app já inverteu esses valores "
+                                 f"para calcular o share; confira a planilha de origem.")
+                })
+
     elim = sorted(cr.lojas_eliminadas())
     if elim:
         no_calendario = [e for e in elim

@@ -419,6 +419,7 @@ def _achar_cabecalho(linhas):
 # jogo relia 24 vezes o mesmo conteúdo.
 _ARQ_CACHE = {}
 _ARQ_CACHE_MAX = 48
+_META_ARQ = {}      # observações por arquivo lido (ex.: colunas de PIX trocadas)
 
 
 def _guardar_cache(chave, dados):
@@ -498,8 +499,10 @@ def _achar_cabecalho_longo(linhas):
     return None
 
 
-def _ler_longo(linhas, head):
-    """Monta {loja: {dia: valor}} a partir do layout longo."""
+def _ler_longo(linhas, head, meta=None):
+    """Monta {loja: {dia: valor}} a partir do layout longo.
+    `meta` (dict opcional) recebe observações sobre o arquivo, como linhas com
+    PIX maior que a venda (colunas trocadas no lançamento)."""
     idx, c_sig, c_dat, c_val, c_pix, c_base = head
     dados, acum = {}, {}
     for row in linhas[idx + 1:]:
@@ -532,6 +535,11 @@ def _ler_longo(linhas, head):
             parte, base = (min(v), max(v)) if min(v) >= 0 else (v[0], v[1])
             a[0] += parte
             a[1] += base
+            if meta is not None and v[0] > v[1] and v[1] >= 0:
+                meta['linhas_invertidas'] = meta.get('linhas_invertidas', 0) + 1
+                dd = row[c_dat]
+                rotulo = f"{dd:%d/%m}" if hasattr(dd, 'strftime') else str(dd)
+                meta.setdefault('datas', {})[rotulo] = meta.setdefault('datas', {}).get(rotulo, 0) + 1
     for sigla, (parte, base) in acum.items():
         if base:
             dados[sigla][CHAVE_TOTAL] = round(parte / base, 6)
@@ -568,8 +576,11 @@ def _carregar_arquivo_bruto(file_path):
     if idx_head is None or not col_dias:
         # Sem colunas de dia: pode ser o layout longo (data numa coluna).
         longo = _achar_cabecalho_longo(linhas)
+        meta = {}
         if longo:
-            dados = _ler_longo(linhas, longo)
+            dados = _ler_longo(linhas, longo, meta)
+        if chave is not None:
+            _META_ARQ[chave] = meta
         _guardar_cache(chave, dados)
         return dados
 
@@ -621,6 +632,7 @@ def carregar_tudo(semana_anterior, semana_atual):
             fp = slots.get(semana_type)
             if fp:
                 memoria[arquivo][semana_type] = _carregar_arquivo(fp)
+                memoria[arquivo].setdefault("meta", {})[semana_type] = _META_ARQ.get(_chave_arquivo(fp)) or {}
     return memoria
 
 
