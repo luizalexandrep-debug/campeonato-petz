@@ -2777,3 +2777,10 @@ body {
 .camp-card.super .camp-premio { color: #5b21b6; font-size: 1.05em; }
 .camp-card.super .camp-tag { background: linear-gradient(135deg, #7c3aed, #b8860b); }
 .camp-selo { position: absolute; left: 0; top: 0; background: linear-gradient(135deg, #7c3aed, #b8860b); color: #fff; font-weight: 900; font-size: .68em; letter-spacing: .06em; padding: 3px 12px 3px 10px; border-radius: 10px 0 12px 0; }
+
+/* Molduras por série dentro do box de campeãs */
+.camp-series { display: flex; flex-wrap: wrap; gap: 26px 16px; padding: 26px 14px 14px; }
+.camp-serie { position: relative; min-width: 0; border: 2px solid #d4a017; border-radius: 16px; padding: 22px 10px 10px; background: rgba(255, 248, 220, .35); }
+.camp-serie-tit { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #7a5a00, #b8860b 45%, #d4a017); color: #fff; font-weight: 900; letter-spacing: .04em; padding: 3px 22px; border-radius: 999px; white-space: nowrap; box-shadow: 0 2px 6px rgba(184,134,11,.4); }
+.camp-serie-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+@media (max-width: 720px) { .camp-serie { flex: 1 1 100% !important; } }

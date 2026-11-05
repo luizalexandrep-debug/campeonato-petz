@@ -146,15 +146,28 @@ async function campPreencherBox(idBox, resumo) {
             ${premio ? `<span class="camp-premio" title="Prêmio do regulamento, dividido entre os colaboradores CLT da loja">💰 ${real(premio)}${proj ? ' <i>se confirmar</i>' : ''}</span>` : ''}
             <span class="camp-tag">${l.pts} pts · ${proj ? 'projetado, aguarda confirmação' : 'título garantido'}</span></div>`;
     };
-    const cartoes = camps.map(n => cartao(n, d.analise[n], false)).join('')
-        + projetadas.map(n => cartao(n, proj[n], true)).join('');
+    // Cartões agrupados por série (moldura com o nome da série no alto), em ordem de grupo.
+    const itens = camps.map(n => ({ n, html: cartao(n, d.analise[n], false) }))
+        .concat(projetadas.map(n => ({ n, html: cartao(n, proj[n], true) })));
+    const porSerie = {};
+    itens.forEach(it => {
+        const sm = it.n.match(/S[ée]rie\s+([A-D])/i), gm = it.n.match(/Grupo\s+(\d+)/i);
+        const serie = sm ? sm[1].toUpperCase() : '?';
+        (porSerie[serie] = porSerie[serie] || []).push({ ...it, g: gm ? +gm[1] : 0 });
+    });
+    const cartoes = Object.keys(porSerie).sort().map(serie => {
+        const lista = porSerie[serie].sort((x, y) => x.g - y.g);
+        return `<div class="camp-serie" style="flex: ${lista.length} 1 ${lista.length * 230}px">
+            <span class="camp-serie-tit">Série ${serie}</span>
+            <div class="camp-serie-cards">${lista.map(x => x.html).join('')}</div></div>`;
+    }).join('');
     const prox = disp[0] && d.analise[disp[0]];
     el.innerHTML = `
     <section class="camp-box">
         <div class="camp-head">🏆 Campeãs do campeonato
             <small>· ${camps.length} de ${nomes.length} grupos decididos${projetadas.length
                 ? ` · ${projetadas.length} projetada${projetadas.length > 1 ? 's' : ''}` : ''} (classificação oficial até a rodada ${d.rodada})</small></div>
-        ${cartoes ? `<div class="camp-cards">${cartoes}</div>`
+        ${cartoes ? `<div class="camp-series">${cartoes}</div>`
             : `<div class="camp-vazio">Nenhuma loja campeã matemática ainda.${prox
                 ? `<br>Mais perto: <b>${campEsc(prox.lider.time)}</b> (${campEsc(campCurto(disp[0]))}), precisa de +${prox.precisa} pts.` : ''}</div>`}
         ${projetadas.length ? `<div class="camp-leg camp-leg-proj">Cartões cinza com borda pontilhada: com os resultados projetados da rodada em andamento a loja se garante campeã. Só vale quando a classificação oficial confirmar.</div>` : ''}
