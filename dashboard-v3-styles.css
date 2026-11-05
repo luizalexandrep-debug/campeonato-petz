@@ -2768,3 +2768,12 @@ body {
 .sup-m-rodape small { color: #6b7280; font-size: .78em; }
 .ms-premio { grid-column: 1 / -1; background: #fff8dc; border: 1px solid #d4a017; border-radius: 10px; padding: 6px 10px; color: #6b4d00; font-size: .85em; }
 @media (max-width: 720px) { .sup-pod { grid-template-columns: 1fr; } }
+
+/* Prêmio e selo de Super Campeão nos cartões de campeãs */
+.camp-premio { display: block; margin-top: 6px; font-weight: 800; color: #7a5a00; font-size: .95em; }
+.camp-premio i { font-style: normal; font-weight: 600; font-size: .78em; color: #6b7280; }
+.camp-card.proj .camp-premio { color: #6b7280; }
+.camp-card.super { border: 2px solid #8a5cf6; background: linear-gradient(160deg, #fff1b8, #fff8dc 55%, #fff); box-shadow: 0 0 0 3px rgba(212,160,23,.35), 0 6px 18px rgba(184,134,11,.35); padding-top: 26px; }
+.camp-card.super .camp-premio { color: #5b21b6; font-size: 1.05em; }
+.camp-card.super .camp-tag { background: linear-gradient(135deg, #7c3aed, #b8860b); }
+.camp-selo { position: absolute; left: 0; top: 0; background: linear-gradient(135deg, #7c3aed, #b8860b); color: #fff; font-weight: 900; font-size: .68em; letter-spacing: .06em; padding: 3px 12px 3px 10px; border-radius: 10px 0 12px 0; }

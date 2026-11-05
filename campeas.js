@@ -119,13 +119,31 @@ async function campPreencherBox(idBox, resumo) {
     const projetadas = nomes.filter(projeta);
     const disp = nomes.filter(n => !d.analise[n].camp && !projeta(n))
         .sort((a, b) => d.analise[a].precisa - d.analise[b].precisa);
+    // Prêmios do regulamento (seção 8): campeão de grupo por série, e o Super Campeão da série (maior pontuação entre os campeões).
+    const PREMIO_CAMP = { A: 60000, B: 50000, C: 45000, D: 40000 };
+    const PREMIO_SUPER = { A: 90000, B: 75000, C: 67500, D: 60000 };
+    const real = (v) => 'R$ ' + v.toLocaleString('pt-BR');
+    let corridas = null;
+    try { if (typeof supCalcular === 'function') corridas = supCalcular(d.grupos, d.grupos); } catch (e) { corridas = null; }
+    const ehSuper = (n) => {
+        const sm = n.match(/S[ée]rie\s+([A-D])/i);
+        const S = corridas && sm && corridas[sm[1].toUpperCase()];
+        const g = S && S.grupos.find(x => x.nome === n);
+        return !!(g && g.garantido);
+    };
     const cartao = (n, a, proj) => {
         const l = a.lider, e = d.loja[l.time];
-        return `<div class="camp-card${proj ? ' proj' : ''}"${proj
-            ? ` title="Com os resultados projetados da rodada em andamento, ${campEsc(l.time)} garante o título. Ainda não é oficial."` : ''}>
-            <span class="camp-tr">🏆</span>
+        const sm = n.match(/S[ée]rie\s+([A-D])/i), serie = sm ? sm[1].toUpperCase() : '';
+        const sup = !proj && ehSuper(n);
+        const premio = sup ? PREMIO_SUPER[serie] : PREMIO_CAMP[serie];
+        return `<div class="camp-card${proj ? ' proj' : ''}${sup ? ' super' : ''}"${proj
+            ? ` title="Com os resultados projetados da rodada em andamento, ${campEsc(l.time)} garante o título. Ainda não é oficial."`
+            : (sup ? ` title="Super Campeão da Série ${serie}: melhor pontuação entre os campeões da série"` : '')}>
+            ${sup ? '<span class="camp-selo">⭐ SUPER CAMPEÃO</span>' : ''}
+            <span class="camp-tr">${sup ? '👑' : '🏆'}</span>
             <b>${campEsc(l.time)}</b><small>${campEsc(n)}</small>
             ${e ? `<small>${campEsc(e.distrito)} · ${campEsc(e.regional)}</small>` : ''}
+            ${premio ? `<span class="camp-premio" title="Prêmio do regulamento, dividido entre os colaboradores CLT da loja">💰 ${real(premio)}${proj ? ' <i>se confirmar</i>' : ''}</span>` : ''}
             <span class="camp-tag">${l.pts} pts · ${proj ? 'projetado, aguarda confirmação' : 'título garantido'}</span></div>`;
     };
     const cartoes = camps.map(n => cartao(n, d.analise[n], false)).join('')
