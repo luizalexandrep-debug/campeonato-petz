@@ -84,7 +84,7 @@ function supCalcular(grupos, gruposProj) {
 function supSituacaoLoja(S, g, r) {
     const max = campMaximo(r);
     if (r === g.lid || r.time === g.lid.time) {
-        return { camp: g.lid.pts > g.tetoSeg ? 'garantido' : 'lidera', super: g.garantido ? 'garantido' : (g.chance ? 'lidera' : 'fora'), max };
+        return { camp: g.lid.pts > g.tetoSeg ? 'garantido' : 'lidera', super: g.garantido ? 'garantido' : (g === S.lider ? 'lidera' : (g.chance ? 'pode' : 'fora')), max };
     }
     const camp = max > g.lid.pts ? 'pode' : max === g.lid.pts ? 'desempate' : 'fora';
     // para ser Super precisa ser campeã do grupo E alcançar o melhor líder dos outros grupos
