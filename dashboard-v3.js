@@ -2066,6 +2066,17 @@ async function abrirJogosDistrito(regional, distrito) {
             <div class="ms-card"><small>Posição no ranking</small>
                 <b>${antes}º <i>→</i> ${pos}º</b>
                 <em class="${cor(antes - pos)}">${pos === antes ? 'mesma posição' : (pos < antes ? `sobe ${antes - pos}` : `cai ${pos - antes}`)}</em></div>`;
+            // Prêmio dos distritais (regulamento: 1º R$ 15 mil, 2º e 3º R$ 10 mil)
+            if (typeof supPremioDistrito === 'function') {
+                const pa = supPremioDistrito(antes), pn = supPremioDistrito(pos);
+                const real = (v) => 'R$ ' + v.toLocaleString('pt-BR');
+                let msg = '';
+                if (pn > 0 && pa === 0) msg = `🏅 <b>Entra no pódio dos distritais</b> — o ${pos}º lugar paga <b>${real(pn)}</b> (hoje o ${antes}º não ganha).`;
+                else if (pn === 0 && pa > 0) msg = `⚠️ <b>Sai do pódio dos distritais</b> — perde <b>${real(pa)}</b> (hoje o ${antes}º lugar paga).`;
+                else if (pn > 0 && pn !== pa) msg = `🏅 Muda o prêmio dos distritais: ${antes}º ${real(pa)} → ${pos}º <b>${real(pn)}</b>.`;
+                else if (pn > 0) msg = `🏅 Segue no pódio dos distritais: ${pos}º lugar, ${real(pn)}.`;
+                if (msg) html += `<div class="ms-premio">${msg}</div>`;
+            }
             // outros distritos que mudaram de posição por causa da simulação
             const mexidos = rk1.filter(r => r.distrito !== distrito && (rk0.find(o => o.distrito === r.distrito) || {}).posicao !== r.posicao)
                 .map(r => ({ d: r.distrito, de: rk0.find(o => o.distrito === r.distrito).posicao, para: r.posicao }));
@@ -2616,6 +2627,7 @@ function loadRankingDashboard() {
     // ---------- Render ----------
     container.innerHTML = `
     ${blocoAvisos}
+    <div id="superBox"></div>
     <div id="campBox"></div>
     <div class="home-sections">
         ${secaoBase}
@@ -2642,6 +2654,7 @@ function loadRankingDashboard() {
 
     <div class="linha-cheia">${insightsR2Html(simulado)}</div>`;
     if (typeof campPreencherBox === 'function') campPreencherBox('campBox', state.gamesSummary);
+    if (typeof supPreencher === 'function') supPreencher('superBox', state.gamesSummary, () => (state.historico ? calcularRankingSimulado() : []));
 }
 
 function loadGamesFromSummary(regional) {

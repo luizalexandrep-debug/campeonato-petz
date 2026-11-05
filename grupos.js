@@ -610,6 +610,7 @@ function montarChipsGrupo() {
     const curto = (g) => g.replace(/S[ée]rie\s+([A-D])\s+-\s+Grupo\s+(\d+)/i, '$1$2');
     // Grupo com campeã matemática (classificação oficial da base aberta): 🏆 no chip.
     const camp = typeof campAnalisarTodos === 'function' ? campAnalisarTodos(st.grupos) : {};
+    const lidSerie = typeof supLideresDeSerie === 'function' ? supLideresDeSerie(st.grupos) : {};
     const chip = (valor, rotulo, titulo) =>
         `<button class="chip-grupo${st.grupo === valor ? ' ativo' : ''}" title="${titulo}"
             onclick="selecionarGrupo('${valor.replace(/'/g, "\\'")}')">${rotulo}</button>`;
@@ -617,9 +618,11 @@ function montarChipsGrupo() {
         + chip('', 'Todos', 'Insights de todos os grupos')
         + (st.nomesGrupos || []).map(g => {
             const c = camp[g];
+            const estrela = lidSerie[g] ? ' ⭐' : '';
+            const dicaSuper = lidSerie[g] ? ` · lidera a corrida do Super Campeão da Série ${lidSerie[g]}` : '';
             return c && c.camp
-                ? chip(g, `${curto(g)} 🏆`, `${g} · campeã: ${c.lider.time} (${c.lider.pts} pts)`)
-                : chip(g, curto(g), g);
+                ? chip(g, `${curto(g)} 🏆${estrela}`, `${g} · campeã: ${c.lider.time} (${c.lider.pts} pts)${dicaSuper}`)
+                : chip(g, `${curto(g)}${estrela}`, `${g}${dicaSuper}`);
         }).join('');
 }
 
@@ -1636,6 +1639,9 @@ function render() {
 
     const semTabela = !st.grupo;
     // Campeã matemática: sempre sobre a classificação oficial, nunca a projeção.
+    // Super Campeão da série: precisa dos OUTROS grupos da série, então projeta todos com o mesmo placar da tela.
+    const gruposSuperProj = (typeof supAplicar === 'function' && st.semana && !semDados)
+        ? supAplicar(st.grupos, proj) : null;
     const analiseSim = st.grupo && typeof campAnalisarGrupo === 'function' ? campAnalisarGrupo(simulado) : null;
     const analiseCamp = st.grupo && typeof campAnalisarGrupo === 'function'
         ? campAnalisarGrupo(st.grupos[st.grupo]) : null;
@@ -1659,6 +1665,7 @@ function render() {
         então a coluna simulada repete a classificação atual. Ela passa a se mover
         assim que o primeiro dia da rodada for lançado.</div>` : ''}
     ${semTabela ? `<div class="alerta-info">Escolha um grupo acima para ver as duas tabelas lado a lado.</div>` : `
+    ${typeof supFaixaGrupo === 'function' ? supFaixaGrupo(st.grupo, st.grupos, gruposSuperProj) : ''}
     ${typeof campFaixaGrupo === 'function' ? `<div class="comparacao camp-faixas">
         <div class="camp-faixa-card">${campFaixaGrupo(analiseCamp, '📋 Oficial · até a rodada ' + st.rodadaBase)}</div>
         <div class="camp-faixa-card">${st.semana && !semDados
