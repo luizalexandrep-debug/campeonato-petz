@@ -147,8 +147,20 @@ async function campPreencherBox(idBox, resumo) {
             <span class="camp-tag">${l.pts} pts · ${proj ? 'projetado, aguarda confirmação' : 'título garantido'}</span></div>`;
     };
     // Cartões agrupados por série (moldura com o nome da série no alto), em ordem de grupo.
+    // Grupo ainda sem campeã (e sem projeção de título): cartão "em disputa", para o grupo manter o seu lugar na série.
+    const cartaoDisputa = (n) => {
+        const a = d.analise[n], l = a.lider, e = d.loja[l.time];
+        const sm = n.match(/S[ée]rie\s+([A-D])/i), serie = sm ? sm[1].toUpperCase() : '';
+        return `<div class="camp-card disp" title="Ainda sem campeã definida: ${campEsc(l.time)} lidera e precisa de +${a.precisa} pts para garantir o título.">
+            <span class="camp-tr">⏳</span>
+            <b>${campEsc(l.time)}</b><small>${campEsc(n)}</small>
+            ${e ? `<small>${campEsc(e.distrito)} · ${campEsc(e.regional)}</small>` : ''}
+            ${PREMIO_CAMP[serie] ? `<span class="camp-premio">💰 ${real(PREMIO_CAMP[serie])} <i>se confirmar</i></span>` : ''}
+            <span class="camp-tag">${l.pts} pts · em disputa · precisa de +${a.precisa}</span></div>`;
+    };
     const itens = camps.map(n => ({ n, html: cartao(n, d.analise[n], false) }))
-        .concat(projetadas.map(n => ({ n, html: cartao(n, proj[n], true) })));
+        .concat(projetadas.map(n => ({ n, html: cartao(n, proj[n], true) })))
+        .concat(disp.map(n => ({ n, html: cartaoDisputa(n) })));
     const porSerie = {};
     itens.forEach(it => {
         const sm = it.n.match(/S[ée]rie\s+([A-D])/i), gm = it.n.match(/Grupo\s+(\d+)/i);
@@ -170,9 +182,9 @@ async function campPreencherBox(idBox, resumo) {
         ${cartoes ? `<div class="camp-series">${cartoes}</div>`
             : `<div class="camp-vazio">Nenhuma loja campeã matemática ainda.${prox
                 ? `<br>Mais perto: <b>${campEsc(prox.lider.time)}</b> (${campEsc(campCurto(disp[0]))}), precisa de +${prox.precisa} pts.` : ''}</div>`}
-        ${projetadas.length ? `<div class="camp-leg camp-leg-proj">Cartões cinza com borda pontilhada: com os resultados projetados da rodada em andamento a loja se garante campeã. Só vale quando a classificação oficial confirmar.</div>` : ''}
-        ${disp.length ? `<div class="camp-disputa"><h4>Em disputa (${disp.length} grupos) — pontos que o líder ainda precisa para garantir o título</h4>
-            <div class="camp-lista">${disp.map(n => `<span><b>${campEsc(d.analise[n].lider.time)}</b> ${campEsc(campCurto(n))} · +${d.analise[n].precisa}</span>`).join('')}</div></div>` : ''}
+        ${projetadas.length || disp.length ? `<div class="camp-leg camp-leg-proj">${projetadas.length
+            ? 'Cartões cinza com borda pontilhada: com os resultados projetados da rodada em andamento a loja se garante campeã. Só vale quando a classificação oficial confirmar.' : ''}
+            ${disp.length ? ' Cartões claros com ⏳: grupo ainda sem campeã; aparece o líder atual e quanto ele precisa para garantir o título.' : ''}</div>` : ''}
         ${camps.length ? '<div class="camp-rodape"><button type="button" class="camp-btn-dist">Ver por distrito</button></div>' : ''}
     </section>`;
     const bt = el.querySelector('.camp-btn-dist');

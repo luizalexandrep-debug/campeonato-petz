@@ -2784,3 +2784,9 @@ body {
 .camp-serie-tit { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #7a5a00, #b8860b 45%, #d4a017); color: #fff; font-weight: 900; letter-spacing: .04em; padding: 3px 22px; border-radius: 999px; white-space: nowrap; box-shadow: 0 2px 6px rgba(184,134,11,.4); }
 .camp-serie-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
 @media (max-width: 720px) { .camp-serie { flex: 1 1 100% !important; } }
+
+.camp-card.disp { border: 2px dotted #c9ccd3; background: #fafafa; opacity: .85; }
+.camp-card.disp b { color: #6b7280; }
+.camp-card.disp .camp-tr { filter: grayscale(1); opacity: .6; }
+.camp-card.disp .camp-premio { color: #6b7280; }
+.camp-card.disp .camp-tag { background: #b8bcc6; }
