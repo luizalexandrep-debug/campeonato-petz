@@ -282,6 +282,10 @@ def detectar_tipo(file_path):
     """
     if file_path is None:
         return "R$"
+    # Share é sempre percentual. A detecção pelos valores/formatos pode errar num arquivo lançado
+    # à mão (um número acima de 1 vira 'R$' e o share aparece em moeda), então o nome manda.
+    if re.search(r'SHARE', _nfc(Path(str(file_path)).name), re.I):
+        return "%"
     chave = _chave_arquivo(file_path)
     if chave is not None and chave in _TIPO_ARQ_CACHE:
         return _TIPO_ARQ_CACHE[chave]

@@ -1051,7 +1051,7 @@ const inverterPlacarTexto = (t) => {
 function tabelaIndicadorJogo(loja, dados, indicador, adversario, marcou = null) {
     if (!dados) return '<div class="table-container"><div class="table-title">Sem dados</div></div>';
 
-    const tipo = dados.atual?.type || dados.anterior?.type || 'R$';
+    const tipo = tipoDoIndicador(indicador, dados, adversario);
     const ehPct = tipo === '%';
     const f = (v) => fmtValor(v, tipo);
     const ant = dados.anterior?.dias || {};

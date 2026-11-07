@@ -119,7 +119,7 @@ function expTexto(ctx, txt, x, y, { fonte, cor, align }) {
 // Reúne o que precisa ser desenhado para um indicador, aplicando as MESMAS
 // regras de agregação e evolução do dashboard.
 function expLinhasIndicador(dados, dadosAdv, indicador) {
-    const tipo = dados.atual?.type || dados.anterior?.type || 'R$';
+    const tipo = typeof tipoDoIndicador === 'function' ? tipoDoIndicador(indicador, dados, dadosAdv) : (dados.atual?.type || dados.anterior?.type || 'R$');
     const ehPct = tipo === '%';
     const diasAnt = dados.anterior?.dias || {};
     const diasAtu = dados.atual?.dias || {};

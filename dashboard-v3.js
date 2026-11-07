@@ -328,7 +328,7 @@ function calcularPlacarLocal(dadosTeam1, dadosTeam2, hojeIdx = null, team1 = nul
 
         // Indicador percentual (share) agrega por MÉDIA dos dias com dado;
         // monetário agrega por SOMA. Tipo vem detectado do backend.
-        const ehPct = (dados1.atual?.type || dados1.anterior?.type) === '%';
+        const ehPct = tipoDoIndicador(indicador, dados1, dados2) === '%';
         const agregar = (diasObj) => {
             if (ehPct) return agregarPct(diasObj, diasAcontar);
             return diasAcontar.map(d => (diasObj || {})[d] || 0).reduce((a, b) => a + b, 0);
@@ -3130,7 +3130,7 @@ function criarTabelaIndicador(teamName, dados, indicador, dadosAdversario = null
     const diasOrdenados = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
     // Tipo detectado automaticamente no backend ('%' ou 'R$')
-    const tipo = dados.atual?.type || dados.anterior?.type || 'R$';
+    const tipo = tipoDoIndicador(indicador, dados, dadosAdversario);
     const ehPct = tipo === '%';
     const fmt = (v) => formatarValor(v, tipo);
     // Percentual agrega por MÉDIA dos dias com dado; monetário por SOMA

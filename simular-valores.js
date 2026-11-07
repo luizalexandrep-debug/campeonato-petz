@@ -73,7 +73,7 @@ function simTotal(loja, ind, bloco, ehPct, slot, original) {
    anterior. No critério 'nível' vence o maior valor da semana. */
 function simVencedor(ind, d1, d2, t1, t2) {
     if (!d1 || !d2) return 0;
-    const ehPct = (d1.atual?.type || d1.anterior?.type || 'R$') === '%';
+    const ehPct = (typeof tipoDoIndicador === 'function' ? tipoDoIndicador(ind, d1, d2) : (d1.atual?.type || d1.anterior?.type || 'R$')) === '%';
     const nivel = simCriterio(ind, d1) === 'nivel';
     const at1 = simTotal(t1, ind, d1.atual, ehPct, 'atual');
     const at2 = simTotal(t2, ind, d2.atual, ehPct, 'atual');

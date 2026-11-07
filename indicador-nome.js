@@ -33,6 +33,19 @@ function criterioDoNome(nome) {
     return marcadorDoNome(nome) === 'nivel' ? 'nivel' : 'evolucao';
 }
 
+/* Tipo do indicador ('%' ou 'R$'). Share é SEMPRE percentual: o nome decide, para um share não
+   virar moeda se a leitura do arquivo (que olha os valores) errar numa loja ou numa instância.
+   Sem 'share' no nome, vale o tipo detectado pelo backend em qualquer dos blocos recebidos
+   (o da própria loja, o do adversário...), em vez de decidir por loja. */
+function tipoDoIndicador(indicador, ...blocos) {
+    if (/share/i.test(String(indicador || ''))) return '%';
+    for (const b of blocos) {
+        const t = b && (b.atual?.type || b.anterior?.type);
+        if (t) return t;
+    }
+    return 'R$';
+}
+
 /* Nome do indicador para exibição: sem a extensão e sem os marcadores. */
 function nomeIndicador(arquivo) {
     let n = String(arquivo || '').normalize('NFC').replace(/\.xlsx$/i, '');
